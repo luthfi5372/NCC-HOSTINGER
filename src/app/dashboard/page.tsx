@@ -713,7 +713,7 @@ export default function DashboardPage() {
            <p className="text-slate-400 font-medium">Semua berita dan update penting dari panitia akan muncul di sini.</p>
         </div>
       ) : (
-        announcements.map((item) => (
+        announcements.map((item: any) => (
           <div key={item.id} className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden hover:shadow-2xl hover:shadow-slate-50 transition-all group relative">
             <div className="flex flex-col md:flex-row items-stretch">
               {/* Media Section (if exists) */}
