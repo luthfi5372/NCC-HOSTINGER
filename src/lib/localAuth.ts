@@ -441,7 +441,7 @@ export async function getGlobalStats(): Promise<GlobalStats> {
   }
 }
 
-// Announcements Mock
+// Announcements Mock (Trigger Refresh for Vercel)
 export type Announcement = {
   id: string;
   title: string;
