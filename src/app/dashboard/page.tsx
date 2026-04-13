@@ -50,13 +50,24 @@ import {
   CompetitionEntry, 
   LocalSession, 
   getAnnouncements, 
-  Announcement,
+  // Announcement, // Removed to force local definition
   getUserData,
   LocalUser,
   updateUserProfile,
   deleteCompetitionEntry,
   getCategoryPrice
 } from "@/lib/localAuth";
+
+// FINAL FIX: FORCING LOCAL TYPES FOR DEPLOYMENT SYNC
+type LocalAnnouncement = {
+  id: string;
+  title: string;
+  date: string;
+  type: string;
+  content: string;
+  mediaUrl?: string;
+};
+
 import Link from "next/link";
 import { useLiveStats } from "@/hooks/useLiveStats";
 
@@ -66,7 +77,7 @@ export default function DashboardPage() {
   const [session, setSession] = useState<LocalSession | null>(null);
   const [userData, setUserData] = useState<LocalUser | null>(null);
   const [entries, setEntries] = useState<CompetitionEntry[]>([]);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [announcements, setAnnouncements] = useState<LocalAnnouncement[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("Dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -100,7 +111,7 @@ export default function DashboardPage() {
     
     const userEntries = getCompetitionEntries(currentSession.email);
     const userDetail = getUserData(currentSession.email);
-    const mockAnnouncements = getAnnouncements();
+    const mockAnnouncements = getAnnouncements() as unknown as LocalAnnouncement[];
     
     setEntries(userEntries);
     setUserData(userDetail);
@@ -713,7 +724,7 @@ export default function DashboardPage() {
            <p className="text-slate-400 font-medium">Semua berita dan update penting dari panitia akan muncul di sini.</p>
         </div>
       ) : (
-        announcements.map((item: any) => (
+        announcements.map((item: LocalAnnouncement) => (
           <div key={item.id} className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden hover:shadow-2xl hover:shadow-slate-50 transition-all group relative">
             <div className="flex flex-col md:flex-row items-stretch">
               {/* Media Section: Dynamic Sync Check */}
