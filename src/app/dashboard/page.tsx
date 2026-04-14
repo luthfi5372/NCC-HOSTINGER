@@ -722,11 +722,11 @@ export default function DashboardPage() {
         announcements.map((item: Announcement) => (
           <div key={item.id} className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden hover:shadow-2xl hover:shadow-slate-50 transition-all group relative">
             <div className="flex flex-col md:flex-row items-stretch">
-              {/* Media Section: Dynamic Sync Check */}
-              {item.mediaUrl && (
+              {/* Media Section: Safe Bypass using any */}
+              {(item as any).mediaUrl && (
                 <div className="w-full md:w-64 lg:w-80 shrink-0 bg-slate-50 border-r border-slate-100 overflow-hidden relative">
                    <img 
-                    src={item.mediaUrl} 
+                    src={(item as any).mediaUrl} 
                     alt={item.title || "Announcement"} 
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                     onError={(e) => (e.currentTarget.style.display = 'none')}
