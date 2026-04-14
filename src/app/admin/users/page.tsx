@@ -310,16 +310,3 @@ export default function UserManagement() {
     </div>
   );
 }
-
-      {/* Loading Overlay */}
-      {isLoadingDetails && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-white/40 backdrop-blur-sm">
-           <div className="flex flex-col items-center">
-              <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
-              <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Fetching Profile...</p>
-           </div>
-        </div>
-      )}
-    </div>
-  );
-}

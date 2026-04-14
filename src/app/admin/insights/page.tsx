@@ -152,10 +152,6 @@ export default function AdminInsights() {
 
       </div>
     </div>
-  );
-}
-
-      </div>
     </div>
   );
 }

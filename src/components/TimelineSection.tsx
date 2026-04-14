@@ -62,6 +62,7 @@ export default function TimelineSection() {
   // Spring physics for smooth drawing and particle movement
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 80, damping: 20 });
 
+  return (
     <section ref={containerRef} id="jadwal" className="relative z-10 py-12 px-6 sm:px-10 bg-transparent overflow-hidden h-full flex flex-col justify-center">
       <div className="text-center mb-10 md:mb-16 max-w-2xl mx-auto shrink-0">
         <h2
