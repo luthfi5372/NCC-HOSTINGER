@@ -18,68 +18,59 @@ const ParallaxBackground = dynamic(() => import("@/components/ParallaxBackground
 
 export default function Home() {
   return (
-    <div className="h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth hide-scrollbar selection:bg-indigo-500/30">
+    <div className="relative scroll-smooth selection:bg-indigo-500/30 bg-slate-50">
       <ParallaxBackground />
       <Navbar />
-      <SpeedMonitor />
+      <div className="fixed bottom-6 right-6 z-[60]">
+        <SpeedMonitor />
+      </div>
 
       <main className="w-full">
-        {/* Slide 1: Hero */}
-        <section className="h-screen w-full snap-start snap-always shrink-0">
+        {/* Section 1: Hero */}
+        <section id="beranda" className="min-h-screen w-full flex items-center justify-center">
           <HeroSection />
         </section>
 
-        {/* Slide 2: Features */}
-        <section className="h-screen w-full snap-start snap-always shrink-0 flex items-center justify-center">
+        {/* Section 2: Features */}
+        <section className="min-h-screen w-full py-24 flex items-center justify-center">
           <FeatureGrid />
         </section>
 
-        {/* Slide 3: Gallery */}
-        <section className="h-screen w-full snap-start snap-always shrink-0 flex items-center justify-center">
+        {/* Section 3: Gallery */}
+        <section className="min-h-screen w-full py-24 flex items-center justify-center">
           <GallerySection />
         </section>
 
-        {/* Slide 4: Categories */}
-        <section className="h-screen w-full snap-start snap-always shrink-0 flex items-center justify-center">
+        {/* Section 4: Categories */}
+        <section id="kategori" className="min-h-screen w-full py-24 flex items-center justify-center">
           <CategoryCards />
         </section>
 
-        {/* Slide 5: Pricing */}
-        <section className="h-screen w-full snap-start snap-always shrink-0 flex items-center justify-center">
+        {/* Section 5: Pricing */}
+        <section className="min-h-screen w-full py-24 flex items-center justify-center">
           <PricingSection />
         </section>
 
-        {/* Slide 6: Indonesia Map */}
-        <section className="h-screen w-full snap-start snap-always shrink-0 flex items-center justify-center">
+        {/* Section 6: Indonesia Map */}
+        <section className="min-h-screen w-full py-24 flex items-center justify-center">
           <IndonesiaMap />
         </section>
 
-        {/* Slide 7: Timeline */}
-        <section className="h-screen w-full snap-start snap-always shrink-0 flex items-center justify-center overflow-hidden">
+        {/* Section 7: Timeline */}
+        <section id="jadwal" className="min-h-screen w-full py-24 flex items-center justify-center">
           <TimelineSection />
         </section>
 
-        {/* Slide 8: FAQ */}
-        <section className="h-screen w-full snap-start snap-always shrink-0 flex items-center justify-center overflow-hidden">
+        {/* Section 8: FAQ */}
+        <section id="faq" className="min-h-screen w-full py-24 flex items-center justify-center">
           <FAQSection />
         </section>
 
-        {/* Slide 9: Footer */}
-        <section className="h-screen w-full snap-start snap-always shrink-0 flex flex-col justify-end">
+        {/* Section 9: Footer */}
+        <section id="kontak" className="w-full">
           <Footer />
         </section>
       </main>
-
-      {/* Global CSS for snap container to hide default scrollbar if needed */}
-      <style jsx global>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </div>
   );
 }
