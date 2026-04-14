@@ -331,7 +331,5 @@ export default function AdminMessages() {
         </div>
 
       </div>
-    </div>
-    </div>
   );
 }
