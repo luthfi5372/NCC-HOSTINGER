@@ -57,9 +57,7 @@ export default function Home() {
         </section>
 
         {/* Section 7: Timeline */}
-        <section id="jadwal" className="min-h-screen w-full py-24 flex items-center justify-center">
-          <TimelineSection />
-        </section>
+        <TimelineSection />
 
         {/* Section 8: FAQ */}
         <section id="faq" className="min-h-screen w-full py-24 flex items-center justify-center">

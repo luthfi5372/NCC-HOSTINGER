@@ -56,14 +56,14 @@ export default function TimelineSection() {
   // Track scroll within this section
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start center", "end 80%"]
+    offset: ["start 80%", "end 20%"]
   });
 
   // Spring physics for smooth drawing and particle movement
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 80, damping: 20 });
 
   return (
-    <section ref={containerRef} id="jadwal" className="relative z-10 px-6 sm:px-10 bg-transparent overflow-hidden flex flex-col pt-20 pb-12">
+    <section ref={containerRef} id="jadwal" className="relative z-10 min-h-screen w-full py-24 px-6 sm:px-10 bg-transparent overflow-hidden flex flex-col items-center justify-center">
       <div className="text-center mb-10 md:mb-16 max-w-2xl mx-auto shrink-0">
         <h2
           className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-slate-900"
