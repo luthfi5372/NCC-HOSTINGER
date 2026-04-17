@@ -7,7 +7,7 @@ export type LocalUser = {
   email: string;
   password: string;
   fullName: string;
-  school: string;
+  school?: string;
   role: "user" | "admin";
   phone?: string;
   avatar?: string;
@@ -87,9 +87,9 @@ function generateId() {
 
 export function registerUser(data: {
   fullName: string;
-  school: string;
   email: string;
   password: string;
+  school?: string;
 }): AuthResult {
   const users = getUsers();
   if (users.find((u) => u.email === data.email.toLowerCase())) {
@@ -101,7 +101,7 @@ export function registerUser(data: {
     email: data.email.toLowerCase(),
     password: data.password,
     fullName: data.fullName.trim(),
-    school: data.school.trim(),
+    school: (data.school || "").trim(),
     role: "user",
     createdAt: new Date().toISOString(),
   };
@@ -387,7 +387,8 @@ export type GlobalStats = {
   provinces: number;
   categories: number;
   categoryBreakdown: Record<string, number>;
-  provinceStats: Record<string, number>;
+  regionStats: Record<string, number>;
+  detailedProvinceStats?: Record<string, number>;
 };
 
 const BASE_PARTICIPANTS = 0;
@@ -399,11 +400,12 @@ export async function getGlobalStats(): Promise<GlobalStats> {
 
   if (typeof window === "undefined") {
     return { 
-      totalParticipants: 600, 
-      provinces: 18, 
+      totalParticipants: 0, 
+      provinces: 0, 
       categories: 4, 
       categoryBreakdown: {}, 
-      provinceStats: { "Jawa": 600 } 
+      regionStats: { "Jawa": 0 },
+      detailedProvinceStats: {}
     };
   }
 
@@ -423,15 +425,13 @@ export async function getGlobalStats(): Promise<GlobalStats> {
     entries.forEach(e => {
       if (breakdown[e.category] !== undefined) {
         breakdown[e.category]++;
-      } else {
-        breakdown[e.category] = 1;
       }
     });
 
     const totalLocal = entries.length;
     
     // Provinces stats: base distribution + local entries
-    const provinceBreakdown: Record<string, number> = {
+    const regionBreakdown: Record<string, number> = {
       "Sumatera": 0,
       "Jawa": 0,
       "Kalimantan": 0,
@@ -440,12 +440,17 @@ export async function getGlobalStats(): Promise<GlobalStats> {
       "Bali & Nusa Tenggara": 0
     };
 
-    // Add local entries to "Jawa" (shorthand for local mock)
-    entries.forEach(() => {
-      provinceBreakdown["Jawa"]++;
+    const detailedStats: Record<string, number> = {};
+
+    // Add local entries
+    entries.forEach((e) => {
+      regionBreakdown["Jawa"]++; // Mocking region
+      if (e.city) {
+        const prov = e.city.toUpperCase();
+        detailedStats[prov] = (detailedStats[prov] || 0) + 1;
+      }
     });
 
-    // Provinces count: base + unique cities in local entries (mocked provinces)
     const uniqueCities = new Set(entries.map(e => e.city.toLowerCase())).size;
 
     return {
@@ -453,7 +458,8 @@ export async function getGlobalStats(): Promise<GlobalStats> {
       provinces: BASE_PROVINCES + uniqueCities,
       categories: 4,
       categoryBreakdown: breakdown,
-      provinceStats: provinceBreakdown
+      regionStats: regionBreakdown,
+      detailedProvinceStats: detailedStats
     };
   } catch {
     return { 
@@ -461,7 +467,8 @@ export async function getGlobalStats(): Promise<GlobalStats> {
       provinces: 0, 
       categories: 4, 
       categoryBreakdown: {},
-      provinceStats: {}
+      regionStats: {},
+      detailedProvinceStats: {}
     };
   }
 }

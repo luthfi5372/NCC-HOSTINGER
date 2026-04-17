@@ -148,23 +148,32 @@ export default function IndonesiaMap() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { stats } = useLiveStats();
-  const particles = useRef<Particle[]>([]);
+  const particles = useRef<(Particle & { province?: string })[]>([]);
   const mouse = useRef({ x: null as number | null, y: null as number | null, radius: 100 });
+  const [hoveredInfo, setHoveredInfo] = useState<{ name: string; count: number } | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
 
+  const PROVINCE_LIST = [
+    "DI. ACEH", "SUMATERA UTARA", "SUMATERA BARAT", "RIAU", "JAMBI", "SUMATERA SELATAN", "BENGKULU", "LAMPUNG", 
+    "BANGKA BELITUNG", "KEPULAUAN RIAU", "DKI JAKARTA", "JAWA BARAT", "JAWA TENGAH", "DAERAH ISTIMEWA YOGYAKARTA", 
+    "JAWA TIMUR", "PROBANTEN", "BALI", "NUSATENGGARA BARAT", "NUSA TENGGARA TIMUR", "KALIMANTAN BARAT", 
+    "KALIMANTAN TENGAH", "KALIMANTAN SELATAN", "KALIMANTAN TIMUR", "KALIMANTAN UTARA", "SULAWESI UTARA", 
+    "SULAWESI TENGAH", "SULAWESI SELATAN", "SULAWESI TENGGARA", "GORONTALO", "SULAWESI BARAT", "MALUKU", 
+    "MALUKU UTARA", "IRIAN JAYA BARAT", "IRIAN JAYA TENGAH", "IRIAN JAYA TIMUR"
+  ];
+
   // Color palette based on activity level
-  const getRegionColor = (count: number) => {
-    if (count > 250) return "#312e81"; // Indigo 900
-    if (count > 150) return "#3730a3"; // Indigo 800
-    if (count > 80) return "#1e293b";  // Slate 800
-    return "#475569"; // Slate 600 (Darker than before)
+  const getProvinceColor = (count: number) => {
+    if (count > 50) return "#4f46e5"; // Active Indigo
+    if (count > 20) return "#6366f1"; // Medium Indigo
+    if (count > 0) return "#818cf8";  // Low Indigo
+    return "#475569"; // Inactive Slate
   };
 
   useEffect(() => {
     const updateSize = () => {
       if (containerRef.current) {
         const { width } = containerRef.current.getBoundingClientRect();
-        // Use integer dimensions to avoid subpixel issues in getImageData
         const w = Math.floor(width);
         const h = Math.floor(width * 0.45);
         setDimensions({ width: w, height: h });
@@ -181,31 +190,26 @@ export default function IndonesiaMap() {
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
-    const spacing = 7; // Density of the dots
-    const p: Particle[] = [];
+    const spacing = 7;
+    const p: any[] = [];
 
-    // Setup Projection
     const projection = d3.geoMercator()
       .fitSize([dimensions.width, dimensions.height], geoData as any);
     
     const pathGenerator = d3.geoPath().projection(projection);
 
-    // Initial Masking: Draw GeoJSON to temp canvas to sample points
     const tempCanvas = document.createElement("canvas");
     tempCanvas.width = dimensions.width;
     tempCanvas.height = dimensions.height;
     const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
     if (!tempCtx) return;
 
-    // Draw ALL features to the temp canvas, using color to encode the region
     (geoData as any).features.forEach((feature: any) => {
       const provinceName = feature.properties.Propinsi;
-      const regionName = PROVINCE_TO_REGION[provinceName] || "Unknown";
-      const regionIndex = REGIONS.indexOf(regionName);
+      const provIndex = PROVINCE_LIST.indexOf(provinceName);
       
-      // Encode region index in the color (R channel)
-      // +1 to distinguish from background
-      tempCtx.fillStyle = `rgb(${regionIndex + 1}, 0, 0)`;
+      // Store province index in G channel
+      tempCtx.fillStyle = `rgb(0, ${provIndex + 1}, 0)`;
       
       const pathStr = pathGenerator(feature);
       if (pathStr) {
@@ -216,17 +220,18 @@ export default function IndonesiaMap() {
 
     const imageData = tempCtx.getImageData(0, 0, dimensions.width, dimensions.height).data;
     
-    // Sample points ONCE
     for (let y = 0; y < dimensions.height; y += spacing) {
       for (let x = 0; x < dimensions.width; x += spacing) {
         const index = (y * dimensions.width + x) * 4;
-        const rValue = imageData[index]; // Region index + 1
+        const gValue = imageData[index + 1]; // Province index + 1
         
-        if (rValue > 0) {
-          const regionName = REGIONS[rValue - 1] || "Unknown";
-          const activityCount = stats.provinceStats[regionName] || 0;
-          const color = getRegionColor(activityCount);
-          p.push(new Particle(x, y, color));
+        if (gValue > 0) {
+          const provName = PROVINCE_LIST[gValue - 1] || "Unknown";
+          const activityCount = stats.detailedProvinceStats[provName] || 0;
+          const color = getProvinceColor(activityCount);
+          const particle = new Particle(x, y, color);
+          (particle as any).province = provName;
+          p.push(particle);
         }
       }
     }
@@ -236,14 +241,35 @@ export default function IndonesiaMap() {
     let animationFrameId: number;
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Global Composite mapping for "Source Over" blending
       ctx.globalCompositeOperation = "source-over";
       
+      let topHovered: string | null = null;
+      let minDistance = 100;
+
       particles.current.forEach(particle => {
         particle.update(mouse.current);
         particle.draw(ctx);
+
+        // Detect hover for info box
+        if (mouse.current.x !== null && mouse.current.y !== null) {
+          const dx = mouse.current.x - particle.baseX;
+          const dy = mouse.current.y - particle.baseY;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < 40 && dist < minDistance) {
+            minDistance = dist;
+            topHovered = (particle as any).province;
+          }
+        }
       });
+
+      if (topHovered) {
+        setHoveredInfo({
+          name: topHovered,
+          count: stats.detailedProvinceStats[topHovered] || 0
+        });
+      } else {
+        setHoveredInfo(null);
+      }
       
       animationFrameId = requestAnimationFrame(animate);
     };
@@ -260,6 +286,7 @@ export default function IndonesiaMap() {
     const handleMouseLeave = () => {
       mouse.current.x = null;
       mouse.current.y = null;
+      setHoveredInfo(null);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -342,6 +369,32 @@ export default function IndonesiaMap() {
                 className="w-full h-full cursor-none"
               />
               
+              {/* Dynamic Province Tooltip */}
+              <AnimatePresence>
+                {hoveredInfo && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                    className="absolute bottom-10 right-10 bg-white/90 backdrop-blur-xl border border-indigo-100 p-6 rounded-[2rem] shadow-2xl z-30 min-w-[200px]"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                        <MapPin size={18} />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Detail Wilayah</div>
+                        <div className="text-sm font-bold text-slate-900">{hoveredInfo.name}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <div className="text-3xl font-black text-slate-900 leading-none">{hoveredInfo.count}</div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Pendaftar Terdeteksi</div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Region Indicators */}
               <div className="absolute top-6 left-8 flex items-center gap-3 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full border border-slate-100 shadow-sm">
                 <MapIcon size={14} className="text-indigo-600" />

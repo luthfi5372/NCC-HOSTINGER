@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import { UserPlus, Send, CheckCircle, ArrowRight } from "lucide-react";
 
+import Link from "next/link";
+
 export default function RegistrationSection() {
   return (
     <section id="daftar" className="relative z-10 py-24 px-6 sm:px-10 bg-transparent">
@@ -11,21 +13,21 @@ export default function RegistrationSection() {
           className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-slate-900"
           style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))" }}
         >
-          Pendaftaran
+          Proses Pendaftaran
         </h2>
         <p className="text-slate-600 text-lg">
           Tiga langkah mudah untuk bergabung di panggung nasional.
         </p>
       </div>
 
-      {/* Steps */}
+      {/* Steps omitted for brevity - keeping them in the actual file */}
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
         {[
           {
             step: 1,
             icon: UserPlus,
             title: "Buat Akun",
-            desc: "Daftarkan diri atau tim kamu. Isi data lengkap dan pilih kategori lomba.",
+            desc: "Daftarkan diri dengan Username, Email, dan Password dalam sekejap.",
             color: "text-blue-600",
             bg: "bg-blue-50",
             border: "border-blue-100",
@@ -33,8 +35,8 @@ export default function RegistrationSection() {
           {
             step: 2,
             icon: Send,
-            title: "Kirim Karya",
-            desc: "Unggah karya tulis, video presentasi, atau materi sesuai kategori yang dipilih.",
+            title: "Pilih Lomba",
+            desc: "Masuk ke dashboard dan pilih kategori kompetisi yang ingin kamu ikuti.",
             color: "text-indigo-600",
             bg: "bg-indigo-50",
             border: "border-indigo-100",
@@ -43,7 +45,7 @@ export default function RegistrationSection() {
             step: 3,
             icon: CheckCircle,
             title: "Konfirmasi",
-            desc: "Verifikasi pendaftaran kamu. Pantau status dan jadwal melalui dashboard.",
+            desc: "Lengkapi data sekolah dan WhatsApp di dashboard untuk verifikasi pendaftaran.",
             color: "text-emerald-600",
             bg: "bg-emerald-50",
             border: "border-emerald-100",
@@ -70,7 +72,6 @@ export default function RegistrationSection() {
               }}
               className="bg-white border border-slate-200 rounded-3xl p-8 text-center relative shadow-sm cursor-pointer hover:shadow-xl hover:shadow-slate-200/50 transition-shadow"
             >
-              {/* Step number */}
               <div className={`absolute -top-4 -right-2 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold border bg-white ${item.border} ${item.color}`} style={{ fontFamily: "var(--font-display)" }}>
                 {item.step}
               </div>
@@ -90,65 +91,27 @@ export default function RegistrationSection() {
         })}
       </div>
 
-      {/* Registration form placeholder */}
+      {/* NEW CTA BUTTON (Replaces old form) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ delay: 0.4 }}
-        className="max-w-lg mx-auto"
+        className="max-w-lg mx-auto text-center"
       >
-        <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-lg shadow-indigo-100/50">
-          <h3
-            className="text-xl font-bold text-slate-900 mb-6 text-center"
-            style={{ fontFamily: "var(--font-display)" }}
+        <div className="relative inline-block group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+          <Link 
+            href="/daftar"
+            className="relative flex items-center gap-3 px-12 py-6 bg-indigo-600 text-white rounded-[2.2rem] font-black text-xs uppercase tracking-[3px] shadow-2xl hover:bg-slate-900 transition-all active:scale-95"
           >
-            Mulai Pendaftaran
-          </h3>
-
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs text-slate-600 mb-1.5 block font-medium">
-                Nama Lengkap
-              </label>
-              <input
-                type="text"
-                placeholder="Masukkan nama lengkap"
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-slate-600 mb-1.5 block font-medium">
-                Email
-              </label>
-              <input
-                type="email"
-                placeholder="email@contoh.com"
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-slate-600 mb-1.5 block font-medium">
-                Kategori Lomba
-              </label>
-              <select className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
-                <option value="">Pilih kategori...</option>
-                <option value="speech">Speech Contest</option>
-                <option value="lkti">LKTI</option>
-                <option value="mtq">MTQ</option>
-                <option value="mipa">Olimpiade MIPA</option>
-              </select>
-            </div>
-
-            <button
-              className="w-full mt-4 px-6 py-4 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 transition-all duration-300 shadow-md"
-            >
-              Kirim Pendaftaran
-              <ArrowRight size={16} />
-            </button>
-          </div>
+            Daftar Sekarang <ArrowRight size={20} />
+          </Link>
         </div>
       </motion.div>
+    </section>
+  );
+}
     </section>
   );
 }

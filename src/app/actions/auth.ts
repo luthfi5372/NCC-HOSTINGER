@@ -1,47 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import fs from "fs";
-import path from "path";
-
-// ============================================================
-// LOCAL DATABASE HELPERS
-// Data disimpan di local-db.json untuk mode development lokal.
-// Saat siap deploy ke Vercel, ganti fungsi ini dengan Supabase Auth.
-// ============================================================
-
-const DB_PATH = path.join(process.cwd(), "local-db.json");
-
-type User = {
-  id: string;
-  email: string;
-  password: string; // NOTE: plaintext untuk development lokal saja
-  fullName: string;
-  school: string;
-  createdAt: string;
-};
-
-type DB = {
-  users: User[];
-};
-
-function readDB(): DB {
-  try {
-    const raw = fs.readFileSync(DB_PATH, "utf-8");
-    return JSON.parse(raw);
-  } catch {
-    return { users: [] };
-  }
-}
-
-function writeDB(data: DB) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
-}
-
-function generateId() {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
-}
+import { createClient } from "@/lib/supabase/server";
 
 // ============================================================
 // SERVER ACTIONS
@@ -52,14 +12,13 @@ export type AuthResult = {
   error?: string;
 };
 
-/** Mendaftarkan user baru ke local-db.json */
+/** Mendaftarkan user baru ke Supabase Auth & Tabel Profiles */
 export async function registerLocalUser(formData: FormData): Promise<AuthResult> {
   const fullName = formData.get("fullName")?.toString().trim();
-  const school = formData.get("school")?.toString().trim();
   const email = formData.get("email")?.toString().trim().toLowerCase();
   const password = formData.get("password")?.toString();
 
-  if (!fullName || !school || !email || !password) {
+  if (!fullName || !email || !password) {
     return { success: false, error: "Semua kolom wajib diisi." };
   }
 
@@ -67,38 +26,46 @@ export async function registerLocalUser(formData: FormData): Promise<AuthResult>
     return { success: false, error: "Kata sandi minimal 6 karakter." };
   }
 
-  const db = readDB();
-  const existing = db.users.find((u) => u.email === email);
+  try {
+    const supabase = await createClient();
 
-  if (existing) {
-    return { success: false, error: "Email sudah terdaftar. Silakan login." };
+    // 1. Sign up to Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+        }
+      }
+    });
+
+    if (authError) throw authError;
+
+    // 2. Create profile in profiles table
+    if (authData.user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          full_name: fullName,
+        });
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
+        // We don't fail registration if profile creation fails, 
+        // as the user can update it later.
+      }
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Registration error:", error);
+    return { success: false, error: error.message || "Terjadi kesalahan saat pendaftaran." };
   }
-
-  const newUser: User = {
-    id: generateId(),
-    email,
-    password, // plaintext — development only
-    fullName,
-    school,
-    createdAt: new Date().toISOString(),
-  };
-
-  db.users.push(newUser);
-  writeDB(db);
-
-  // Set session cookie
-  const cookieStore = await cookies();
-  cookieStore.set("local_session", JSON.stringify({ id: newUser.id, email: newUser.email, fullName: newUser.fullName }), {
-    httpOnly: true,
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 hari
-    sameSite: "lax",
-  });
-
-  return { success: true };
 }
 
-/** Login user dari local-db.json */
+/** Login user menggunakan Supabase Auth */
 export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
   const email = formData.get("email")?.toString().trim().toLowerCase();
   const password = formData.get("password")?.toString();
@@ -107,39 +74,43 @@ export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
     return { success: false, error: "Email dan kata sandi wajib diisi." };
   }
 
-  const db = readDB();
-  const user = db.users.find((u) => u.email === email && u.password === password);
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
-  if (!user) {
-    return { success: false, error: "Email atau kata sandi salah." };
+    if (error) throw error;
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Login error:", error);
+    return { success: false, error: error.message || "Email atau kata sandi salah." };
   }
-
-  // Set session cookie
-  const cookieStore = await cookies();
-  cookieStore.set("local_session", JSON.stringify({ id: user.id, email: user.email, fullName: user.fullName }), {
-    httpOnly: true,
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-    sameSite: "lax",
-  });
-
-  return { success: true };
 }
 
-/** Logout user */
+/** Logout user dari Supabase */
 export async function logoutLocalUser() {
-  const cookieStore = await cookies();
-  cookieStore.delete("local_session");
+  const supabase = await createClient();
+  await supabase.auth.signOut();
   redirect("/login");
 }
 
-/** Mendapatkan user yang sedang login dari cookie */
+/** Mendapatkan user yang sedang login dari Supabase Session */
 export async function getLocalSession() {
-  const cookieStore = await cookies();
-  const raw = cookieStore.get("local_session")?.value;
-  if (!raw) return null;
   try {
-    return JSON.parse(raw) as { id: string; email: string; fullName: string };
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) return null;
+
+    // Fetch school from profile if needed, but for session basic info is enough
+    return {
+      id: user.id,
+      email: user.email!,
+      fullName: user.user_metadata.full_name || "Peserta NCC",
+    };
   } catch {
     return null;
   }

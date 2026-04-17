@@ -64,8 +64,8 @@ export default function HeroSection() {
           >
             {/* Primary CTA */}
             <MagneticWrapper>
-              <a
-                href="#daftar"
+              <Link
+                href="/daftar"
                 className="group flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
               >
                 Daftar Tim Sekarang
@@ -73,7 +73,7 @@ export default function HeroSection() {
                   size={16}
                   className="transition-transform group-hover:translate-x-1"
                 />
-              </a>
+              </Link>
             </MagneticWrapper>
 
             {/* Secondary CTA */}

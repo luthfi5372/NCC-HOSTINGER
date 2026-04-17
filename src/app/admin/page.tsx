@@ -25,11 +25,12 @@ import {
   AdminLog, 
   SystemSettings 
 } from "@/lib/localAuth";
+import { getSupabaseStats, getLatestSupabaseLogs } from "@/lib/supabase/service";
 
 export default function AdminOverview() {
   const [stats, setStats] = useState<any>(null);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
-  const [logs, setLogs] = useState<AdminLog[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const [loadingAction, setLoadingAction] = useState(false);
 
   useEffect(() => {
@@ -37,10 +38,29 @@ export default function AdminOverview() {
   }, []);
 
   const refreshData = async () => {
-    const s = await getGlobalStats();
-    setStats(s);
+    // 1. Try to fetch from Supabase first
+    const sData = await getSupabaseStats();
+    const sLogs = await getLatestSupabaseLogs(5);
+    
+    if (sData) {
+      // Use Supabase data
+      setStats({
+        totalParticipants: sData.totalEntries,
+        categoryBreakdown: sData.breakdown
+      });
+      setLogs(sLogs.map(l => ({
+        id: l.id,
+        action: `New Entry: ${l.category} (${l.full_name})`,
+        timestamp: l.created_at
+      })));
+    } else {
+      // Fallback to local data
+      const s = await getGlobalStats();
+      setStats(s);
+      setLogs(getAdminLogs());
+    }
+
     setSettings(getSystemSettings());
-    setLogs(getAdminLogs());
   };
 
   const handleToggleRegistration = (isOpen: boolean) => {

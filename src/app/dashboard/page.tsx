@@ -31,6 +31,7 @@ import {
   Printer,
   Download,
   Trash2,
+  Building2,
 
   Medal,
   Megaphone,
@@ -44,13 +45,13 @@ import {
   Sparkles
 } from "lucide-react";
 import { 
+  getGlobalStats, 
   getSession, 
   getCompetitionEntries, 
   logout, 
   CompetitionEntry, 
   LocalSession, 
   getAnnouncements, 
-  // Announcement, // Removed to force local definition
   getUserData,
   LocalUser,
   updateUserProfile,
@@ -58,13 +59,27 @@ import {
   getCategoryPrice
 } from "@/lib/localAuth";
 import { Announcement } from "@/types/announcement";
-
-// FINAL FIX: FORCING ISOLATED TYPES FOR DEPLOYMENT SYNC
-// Renamed Announcement back to official naming as per guide.
-// Note: Type definition moved to @/types/announcement.ts
-
 import Link from "next/link";
 import { useLiveStats } from "@/hooks/useLiveStats";
+import { submitCompetitionEntryToSupabase } from "@/lib/supabase/service";
+
+const PROVINCES = [
+  "DI. ACEH", "SUMATERA UTARA", "SUMATERA BARAT", "RIAU", "JAMBI", "SUMATERA SELATAN", "BENGKULU", "LAMPUNG", 
+  "BANGKA BELITUNG", "KEPULAUAN RIAU", "DKI JAKARTA", "JAWA BARAT", "JAWA TENGAH", "DAERAH ISTIMEWA YOGYAKARTA", 
+  "JAWA TIMUR", "PROBANTEN", "BALI", "NUSATENGGARA BARAT", "NUSA TENGGARA TIMUR", "KALIMANTAN BARAT", 
+  "KALIMANTAN TENGAH", "KALIMANTAN SELATAN", "KALIMANTAN TIMUR", "KALIMANTAN UTARA", "SULAWESI UTARA", 
+  "SULAWESI TENGAH", "SULAWESI SELATAN", "SULAWESI TENGGARA", "GORONTALO", "SULAWESI BARAT", "MALUKU", 
+  "MALUKU UTARA", "IRIAN JAYA BARAT", "IRIAN JAYA TENGAH", "IRIAN JAYA TIMUR"
+].sort();
+
+const CATEGORIES = [
+  { id: "Olimpiade MIPA", icon: Microscope, desc: "Matematika, Biologi, Kimia, Fisika" },
+  { id: "Speech Contest", icon: Mic, desc: "Bhs. Inggris & Indonesia" },
+  { id: "LKTI Nasional", icon: BookText, desc: "Karya Tulis Ilmiah" },
+  { id: "MTQ Nasional", icon: Book, desc: "Tilawatil Qur'an" },
+];
+
+import { BookText } from "lucide-react";
 
 type TabType = "Dashboard" | "Kompetisi Saya" | "Pengumuman" | "Pembayaran" | "Profil";
 
@@ -88,9 +103,19 @@ export default function DashboardPage() {
   const [isUploading, setIsUploading] = useState(false);
 
   // Profile Form States
-  const [editMode, setEditMode] = useState(false);
-  const [profileForm, setProfileForm] = useState({ fullName: "", school: "", phone: "" });
   const [updateMsg, setUpdateMsg] = useState({ type: "", text: "" });
+
+  // Competition Registration State (Inside Dashboard)
+  const [regForm, setRegForm] = useState({
+    category: "",
+    city: "",
+    teamSize: "Individu",
+    notes: "",
+    phone: "",
+    school: ""
+  });
+  const [isSubmittingReg, setIsSubmittingReg] = useState(false);
+  const [regError, setRegError] = useState<string | null>(null);
 
   const router = useRouter();
   const invoiceRef = useRef<HTMLDivElement>(null);
@@ -152,6 +177,9 @@ export default function DashboardPage() {
     router.push("/login");
   };
 
+  const [editMode, setEditMode] = useState(false);
+  const [profileForm, setProfileForm] = useState({ fullName: "", school: "", phone: "" });
+
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!session) return;
@@ -168,6 +196,42 @@ export default function DashboardPage() {
       setTimeout(() => setUpdateMsg({ type: "", text: "" }), 3000);
     } else {
       setUpdateMsg({ type: "error", text: res.error || "Gagal memperbarui profil." });
+    }
+  };
+  const handleCompetitionRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session || !userData) return;
+    if (!regForm.category || !regForm.city) {
+      setRegError("Harap pilih kategori dan provinsi.");
+      return;
+    }
+
+    setIsSubmittingReg(true);
+    setRegError(null);
+
+    try {
+      const { error } = await submitCompetitionEntryToSupabase({
+        fullName: userData.fullName,
+        email: userData.email,
+        phone: regForm.phone || "-",
+        school: regForm.school || userData.school || "-",
+        city: regForm.city,
+        category: regForm.category,
+        teamSize: regForm.teamSize,
+        notes: regForm.notes
+      });
+
+      if (!error) {
+        // Success: Refresh entries and set tab
+        refreshData();
+        setActiveTab("Dashboard");
+      } else {
+        setRegError(error.message || "Gagal mendaftar lomba.");
+      }
+    } catch (err) {
+      setRegError("Terjadi kesalahan koneksi.");
+    } finally {
+      setIsSubmittingReg(false);
     }
   };
 
@@ -619,10 +683,144 @@ export default function DashboardPage() {
             <Link href="/daftar" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Daftar Kompetisi Baru +</Link>
           </div>
           {entries.length === 0 ? (
-             <div className="bg-white border border-slate-200 border-dashed rounded-3xl p-12 text-center">
-                <BookOpen size={30} className="text-slate-300 mx-auto mb-4" />
-                <h3 className="text-base font-bold text-slate-900 mb-2">Belum ada kompetisi</h3>
-                <Link href="/daftar" className="mt-4 inline-flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-shadow">Lihat Kategori</Link>
+             <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 lg:p-10 shadow-sm overflow-hidden relative group">
+                {/* Background Decor */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 blur-[80px] rounded-full -mr-32 -mt-32 pointer-events-none" />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                      <Trophy size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900 tracking-tight">Daftar Kompetisi Baru</h3>
+                      <p className="text-xs text-slate-500 font-medium tracking-tight">Pilih bidang yang akan kamu kuasai di NCC 13th.</p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleCompetitionRegister} className="space-y-8">
+                    {/* Category Selection */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {CATEGORIES.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setRegForm({ ...regForm, category: cat.id })}
+                          className={`p-6 rounded-[2rem] border-2 text-left transition-all relative overflow-hidden group/btn ${
+                            regForm.category === cat.id 
+                            ? "border-indigo-600 bg-indigo-50 shadow-xl shadow-indigo-100" 
+                            : "border-slate-100 bg-slate-50 hover:bg-white hover:border-slate-300"
+                          }`}
+                        >
+                          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover/btn:scale-110 ${
+                            regForm.category === cat.id ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-white text-slate-400 border border-slate-100"
+                          }`}>
+                            <cat.icon size={20} />
+                          </div>
+                          <div className={`text-sm font-black mb-1 ${regForm.category === cat.id ? "text-indigo-900" : "text-slate-900"}`}>{cat.id}</div>
+                          <div className="text-[10px] text-slate-500 font-medium leading-relaxed max-w-[150px]">{cat.desc}</div>
+                          
+                          {regForm.category === cat.id && (
+                            <motion.div layoutId="active-check" className="absolute top-4 right-4 text-indigo-600">
+                              <CheckCircle2 size={18} />
+                            </motion.div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <Building2 size={12} className="text-indigo-400" /> Asal Sekolah / Instansi
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={regForm.school}
+                          onChange={(e) => setRegForm({ ...regForm, school: e.target.value })}
+                          className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                          placeholder="SMA Negeri 1 ..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <Phone size={12} className="text-indigo-400" /> No. WhatsApp
+                        </label>
+                        <input
+                          type="tel"
+                          required
+                          value={regForm.phone}
+                          onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
+                          className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                          placeholder="08xxxxxxxxxx"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <MapPin size={10} className="text-indigo-400"/> Domisili / Provinsi
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={regForm.city}
+                            required
+                            onChange={(e) => setRegForm({ ...regForm, city: e.target.value })}
+                            className="w-full pl-4 pr-10 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 appearance-none transition-all"
+                          >
+                            <option value="">Pilih Provinsi...</option>
+                            {PROVINCES.map(p => (
+                              <option key={p} value={p}>{p}</option>
+                            ))}
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <ChevronRight size={16} className="rotate-90" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <User size={10} className="text-indigo-400"/> Tipe Partisipasi
+                        </label>
+                        <div className="flex gap-3">
+                          {["Individu", "Tim"].map((type) => (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => setRegForm({ ...regForm, teamSize: type })}
+                              className={`flex-1 py-4 px-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${
+                                regForm.teamSize === type ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100" : "bg-slate-50 text-slate-400 border-slate-100 hover:border-slate-200"
+                              }`}
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {regError && (
+                      <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="p-4 bg-rose-50 text-rose-600 rounded-2xl text-[11px] font-bold border border-rose-100 flex items-center gap-3">
+                        <AlertCircle size={14} /> {regError}
+                      </motion.div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingReg}
+                      className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[3px] shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50"
+                    >
+                      {isSubmittingReg ? (
+                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>Konfirmasi Pendaftaran <Sparkles size={16}/></>
+                      )}
+                    </button>
+                  </form>
+                </div>
              </div>
           ) : (
             <div className="space-y-4">

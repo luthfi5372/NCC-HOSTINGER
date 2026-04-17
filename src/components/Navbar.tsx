@@ -21,7 +21,7 @@ const navItems = [
   { icon: Home, label: "Beranda", href: "#beranda" },
   { icon: Layers, label: "Kategori", href: "#kategori" },
   { icon: Calendar, label: "Jadwal", href: "#jadwal" },
-  { icon: UserPlus, label: "Pendaftaran", href: "#daftar" },
+  { icon: UserPlus, label: "Pendaftaran", href: "/daftar" },
   { icon: Mail, label: "Kontak", href: "#kontak" },
 ];
 
@@ -95,7 +95,7 @@ export default function Navbar() {
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
                   )}
-                </a>
+                </Link>
               </MagneticWrapper>
             );
           })}

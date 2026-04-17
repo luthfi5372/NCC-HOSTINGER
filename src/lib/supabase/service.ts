@@ -63,3 +63,61 @@ export async function submitCompetitionEntryToSupabase(entry: CompetitionEntry) 
     };
   }
 }
+export async function getSupabaseStats() {
+  const supabase = createClient();
+  
+  try {
+    // 1. Get total entries count
+    const { count: totalEntries, error: countError } = await supabase
+      .from('competition_entries')
+      .select('*', { count: 'exact', head: true });
+
+    if (countError) throw countError;
+
+    // 2. Get category distribution
+    const { data: categories, error: catError } = await supabase
+      .from('competition_entries')
+      .select('category');
+
+    if (catError) throw catError;
+
+    const breakdown: Record<string, number> = {
+      "Olimpiade MIPA": 0,
+      "Speech Contest": 0,
+      "LKTI Nasional": 0,
+      "MTQ Nasional": 0
+    };
+
+    categories?.forEach(item => {
+      if (breakdown[item.category] !== undefined) {
+        breakdown[item.category]++;
+      }
+    });
+
+    return {
+      totalEntries: totalEntries || 0,
+      breakdown
+    };
+  } catch (err) {
+    console.error("Failed to fetch Supabase stats:", err);
+    return null;
+  }
+}
+
+export async function getLatestSupabaseLogs(limit = 5) {
+  const supabase = createClient();
+  
+  try {
+    const { data, error } = await supabase
+      .from('competition_entries')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error("Failed to fetch logs:", err);
+    return [];
+  }
+}
