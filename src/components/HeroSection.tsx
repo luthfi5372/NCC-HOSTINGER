@@ -1,6 +1,6 @@
 "use client";
 
-
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, Trophy, BookOpen, Mic, Microscope, GraduationCap } from "lucide-react";
 import Link from "next/link";
