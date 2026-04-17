@@ -61,7 +61,12 @@ import {
 import { Announcement } from "@/types/announcement";
 import Link from "next/link";
 import { useLiveStats } from "@/hooks/useLiveStats";
-import { submitCompetitionEntryToSupabase } from "@/lib/supabase/service";
+import { 
+  submitCompetitionEntryToSupabase, 
+  fetchCompetitionEntries, 
+  fetchProfile, 
+  updateProfileInSupabase 
+} from "@/lib/supabase/service";
 
 const PROVINCES = [
   "DI. ACEH", "SUMATERA UTARA", "SUMATERA BARAT", "RIAU", "JAMBI", "SUMATERA SELATAN", "BENGKULU", "LAMPUNG", 
@@ -142,12 +147,31 @@ export default function DashboardPage() {
       };
       setSession(currentSession as any);
       
-      const userEntries = getCompetitionEntries(currentSession.email!);
-      const userDetail = getUserData(currentSession.email!);
+      // 1. Fetch Entries from Supabase
+      const { data: supabaseEntries } = await fetchCompetitionEntries(currentSession.email!);
+      if (supabaseEntries) {
+        const mappedEntries = supabaseEntries.map(e => ({
+          ...e,
+          fullName: e.full_name,
+          teamSize: e.team_size,
+          submittedAt: e.created_at
+        }));
+        setEntries(mappedEntries as any);
+      }
+
+      // 2. Fetch Detailed Profile (School, Phone) from Supabase
+      const { data: profileData } = await fetchProfile(supabaseUser.id);
+      if (profileData) {
+        setUserData(profileData as any);
+        setProfileForm({ 
+          fullName: profileData.full_name || currentSession.fullName, 
+          school: profileData.school || "", 
+          phone: profileData.phone || "" 
+        });
+      }
+
+      // 3. Announcements (Still mock for now)
       const mockAnnouncements = getAnnouncements() as unknown as Announcement[];
-      
-      setEntries(userEntries);
-      setUserData(userDetail);
       setAnnouncements(mockAnnouncements);
       
       // Notification Badge Logic
@@ -157,14 +181,6 @@ export default function DashboardPage() {
         if (lastReadId !== latestId) {
           setHasUnreadAnnouncements(true);
         }
-      }
-      
-      if (userDetail) {
-        setProfileForm({ 
-          fullName: userDetail.fullName, 
-          school: userDetail.school, 
-          phone: userDetail.phone || "" 
-        });
       }
     } catch (err) {
       console.error("Dashboard session check failed:", err);
@@ -203,23 +219,22 @@ export default function DashboardPage() {
   const [editMode, setEditMode] = useState(false);
   const [profileForm, setProfileForm] = useState({ fullName: "", school: "", phone: "" });
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session) return;
     
-    const res = updateUserProfile(session.email, profileForm);
-    if (res.success) {
-      setUpdateMsg({ type: "success", text: "Profil berhasil diperbarui!" });
+    setLoading(true);
+    const { error } = await updateProfileInSupabase(session.id, profileForm);
+    
+    if (!error) {
+      setUpdateMsg({ type: "success", text: "Profil berhasil diperbarui di database!" });
       setEditMode(false);
-      const updated = getUserData(session.email);
-      if (updated) {
-        setUserData(updated);
-        setSession({ ...session, fullName: updated.fullName });
-      }
+      refreshData();
       setTimeout(() => setUpdateMsg({ type: "", text: "" }), 3000);
     } else {
-      setUpdateMsg({ type: "error", text: res.error || "Gagal memperbarui profil." });
+      setUpdateMsg({ type: "error", text: error || "Gagal memperbarui profil." });
     }
+    setLoading(false);
   };
   const handleCompetitionRegister = async (e: React.FormEvent) => {
     e.preventDefault();

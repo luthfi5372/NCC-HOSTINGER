@@ -121,3 +121,61 @@ export async function getLatestSupabaseLogs(limit = 5) {
     return [];
   }
 }
+
+/** Mengambil semua pendaftaran berdasarkan email user dari Supabase */
+export async function fetchCompetitionEntries(email: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('competition_entries')
+      .select('*')
+      .eq('email', email)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return { data, error: null };
+  } catch (err: any) {
+    console.error("Fetch entries error:", err);
+    return { data: null, error: err.message };
+  }
+}
+
+/** Mengambil profil profesional (sekolah, phone) dari tabel profiles */
+export async function fetchProfile(userId: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) throw error;
+    return { data, error: null };
+  } catch (err: any) {
+    console.error("Fetch profile error:", err);
+    return { data: null, error: err.message };
+  }
+}
+
+/** Memperbarui profil profesional (sekolah, phone) ke tabel profiles */
+export async function updateProfileInSupabase(userId: string, updates: any) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        school: updates.school,
+        phone: updates.phone,
+        full_name: updates.fullName, // Sync full_name as well
+      })
+      .eq('id', userId)
+      .select();
+    
+    if (error) throw error;
+    return { data, error: null };
+  } catch (err: any) {
+    console.error("Update profile error:", err);
+    return { data: null, error: err.message };
+  }
+}
