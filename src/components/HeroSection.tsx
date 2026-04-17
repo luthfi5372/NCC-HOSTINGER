@@ -16,11 +16,25 @@ export default function HeroSection() {
     const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // Audit: Sync with Supabase Session
+    // Audit: Sync with Supabase Session safely from browser
     const checkAuth = async () => {
-      const { getLocalSession } = await import("@/app/actions/auth");
-      const session = await getLocalSession();
-      setUser(session);
+      try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        
+        if (supabaseUser) {
+          setUser({
+            email: supabaseUser.email,
+            fullName: supabaseUser.user_metadata.full_name || supabaseUser.user_metadata.fullName || "Peserta NCC",
+            username: supabaseUser.user_metadata.username || supabaseUser.email?.split('@')[0]
+          });
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        setUser(null);
+      }
     };
     checkAuth();
   }, []);

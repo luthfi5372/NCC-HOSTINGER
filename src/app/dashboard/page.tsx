@@ -122,42 +122,56 @@ export default function DashboardPage() {
   const { stats } = useLiveStats();
 
   const refreshData = useCallback(async () => {
-    // Audit: Use Supabase for accurate session
-    const { getLocalSession } = await import("@/app/actions/auth");
-    const currentSession = await getLocalSession();
-    
-    if (!currentSession) {
-      router.push("/login?from=dashboard");
-      return;
-    }
-    setSession(currentSession as any);
-    
-    const userEntries = getCompetitionEntries(currentSession.email);
-    const userDetail = getUserData(currentSession.email);
-    const mockAnnouncements = getAnnouncements() as unknown as Announcement[];
-    
-    setEntries(userEntries);
-    setUserData(userDetail);
-    setAnnouncements(mockAnnouncements);
-    
-    // Notification Badge Logic
-    if (mockAnnouncements.length > 0) {
-      const lastReadId = localStorage.getItem("ncc_last_read_announcement");
-      const latestId = mockAnnouncements[0].id;
-      if (lastReadId !== latestId) {
-        setHasUnreadAnnouncements(true);
+    // Audit: Use Browser Client for safe session detection
+    try {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+      
+      if (!supabaseUser) {
+        router.push("/login?from=dashboard");
+        return;
       }
+
+      const currentSession = {
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        fullName: supabaseUser.user_metadata.full_name || supabaseUser.user_metadata.fullName || "Peserta NCC",
+        username: supabaseUser.user_metadata.username || supabaseUser.email?.split('@')[0],
+        role: "user"
+      };
+      setSession(currentSession as any);
+      
+      const userEntries = getCompetitionEntries(currentSession.email!);
+      const userDetail = getUserData(currentSession.email!);
+      const mockAnnouncements = getAnnouncements() as unknown as Announcement[];
+      
+      setEntries(userEntries);
+      setUserData(userDetail);
+      setAnnouncements(mockAnnouncements);
+      
+      // Notification Badge Logic
+      if (mockAnnouncements.length > 0) {
+        const lastReadId = localStorage.getItem("ncc_last_read_announcement");
+        const latestId = mockAnnouncements[0].id;
+        if (lastReadId !== latestId) {
+          setHasUnreadAnnouncements(true);
+        }
+      }
+      
+      if (userDetail) {
+        setProfileForm({ 
+          fullName: userDetail.fullName, 
+          school: userDetail.school, 
+          phone: userDetail.phone || "" 
+        });
+      }
+    } catch (err) {
+      console.error("Dashboard session check failed:", err);
+      router.push("/login");
+    } finally {
+      setLoading(false);
     }
-    
-    if (userDetail) {
-      setProfileForm({ 
-        fullName: userDetail.fullName, 
-        school: userDetail.school, 
-        phone: userDetail.phone || "" 
-      });
-    }
-    
-    setLoading(false);
   }, [router]);
 
   useEffect(() => {
@@ -174,8 +188,13 @@ export default function DashboardPage() {
   };
 
   const handleLogout = async () => {
-    const { logoutLocalUser } = await import("@/app/actions/auth");
-    await logoutLocalUser();
+    try {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
     // Also clear secondary hint
     document.cookie = "ncc_hint=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
     router.push("/login");

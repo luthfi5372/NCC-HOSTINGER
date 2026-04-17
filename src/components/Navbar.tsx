@@ -37,11 +37,26 @@ export default function Navbar() {
     const onScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", onScroll, { passive: true });
     
-    // Audit-Check: Use Supabase Server Action for accurate session
+    // Audit-Check: Use Browser Client for safe session detection
     const checkAuth = async () => {
-      const { getLocalSession } = await import("@/app/actions/auth");
-      const session = await getLocalSession();
-      setUser(session);
+      try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        
+        if (supabaseUser) {
+          setUser({
+            email: supabaseUser.email,
+            fullName: supabaseUser.user_metadata.full_name || supabaseUser.user_metadata.fullName || "Peserta NCC",
+            username: supabaseUser.user_metadata.username || supabaseUser.email?.split('@')[0]
+          });
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("Auth check failed:", err);
+        setUser(null);
+      }
     };
     checkAuth();
 
