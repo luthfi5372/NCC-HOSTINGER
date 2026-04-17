@@ -20,6 +20,7 @@ import {
   getGlobalStats, 
   getSystemSettings, 
   setRegistrationStatus, 
+  setMaintenanceStatus,
   getAdminLogs, 
   AdminLog, 
   SystemSettings 
