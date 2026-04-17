@@ -70,7 +70,7 @@ export default function Navbar() {
             const active = activeItem === item.label;
             return (
               <MagneticWrapper key={item.label}>
-                <a
+                <Link
                   href={item.href}
                   onClick={() => setActiveItem(item.label)}
                   className={`relative flex items-center gap-2 px-4 py-2.5 rounded-full text-sm transition-all duration-300 group ${
