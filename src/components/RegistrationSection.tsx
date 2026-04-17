@@ -6,8 +6,18 @@ import { UserPlus, Send, CheckCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export default function RegistrationSection() {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const { getSession } = require("@/lib/localAuth");
+      setUser(getSession());
+    }
+  }, []);
+
   return (
     <section id="daftar" className="relative z-10 py-24 px-6 sm:px-10 bg-transparent">
+      {/* ... previous content ... */}
       <div className="text-center mb-16 max-w-2xl mx-auto">
         <h2
           className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-slate-900"
@@ -102,10 +112,10 @@ export default function RegistrationSection() {
         <div className="relative inline-block group">
           <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
           <Link 
-            href="/daftar"
+            href={user ? "/dashboard" : "/daftar"}
             className="relative flex items-center gap-3 px-12 py-6 bg-indigo-600 text-white rounded-[2.2rem] font-black text-xs uppercase tracking-[3px] shadow-2xl hover:bg-slate-900 transition-all active:scale-95"
           >
-            Daftar Sekarang <ArrowRight size={20} />
+            {user ? "Buka Dashboard" : "Daftar Sekarang"} <ArrowRight size={20} />
           </Link>
         </div>
       </motion.div>

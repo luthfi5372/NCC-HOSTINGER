@@ -28,6 +28,15 @@ export default function RegisterMinimalist() {
   const [submitted, setSubmitted] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const { getSession } = require("@/lib/localAuth");
+      if (getSession()) {
+        router.push("/dashboard");
+      }
+    }
+  }, [router]);
+
   const update = (field: string, val: string) => {
     setForm(f => ({ ...f, [field]: val }));
     setError(null);

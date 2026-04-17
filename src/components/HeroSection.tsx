@@ -13,6 +13,15 @@ import MagneticWrapper from "./ui/MagneticWrapper";
 
 // Remove unused imports introduced previously
 export default function HeroSection() {
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const { getSession } = require("@/lib/localAuth");
+            setUser(getSession());
+        }
+    }, []);
+
   return (
     <section
       id="beranda"
@@ -66,10 +75,10 @@ export default function HeroSection() {
             {/* Primary CTA */}
             <MagneticWrapper>
               <Link
-                href="/daftar"
+                href={user ? "/dashboard" : "/daftar"}
                 className="group flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
               >
-                Daftar Tim Sekarang
+                {user ? "Buka Dashboard" : "Daftar Tim Sekarang"}
                 <ArrowRight
                   size={16}
                   className="transition-transform group-hover:translate-x-1"

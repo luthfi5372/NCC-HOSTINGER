@@ -29,10 +29,18 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeItem, setActiveItem] = useState("Beranda");
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", onScroll, { passive: true });
+    
+    // Check session
+    if (typeof window !== "undefined") {
+      const { getSession } = require("@/lib/localAuth");
+      setUser(getSession());
+    }
+
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
@@ -102,22 +110,35 @@ export default function Navbar() {
 
           {/* Auth buttons */}
           <div className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-100">
-            <MagneticWrapper>
-              <Link
-                href="/login"
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
-              >
-                <LogIn size={15} /> Masuk
-              </Link>
-            </MagneticWrapper>
-            <MagneticWrapper>
-              <Link
-                href="/daftar"
-                className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
-              >
-                <ClipboardList size={15} /> Daftar
-              </Link>
-            </MagneticWrapper>
+            {user ? (
+               <MagneticWrapper>
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-1.5 px-6 py-2.5 rounded-full text-sm font-black text-white bg-indigo-600 hover:bg-slate-900 transition-all shadow-sm shadow-indigo-100"
+                >
+                  <ClipboardList size={15} /> Dashboard
+                </Link>
+              </MagneticWrapper>
+            ) : (
+              <>
+                <MagneticWrapper>
+                  <Link
+                    href="/login"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                  >
+                    <LogIn size={15} /> Masuk
+                  </Link>
+                </MagneticWrapper>
+                <MagneticWrapper>
+                  <Link
+                    href="/daftar"
+                    className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
+                  >
+                    <ClipboardList size={15} /> Daftar
+                  </Link>
+                </MagneticWrapper>
+              </>
+            )}
           </div>
         </div>
 
