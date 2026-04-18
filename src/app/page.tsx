@@ -8,13 +8,13 @@ import CategoryCards from "@/components/CategoryCards";
 import PricingSection from "@/components/PricingSection";
 import FAQSection from "@/components/FAQSection";
 import Footer from "@/components/Footer";
-import SpeedMonitor from "@/components/SpeedMonitor";
 
 // Optimized Dynamic Imports for Production Stability
 const ParallaxBackground = dynamic(() => import("@/components/ParallaxBackground"), { ssr: false });
 const IndonesiaMap = dynamic(() => import("@/components/IndonesiaMap"), { ssr: false });
 const GallerySection = dynamic(() => import("@/components/GallerySection"), { ssr: false });
 const TimelineSection = dynamic(() => import("@/components/TimelineSection"), { ssr: false });
+const SpeedMonitor = dynamic(() => import("@/components/SpeedMonitor"), { ssr: false });
 
 export default function Home() {
   return (
