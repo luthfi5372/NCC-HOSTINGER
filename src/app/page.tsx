@@ -1,15 +1,14 @@
-"use client";
-
 import dynamic from "next/dynamic";
-import Navbar from "@/components/Navbar";
-import HeroSection from "@/components/HeroSection";
-import FeatureGrid from "@/components/FeatureGrid";
-import CategoryCards from "@/components/CategoryCards";
-import PricingSection from "@/components/PricingSection";
-import FAQSection from "@/components/FAQSection";
-import Footer from "@/components/Footer";
 
-// Optimized Dynamic Imports for Production Stability
+// ALL interactive components are loaded dynamically client-side only
+// This prevents hydration mismatches on Next.js 16 App Router
+const Navbar = dynamic(() => import("@/components/Navbar"), { ssr: false });
+const HeroSection = dynamic(() => import("@/components/HeroSection"), { ssr: false });
+const FeatureGrid = dynamic(() => import("@/components/FeatureGrid"), { ssr: false });
+const CategoryCards = dynamic(() => import("@/components/CategoryCards"), { ssr: false });
+const PricingSection = dynamic(() => import("@/components/PricingSection"), { ssr: false });
+const FAQSection = dynamic(() => import("@/components/FAQSection"), { ssr: false });
+const Footer = dynamic(() => import("@/components/Footer"), { ssr: false });
 const ParallaxBackground = dynamic(() => import("@/components/ParallaxBackground"), { ssr: false });
 const IndonesiaMap = dynamic(() => import("@/components/IndonesiaMap"), { ssr: false });
 const GallerySection = dynamic(() => import("@/components/GallerySection"), { ssr: false });
