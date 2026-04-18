@@ -65,20 +65,31 @@ export default function TimelineSection() {
   
   // State for the traveling object
   const [point, setPoint] = useState({ x: 200, y: 50, angle: 0 });
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Update traveler position based on smoothProgress
   useMotionValueEvent(smoothProgress, "change", (latest) => {
-    if (pathRef.current) {
+    if (isMounted && pathRef.current) {
       const path = pathRef.current;
-      const length = path.getTotalLength();
-      const currentPoint = path.getPointAtLength(latest * length);
-      
-      // Calculate angle for rotation (lookahead point)
-      const lookAhead = 1; 
-      const nextPoint = path.getPointAtLength(Math.min(length, latest * length + lookAhead));
-      const angle = Math.atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x) * (180 / Math.PI);
-      
-      setPoint({ x: currentPoint.x, y: currentPoint.y, angle });
+      try {
+        const length = path.getTotalLength();
+        if (length === 0) return;
+        
+        const currentPoint = path.getPointAtLength(latest * length);
+        
+        // Calculate angle for rotation (lookahead point)
+        const lookAhead = 1; 
+        const nextPoint = path.getPointAtLength(Math.min(length, latest * length + lookAhead));
+        const angle = Math.atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x) * (180 / Math.PI);
+        
+        setPoint({ x: currentPoint.x, y: currentPoint.y, angle });
+      } catch (e) {
+        // Silently fail if path methods aren't ready
+      }
     }
   });
 

@@ -4,17 +4,17 @@ import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import FeatureGrid from "@/components/FeatureGrid";
-import GallerySection from "@/components/GallerySection";
 import CategoryCards from "@/components/CategoryCards";
 import PricingSection from "@/components/PricingSection";
-import IndonesiaMap from "@/components/IndonesiaMap";
-import TimelineSection from "@/components/TimelineSection";
 import FAQSection from "@/components/FAQSection";
 import Footer from "@/components/Footer";
 import SpeedMonitor from "@/components/SpeedMonitor";
 
-// Load dynamically without SSR so GSAP doesn't break
+// Optimized Dynamic Imports for Production Stability
 const ParallaxBackground = dynamic(() => import("@/components/ParallaxBackground"), { ssr: false });
+const IndonesiaMap = dynamic(() => import("@/components/IndonesiaMap"), { ssr: false });
+const GallerySection = dynamic(() => import("@/components/GallerySection"), { ssr: false });
+const TimelineSection = dynamic(() => import("@/components/TimelineSection"), { ssr: false });
 
 export default function Home() {
   return (
