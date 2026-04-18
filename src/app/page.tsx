@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import SmoothScroll from "@/components/SmoothScroll";
 
 // ALL interactive components are loaded dynamically client-side only
 // This prevents hydration mismatches on Next.js 16 App Router
@@ -19,7 +20,7 @@ const SpeedMonitor = dynamic(() => import("@/components/SpeedMonitor"), { ssr: f
 
 export default function Home() {
   return (
-    <div className="relative scroll-smooth selection:bg-indigo-500/30 bg-slate-50">
+    <SmoothScroll>
       <ParallaxBackground />
       <Navbar />
       <div className="fixed bottom-6 right-6 z-[60]">
@@ -70,7 +71,7 @@ export default function Home() {
           <Footer />
         </section>
       </main>
-    </div>
+    </SmoothScroll>
   );
 }
 // Final verification commit: Wed Apr 15 01:16:23 WIB 2026

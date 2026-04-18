@@ -30,13 +30,10 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "NCC — National Creativity Competition 2026",
-    description:
-      "Kompetisi kreativitas nasional terbesar. Tunjukkan bakatmu!",
+    description: "Kompetisi kreativitas nasional terbesar. Tunjukkan bakatmu!",
     type: "website",
   },
 };
-
-import SmoothScroll from "@/components/SmoothScroll";
 
 export default function RootLayout({
   children,
@@ -48,12 +45,12 @@ export default function RootLayout({
       lang="id"
       className={`${inter.variable} ${josefin.variable} h-full antialiased`}
     >
-      <body 
+      <body
         className="min-h-full flex flex-col bg-background text-foreground relative"
         suppressHydrationWarning
       >
         <div className="glass-grain" />
-        <SmoothScroll>{children}</SmoothScroll>
+        {children}
       </body>
     </html>
   );
