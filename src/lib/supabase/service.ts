@@ -21,16 +21,13 @@ export async function submitCompetitionEntryToSupabase(entry: CompetitionEntry, 
                         process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder");
 
   if (isPlaceholder) {
-    console.warn("Supabase not configured. Falling back to Local Storage.");
-    const result = submitCompetitionEntry({
-      ...entry,
-      paymentStatus: entry.paymentStatus || "None"
-    });
+    console.warn("Supabase not configured. Pure Supabase Mode enforcing rejection.");
     return { 
-      data: result.success ? [entry] : null, 
-      error: result.success ? null : { message: result.error || "Gagal menyimpan data lokal." } 
+      data: null, 
+      error: { message: "Database Supabase belum terkonfigurasi pada env variables." } 
     };
   }
+
 
   try {
     const { data, error } = await supabase
@@ -56,19 +53,16 @@ export async function submitCompetitionEntryToSupabase(entry: CompetitionEntry, 
     }
     return { data, error: null };
   } catch (err: any) {
-    console.error("Supabase interaction failed, falling back to local:", err);
+    console.error("Supabase interaction failed:", err);
     // Explicitly check for RLS violation to inform the developer
     if (err.code === "42501") {
       console.error("CRITICAL: RLS Policy violation detected. Check Supabase 'competition_entries' insert policy.");
+      return { data: null, error: { message: "Gagal: Akses Ditolak (RLS Policy). Pastikan sesi aktif." }};
     }
     
-    const result = submitCompetitionEntry({
-      ...entry,
-      paymentStatus: entry.paymentStatus || "None"
-    });
     return { 
-      data: result.success ? [entry] : null, 
-      error: result.success ? null : { message: result.error || "Gagal menyimpan data." } 
+      data: null, 
+      error: { message: err.message || "Gagal menyimpan data ke server." } 
     };
   }
 }

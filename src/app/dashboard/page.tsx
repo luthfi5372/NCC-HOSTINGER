@@ -111,6 +111,7 @@ export default function DashboardPage() {
   });
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
+  const [regSuccess, setRegSuccess] = useState<string | null>(null);
 
   const router = useRouter();
   const invoiceRef = useRef<HTMLDivElement>(null);
@@ -256,9 +257,23 @@ export default function DashboardPage() {
 
     setIsSubmittingReg(true);
     setRegError(null);
+    setRegSuccess(null);
+
+    const cleanPhone = (regForm.phone || "").replace(/[\s-]/g, '');
+    if (!/^\d+$/.test(cleanPhone) || cleanPhone.length < 9) {
+      setRegError("Format No. WhatsApp tidak valid (hanya boleh angka minimal 9 digit).");
+      setIsSubmittingReg(false);
+      return;
+    }
+    if ((regForm.school || "").trim().length < 3) {
+      setRegError("Nama Asal Sekolah terlalu pendek atau tidak valid.");
+      setIsSubmittingReg(false);
+      return;
+    }
 
     try {
       const { error } = await submitCompetitionEntryToSupabase({
+
         fullName: userData.fullName,
         email: userData.email,
         phone: regForm.phone || "-",
@@ -271,12 +286,18 @@ export default function DashboardPage() {
 
 
       if (!error) {
-        // Success: Refresh entries and set tab
+        // Success: Trigger Notification, Refresh, redirect
         refreshData();
-        setActiveTab("Dashboard");
+        setRegSuccess("Berhasil disimpan! Anda akan diarahkan ke form pembayaran.");
+        setTimeout(() => {
+          setRegSuccess(null);
+          setActiveTab("Pembayaran");
+          setRegForm({ category: "", school: "", phone: "", city: "", teamSize: "Individu", notes: "" });
+        }, 1500);
       } else {
         setRegError(error.message || "Gagal mendaftar lomba.");
       }
+
     } catch (err) {
       setRegError("Terjadi kesalahan koneksi.");
     } finally {
@@ -856,14 +877,19 @@ export default function DashboardPage() {
                         <AlertCircle size={14} /> {regError}
                       </motion.div>
                     )}
+                    {regSuccess && (
+                      <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl text-[11px] font-bold border border-emerald-100 flex items-center gap-3">
+                        <CheckCircle2 size={14} /> {regSuccess}
+                      </motion.div>
+                    )}
 
                     <button
                       type="submit"
-                      disabled={isSubmittingReg}
+                      disabled={isSubmittingReg || !!regSuccess}
                       className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[3px] shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50"
                     >
                       {isSubmittingReg ? (
-                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        <><div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Menyimpan...</>
                       ) : (
                         <>Konfirmasi Pendaftaran <Sparkles size={16}/></>
                       )}
