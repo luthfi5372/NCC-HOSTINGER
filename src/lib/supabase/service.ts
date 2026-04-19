@@ -342,4 +342,34 @@ export async function updateSiteSettings(updates: any) {
   }
 }
 
+/** HQ MODULE: Dynamic Participant Update */
+export async function adminUpdateCompetitionEntry(id: string | number, entry: any) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('competition_entries')
+      .update({
+        full_name: entry.fullName,
+        email: entry.email,
+        phone: entry.phone,
+        school: entry.school,
+        city: entry.city,
+        category: entry.category,
+        team_size: entry.teamSize,
+        notes: entry.notes,
+        payment_status: entry.payment_status || entry.paymentStatus,
+        is_attended: entry.is_attended
+      })
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (err: any) {
+    console.error("Admin Update Entry Error:", err);
+    return { success: false, error: err.message || "Gagal memperbarui data." };
+  }
+}
+
+
 
