@@ -20,11 +20,13 @@ import {
   QrCode
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import { 
   getAllCompetitionEntries, 
   addAdminLog,
   deleteCompetitionEntry,
   submitCompetitionEntry,
+  adminUpdateUserPassword,
   CompetitionEntry
 } from "@/lib/localAuth";
 import { fetchAllEntriesHybrid, adminUpdatePaymentStatusToSupabase } from "@/lib/supabase/service";
