@@ -291,6 +291,19 @@ export default function DashboardPage() {
 
 
       if (!error) {
+        // Fire and forget: Kirim email Welcome Registrasi (Phase 6b)
+        fetch("/api/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: session.email,
+            fullName: session.fullName,
+            id: Date.now(), // Generate rough ID format temporarily for receipt purely UI
+            category: regForm.category,
+            actionType: "register"
+          })
+        }).catch(err => console.error("Register email hook failed silently:", err));
+
         // Success: Trigger Notification, Refresh, redirect
         refreshData();
         setRegSuccess("Berhasil disimpan! Anda akan diarahkan ke form pembayaran.");
