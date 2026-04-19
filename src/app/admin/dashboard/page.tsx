@@ -21,16 +21,14 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   getAllCompetitionEntries, 
-  deleteCompetitionEntry, 
-  adminUpdateCompetitionEntry,
-  adminUpdateUserPassword,
-  submitCompetitionEntry,
-  CompetitionEntry,
   addAdminLog,
-  adminFinalizePayment
+  deleteCompetitionEntry,
+  submitCompetitionEntry,
+  CompetitionEntry
 } from "@/lib/localAuth";
-import { fetchAllEntriesHybrid } from "@/lib/supabase/service";
+import { fetchAllEntriesHybrid, adminUpdatePaymentStatusToSupabase } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/client";
+import AdminAnalytics from "@/components/AdminAnalytics";
 
 export default function AdminDashboard() {
   const [entries, setEntries] = useState<CompetitionEntry[]>([]);
@@ -138,8 +136,9 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleUpdateStatus = (id: string, status: any) => {
-    adminUpdateCompetitionEntry(id, { paymentStatus: status });
+  const handleUpdateStatus = async (id: string, status: any) => {
+    const res = await adminUpdatePaymentStatusToSupabase(id, status);
+    if (!res.success) alert(res.error);
     addAdminLog(`Updated payment status for Entry ID ${id} to ${status}`);
     refreshData();
   };
@@ -149,7 +148,7 @@ export default function AdminDashboard() {
     // Tiny delay for feedback
     await new Promise(r => setTimeout(r, 500));
     
-    const res = adminFinalizePayment(id);
+    const res = await adminUpdatePaymentStatusToSupabase(id, "Verified");
     if (res.success) {
       setViewProof(null);
       refreshData();
@@ -159,13 +158,46 @@ export default function AdminDashboard() {
     setIsVerifying(false);
   };
 
-  const handleRejectPayment = (id: string) => {
+  const handleRejectPayment = async (id: string) => {
     if (confirm("Reject this payment proof? Status will return to Pending.")) {
-      adminUpdateCompetitionEntry(id, { paymentStatus: "Wait", paymentProofUrl: undefined });
+      const res = await adminUpdatePaymentStatusToSupabase(id, "Wait");
+      if (!res.success) alert(res.error);
       addAdminLog(`Rejected payment proof for Entry ID ${id}`);
       setViewProof(null);
       refreshData();
     }
+  };
+
+  const handleExportCSV = () => {
+    if (entries.length === 0) return;
+    
+    // Add BOM for Excel UTF-8 support
+    const BOM = "\uFEFF";
+    const headers = ["ID Pendaftaran", "Nama Lengkap", "Email", "Nomor WhatsApp", "Asal Sekolah", "Provinsi", "Kategori Lomba", "Tipe", "Waktu Daftar", "Status Pembayaran"];
+    const csvRows = [
+      headers.join(","),
+      ...entries.map(e => [
+        `"NCC-${String(e.id).slice(0, 10).toUpperCase()}"`, 
+        `"${e.fullName}"`, 
+        `"${e.email}"`, 
+        `"=""${e.phone}"""`, // Escaped for Excel to prevent scientific notation
+        `"${e.school}"`,
+        `"${e.city}"`,
+        `"${e.category}"`,
+        `"${e.teamSize}"`,
+        `"${new Date(e.submittedAt).toLocaleString()}"`,
+        `"${e.paymentStatus}"`
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([BOM + csvRows], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `NCC_Data_Pendaftar_${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    addAdminLog(`Exported ${entries.length} rows to CSV`);
   };
 
   const filteredEntries = entries.filter(e => {
@@ -203,7 +235,10 @@ export default function AdminDashboard() {
             <p className="text-slate-500 text-[13px] font-medium mt-1">Direct oversight of all registered competition entries.</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 bg-white/5 border border-white/10 text-slate-300 font-bold rounded-lg text-[12px] hover:bg-white/10 transition-all flex items-center gap-2">
+            <button 
+              onClick={handleExportCSV}
+              className="px-4 py-2 bg-white/5 border border-white/10 text-slate-300 font-bold rounded-lg text-[12px] hover:bg-white/10 transition-all flex items-center gap-2"
+            >
               <Download size={14} /> Export Data
             </button>
             <button 
@@ -215,6 +250,9 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Recharts Analytics Panel */}
+      <AdminAnalytics entries={entries} />
 
       {/* Modals (Vercel Style) */}
       <AnimatePresence>

@@ -263,3 +263,21 @@ export async function updateProfileInSupabase(userId: string, updates: any) {
     return { data: null, error: err.message };
   }
 }
+
+/** TAHAP 5.A: Update Payment Status directly to Supabase */
+export async function adminUpdatePaymentStatusToSupabase(entryId: number | string, status: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('competition_entries')
+      .update({ payment_status: status })
+      .eq('id', entryId)
+      .select();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (err: any) {
+    console.error("Supabase Admin Update Error:", err);
+    return { success: false, error: err.message || "Gagal mengubah status." };
+  }
+}
