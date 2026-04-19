@@ -540,7 +540,7 @@ export default function DashboardPage() {
                    </div>
                    <div className="text-right sm:text-right w-full sm:w-auto">
                       <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Invoice Number</div>
-                      <div className="text-xl font-mono font-bold text-slate-900">NCC-{selectedEntry.id.slice(0, 10).toUpperCase()}</div>
+                      <div className="text-xl font-mono font-bold text-slate-900">NCC-{String(selectedEntry.id).slice(0, 10).toUpperCase()}</div>
                    </div>
                 </div>
 
@@ -1075,7 +1075,7 @@ export default function DashboardPage() {
                       <div className="font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{entry.category}</div>
                       <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{new Date(entry.submittedAt).toLocaleTimeString()} • {new Date(entry.submittedAt).toLocaleDateString()}</div>
                     </td>
-                    <td className="px-8 py-6 font-mono text-xs text-slate-400 font-bold uppercase tracking-widest">NCC-{entry.id.slice(0, 10)}</td>
+                    <td className="px-8 py-6 font-mono text-xs text-slate-400 font-bold uppercase tracking-widest">NCC-{String(entry.id).slice(0, 10)}</td>
                     <td className="px-8 py-6">
                       <div className="flex justify-center">
                         {entry.paymentStatus === "Verified" ? (
