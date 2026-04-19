@@ -255,6 +255,7 @@ export type CompetitionEntry = {
   submittedAt: string;
   submissionUrl?: string;
   submissionStatus?: string;
+  is_attended?: boolean;
 };
 
 

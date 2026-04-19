@@ -281,3 +281,23 @@ export async function adminUpdatePaymentStatusToSupabase(entryId: number | strin
     return { success: false, error: err.message || "Gagal mengubah status." };
   }
 }
+
+/** TAHAP 8: Update Attendance via QR Scanner */
+export async function adminMarkAttendance(entryId: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('competition_entries')
+      .update({ is_attended: true })
+      .eq('id', entryId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (err: any) {
+    console.error("Attendance Scan Error:", err);
+    return { success: false, error: err.message || "Gagal mencatat kehadiran." };
+  }
+}
+

@@ -49,8 +49,11 @@ import {
   Lock,
   FileCheck,
   CheckCircle,
-  FileText
+  FileText,
+  QrCode,
+  Ticket
 } from "lucide-react";
+import TicketCard from "@/components/TicketCard";
 import { 
   CompetitionEntry, 
   getAnnouncements, 
@@ -103,6 +106,7 @@ export default function DashboardPage() {
   const [paymentPreview, setPaymentPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isTicketOpen, setIsTicketOpen] = useState(false);
 
   // Profile Form States
   const [updateMsg, setUpdateMsg] = useState({ type: "", text: "" });
@@ -123,6 +127,32 @@ export default function DashboardPage() {
   const router = useRouter();
   const invoiceRef = useRef<HTMLDivElement>(null);
   const { stats } = useLiveStats();
+
+  const renderTicketModal = () => (
+    <AnimatePresence>
+      {isTicketOpen && selectedEntry && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setIsTicketOpen(false)}
+            className="absolute inset-0 bg-[#000]/80 backdrop-blur-md"
+          />
+          <div className="relative w-full max-w-lg">
+             <TicketCard 
+                data={{
+                  id: selectedEntry.id,
+                  fullName: selectedEntry.fullName,
+                  school: selectedEntry.school,
+                  category: selectedEntry.category,
+                  city: selectedEntry.city || "-"
+                }} 
+                onClose={() => setIsTicketOpen(false)}
+             />
+          </div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
 
   const refreshData = useCallback(async () => {
     // Audit: Use Browser Client for safe session detection
@@ -996,12 +1026,21 @@ export default function DashboardPage() {
                   <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Didaftar Pada</span>
                   <span className="text-xs text-slate-500 font-bold">{new Date(entry.submittedAt).toLocaleDateString("id-ID")}</span>
                 </div>
-                <button 
-                  onClick={() => { setSelectedEntry(entry); setIsDetailOpen(true); }}
-                  className="text-white bg-indigo-600 px-6 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-indigo-100 hover:bg-slate-900 transition-all flex items-center gap-2"
-                >
-                  Lihat Detail <ChevronRight size={14}/>
-                </button>
+                <div className="flex gap-2">
+                   <button 
+                    onClick={() => { setSelectedEntry(entry); setIsTicketOpen(true); }}
+                    className="p-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95"
+                    title="Buka Kartu Ujian"
+                  >
+                    <QrCode size={16} />
+                  </button>
+                  <button 
+                    onClick={() => { setSelectedEntry(entry); setIsDetailOpen(true); }}
+                    className="text-white bg-indigo-600 px-6 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-indigo-100 hover:bg-slate-900 transition-all flex items-center gap-2"
+                  >
+                    Lihat Detail <ChevronRight size={14}/>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -1418,6 +1457,7 @@ export default function DashboardPage() {
       {renderDetailModal()}
       {renderInvoiceModal()}
       {renderPaymentModal()}
+      {renderTicketModal()}
 
       {/* ─── SIDEBAR ─── */}
       <aside className={`

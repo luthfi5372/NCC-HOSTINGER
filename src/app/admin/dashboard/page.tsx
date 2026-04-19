@@ -16,7 +16,8 @@ import {
   ChevronRight,
   Eye,
   FileText,
-  CheckCircle2
+  CheckCircle2,
+  QrCode
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -257,6 +258,12 @@ export default function AdminDashboard() {
             >
               <Download size={14} /> Export Data
             </button>
+            <Link 
+              href="/admin/scanner"
+              className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg text-[12px] hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+            >
+              <QrCode size={14} /> Scan Presence
+            </Link>
             <button 
               onClick={() => setShowAddModal(true)}
               className="px-4 py-2 bg-white text-black font-bold rounded-lg text-[12px] hover:bg-slate-200 transition-all flex items-center gap-2"
