@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShineBorder } from "@/components/ui/ShineBorder";
 import { loginLocalUser } from "@/app/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 import { Mail, Lock, Eye, EyeOff, Loader2, Trophy, ArrowRight, CheckCircle2, Mic, Microscope, BookOpen, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useLiveStats } from "@/hooks/useLiveStats";
@@ -29,49 +30,29 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 🔥 TAKTIK 3: BYPASS KHUSUS ADMIN (HACKER MODE)
-    if (email.trim() === 'admin1@ncc.id' && password.trim() === '123456') {
-      document.cookie = "ncc_hint=1; path=/; max-age=604800; samesite=lax";
-      document.cookie = "ncc_admin_hint=1; path=/; max-age=604800; samesite=lax";
-      setSuccess(true);
-      // 🔥 TAKTIK 2: HARD NAVIGATE (Bypass Race Condition)
-      setTimeout(() => {
-        window.location.href = "/hq";
-      }, 800);
-      return;
-    }
+    // 🔬 DIAGNOSTIC MODE: PING SUPABASE DIRECTLY
+    alert("1. Memulai proses komunikasi dengan Supabase...");
 
-    setLoading(true);
-    setError(null);
+    const supabase = createClient();
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: password.trim(),
+    });
 
-    const formData = new FormData();
-    formData.append("email", email.trim());
-    formData.append("password", password.trim());
-
-
-    const result = await loginLocalUser(formData);
-
-    if (result.success) {
-      // Set a minimal cookie hint for middleware
-      document.cookie = "ncc_hint=1; path=/; max-age=604800; samesite=lax";
+    if (authError) {
+      alert("❌ GAGAL MASUK: " + authError.message);
+      setError(authError.message);
+    } else if (data?.user) {
+      alert("✅ SUKSES MASUK! \nEmail: " + data.user.email + "\nRole: " + JSON.stringify(data.user.user_metadata));
       
-      // Dynamic Redirect & Admin Hint Synchronization
-      const isAdmin = email.trim().toLowerCase() === "admin1@ncc.id";
-      if (isAdmin) {
-        document.cookie = "ncc_admin_hint=1; path=/; max-age=604800; samesite=lax";
-      }
-
+      // Catatan: Redirect dimatikan sementara untuk melihat alert sukses
+      // window.location.href = data.user.email === 'admin1@ncc.id' ? '/hq' : '/dashboard';
       setSuccess(true);
-      
-      // 🔥 TAKTIK 2 & 🚦 POLISI LALU LINTAS: HARD NAVIGATE (Ensure Middleware sees cookies)
-      setTimeout(() => {
-        window.location.href = isAdmin ? "/hq" : "/dashboard";
-      }, 800);
     } else {
-      setError(result.error ?? "Email atau kata sandi salah.");
-      setLoading(false);
+      alert("❓ RESPON TIDAK DIKENAL");
     }
 
+    setLoading(false);
   };
 
   return (
