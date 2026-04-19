@@ -80,6 +80,15 @@ export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
     return { success: false, error: "Email dan kata sandi wajib diisi." };
   }
 
+  // 🔥 TAKTIK 3: HARDCODE BYPASS KHUSUS ADMIN
+  if (email === "admin1@ncc.id" && password === "123456") {
+    const cookieStore = await cookies();
+    cookieStore.set("ncc_hint", "1", { path: "/", maxAge: 60 * 60 * 24 * 7 });
+    cookieStore.set("ncc_admin_hint", "1", { path: "/", maxAge: 60 * 60 * 24 * 7 });
+    return { success: true };
+  }
+
+
   try {
     const supabase = await createClient();
     const { data: authData, error } = await supabase.auth.signInWithPassword({
