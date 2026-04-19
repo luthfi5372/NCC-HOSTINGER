@@ -51,14 +51,24 @@ export default function LoginPage() {
     if (result.success) {
       // Set a minimal cookie hint for middleware
       document.cookie = "ncc_hint=1; path=/; max-age=604800; samesite=lax";
+      
+      // Dynamic Redirect & Admin Hint Synchronization
+      const isAdmin = email.trim().toLowerCase() === "admin1@ncc.id";
+      if (isAdmin) {
+        document.cookie = "ncc_admin_hint=1; path=/; max-age=604800; samesite=lax";
+      }
+
       setSuccess(true);
       
-      // We'll check the session briefly to know where to redirect
-      setTimeout(() => router.push("/dashboard"), 800);
+      // Redirect to specific dashboard based on identity
+      setTimeout(() => {
+        router.push(isAdmin ? "/admin/dashboard" : "/dashboard");
+      }, 800);
     } else {
       setError(result.error ?? "Email atau kata sandi salah.");
       setLoading(false);
     }
+
   };
 
   return (
