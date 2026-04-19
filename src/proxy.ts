@@ -10,6 +10,18 @@ export function proxy(request: NextRequest) {
   const isDashboard = path.startsWith("/dashboard");
   const isAdminArea = path.startsWith("/admin");
 
+  // 🔥 TAKTIK 3: PRIORITY ADMIN CHECK
+  if (isAdminArea) {
+    if (!isLoggedIn || !isAdmin) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard"; 
+      return NextResponse.redirect(url);
+    }
+    // Jika admin & login, silakan lewat tanpa gangguan
+    return NextResponse.next();
+  }
+
+  // 2. Logika untuk peserta biasa
   if (isDashboard && !isLoggedIn) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -17,13 +29,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (isAdminArea) {
-    if (!isLoggedIn || !isAdmin) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/dashboard"; 
-      return NextResponse.redirect(url);
-    }
-  }
 
   return NextResponse.next();
 }

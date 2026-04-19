@@ -34,7 +34,10 @@ export default function LoginPage() {
       document.cookie = "ncc_hint=1; path=/; max-age=604800; samesite=lax";
       document.cookie = "ncc_admin_hint=1; path=/; max-age=604800; samesite=lax";
       setSuccess(true);
-      setTimeout(() => router.push("/admin/dashboard"), 800);
+      // 🔥 TAKTIK 2: HARD NAVIGATE (Bypass Race Condition)
+      setTimeout(() => {
+        window.location.href = "/admin/dashboard";
+      }, 800);
       return;
     }
 
@@ -60,9 +63,9 @@ export default function LoginPage() {
 
       setSuccess(true);
       
-      // Redirect to specific dashboard based on identity
+      // 🔥 TAKTIK 2: HARD NAVIGATE (Ensure Middleware sees cookies)
       setTimeout(() => {
-        router.push(isAdmin ? "/admin/dashboard" : "/dashboard");
+        window.location.href = isAdmin ? "/admin/dashboard" : "/dashboard";
       }, 800);
     } else {
       setError(result.error ?? "Email atau kata sandi salah.");
