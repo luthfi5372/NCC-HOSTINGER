@@ -30,6 +30,12 @@ export async function submitCompetitionEntryToSupabase(entry: CompetitionEntry, 
 
 
   try {
+    // [ADD] Kill Switch Check
+    const { data: settings } = await supabase.from('site_settings').select('is_registration_open').eq('id', 1).single();
+    if (settings && !settings.is_registration_open) {
+      return { data: null, error: { message: "Pendaftaran NCC ke-13 saat ini sedang ditutup." }};
+    }
+
     const { data, error } = await supabase
       .from('competition_entries')
       .insert([
@@ -300,4 +306,40 @@ export async function adminMarkAttendance(entryId: string) {
     return { success: false, error: err.message || "Gagal mencatat kehadiran." };
   }
 }
+
+/** HQ MODULE: Site Settings Management */
+export async function fetchSiteSettings() {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('*')
+      .eq('id', 1)
+      .single();
+    
+    if (error) throw error;
+    return { data, error: null };
+  } catch (err: any) {
+    console.error("Fetch settings error:", err);
+    return { data: null, error: err.message };
+  }
+}
+
+export async function updateSiteSettings(updates: any) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('site_settings')
+      .update(updates)
+      .eq('id', 1)
+      .select();
+    
+    if (error) throw error;
+    return { data, error: null };
+  } catch (err: any) {
+    console.error("Update settings error:", err);
+    return { data: null, error: err.message };
+  }
+}
+
 

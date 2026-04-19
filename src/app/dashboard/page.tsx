@@ -66,8 +66,10 @@ import {
   submitCompetitionEntryToSupabase, 
   fetchHybridEntries, 
   fetchProfile, 
-  updateProfileInSupabase 
+  updateProfileInSupabase,
+  fetchSiteSettings 
 } from "@/lib/supabase/service";
+import HqAnnouncement from "@/components/HqAnnouncement";
 
 const PROVINCES = [
   "DI. ACEH", "SUMATERA UTARA", "SUMATERA BARAT", "RIAU", "JAMBI", "SUMATERA SELATAN", "BENGKULU", "LAMPUNG", 
@@ -123,6 +125,7 @@ export default function DashboardPage() {
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
   const [regSuccess, setRegSuccess] = useState<string | null>(null);
+  const [isRegOpen, setIsRegOpen] = useState(true);
 
   const router = useRouter();
   const invoiceRef = useRef<HTMLDivElement>(null);
@@ -217,7 +220,6 @@ export default function DashboardPage() {
         console.error("Failed to load profile:", profErr);
       }
 
-      // 3. Announcements (Still mock for now)
       try {
         const mockAnnouncements = getAnnouncements() as unknown as Announcement[];
         setAnnouncements(mockAnnouncements || []);
@@ -231,6 +233,16 @@ export default function DashboardPage() {
         }
       } catch (annErr) {
         console.error("Failed to load announcements:", annErr);
+      }
+
+      // 4. Fetch Site Settings (Kill Switch)
+      try {
+        const { data: settings } = await fetchSiteSettings();
+        if (settings) {
+          setIsRegOpen(settings.is_registration_open);
+        }
+      } catch (err) {
+        console.error("Failed to fetch settings:", err);
       }
     } catch (err) {
       console.error("Dashboard critical error:", err);
@@ -941,17 +953,25 @@ export default function DashboardPage() {
                       </motion.div>
                     )}
 
-                    <button
-                      type="submit"
-                      disabled={isSubmittingReg || !!regSuccess}
-                      className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[3px] shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50"
-                    >
-                      {isSubmittingReg ? (
-                        <><div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Menyimpan...</>
-                      ) : (
-                        <>Konfirmasi Pendaftaran <Sparkles size={16}/></>
-                      )}
-                    </button>
+                    {isRegOpen ? (
+                      <button
+                        type="submit"
+                        disabled={isSubmittingReg || !!regSuccess}
+                        className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[3px] shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50"
+                      >
+                        {isSubmittingReg ? (
+                          <><div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Menyimpan...</>
+                        ) : (
+                          <>Konfirmasi Pendaftaran <Sparkles size={16}/></>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="p-6 bg-rose-50 border border-rose-100 rounded-[2rem] text-center">
+                        <Lock className="mx-auto text-rose-400 mb-2" size={24} />
+                        <p className="text-sm font-black text-rose-600 uppercase tracking-widest">Pendaftaran Ditutup</p>
+                        <p className="text-[10px] text-rose-400 font-medium mt-1">Maaf, pendaftaran kompetisi NCC 13 telah berakhir atau sedang ditutup sementara.</p>
+                      </div>
+                    )}
                   </form>
                 </div>
              </div>
@@ -1518,6 +1538,9 @@ export default function DashboardPage() {
 
       {/* ─── MAIN CONTENT ─── */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        {/* Real-time HQ Control Link */}
+        <HqAnnouncement />
+        
         {/* Header */}
         <header className="h-28 bg-white/80 backdrop-blur-xl sticky top-0 z-40 border-b border-slate-100 flex items-center justify-between px-10 lg:px-16 shrink-0">
           <div className="flex items-center gap-8">
