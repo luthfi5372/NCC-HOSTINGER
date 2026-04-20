@@ -13,6 +13,10 @@ export default function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    console.log("🚀 [Auth-Form] Memulai proses otentikasi...");
+    
     setIsLoading(true);
     setError(null);
 
