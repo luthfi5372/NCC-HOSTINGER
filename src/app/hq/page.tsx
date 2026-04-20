@@ -86,14 +86,25 @@ export default function HQDashboardLight() {
       if (error) throw error;
       setParticipants(participants.map(p => p.id === id ? { ...p, payment_status: status } : p));
       
-      // Notify (Phase 6 legacy)
+      // 🚀 PELATUK EMAIL OTOMATIS (Resend)
       if (status === 'Verified') {
         const p = participants.find(part => part.id === id);
-        fetch("/api/notify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: p.email, fullName: p.full_name, type: 'VERIFIED' })
-        }).catch(() => {});
+        if (p) {
+          fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email_peserta: p.email,
+              nama_peserta: p.full_name,
+              kategori_lomba: p.category,
+              id_pendaftaran: String(p.id)
+            })
+          }).then(() => {
+            console.log("Email notifikasi berhasil ditembakkan!");
+          }).catch(err => {
+            console.error("Gagal mengirim email:", err);
+          });
+        }
       }
     } catch (error) {
       alert("❌ Gagal memperbarui status.");
