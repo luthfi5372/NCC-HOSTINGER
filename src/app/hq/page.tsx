@@ -15,8 +15,10 @@ export default function HQDashboardLight() {
   // State Data Real-Time
   const [broadcastText, setBroadcastText] = useState("");
   const [isRegOpen, setIsRegOpen] = useState(true);
+  const [participants, setParticipants] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [viewImage, setViewImage] = useState<string | null>(null);
 
   // Fungsi Menarik Data Saat Halaman Dimuat
   useEffect(() => {
@@ -26,8 +28,8 @@ export default function HQDashboardLight() {
   const fetchHQData = async () => {
     setIsLoading(true);
     try {
-      // Menarik data pengaturan website dari database
-      const { data: settings, error } = await supabase
+      // 1. Ambil Pengaturan
+      const { data: settings } = await supabase
         .from('site_settings')
         .select('*')
         .eq('id', 1)
@@ -37,7 +39,15 @@ export default function HQDashboardLight() {
         setBroadcastText(settings.live_announcement || "");
         setIsRegOpen(settings.is_registration_open);
       }
-      if (error) throw error;
+
+      // 2. Ambil Data Peserta
+      const { data: entries } = await supabase
+        .from('competition_entries')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (entries) setParticipants(entries);
+
     } catch (error) {
       console.error("Gagal menarik data HQ:", error);
     } finally {
@@ -45,7 +55,7 @@ export default function HQDashboardLight() {
     }
   };
 
-  // Fungsi Menyimpan Pengaturan (God Mode Action)
+  // Fungsi Menyimpan Pengaturan (Broadcast/Switch)
   const saveSettings = async (newRegStatus?: boolean) => {
     setIsSaving(true);
     const updatedRegStatus = newRegStatus !== undefined ? newRegStatus : isRegOpen;
@@ -60,17 +70,55 @@ export default function HQDashboardLight() {
         .eq('id', 1);
 
       if (error) throw error;
-      
-      // Update UI langsung jika sukses
       if (newRegStatus !== undefined) setIsRegOpen(newRegStatus);
-      alert("✅ Perintah berhasil dieksekusi di database!");
+      alert("✅ Pengaturan berhasil diperbarui!");
     } catch (error) {
-      console.error("Gagal menyimpan:", error);
-      alert("❌ Gagal menyimpan data ke server.");
+      alert("❌ Gagal menyimpan pengaturan.");
     } finally {
       setIsSaving(false);
     }
   };
+
+  // Fungsi Verifikasi Pembayaran (Accept/Reject)
+  const updatePaymentStatus = async (id: string, status: string) => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('competition_entries')
+        .update({ payment_status: status })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      // Update local state agar instan
+      setParticipants(participants.map(p => p.id === id ? { ...p, payment_status: status } : p));
+      
+      // Jika diverifikasi, kirim notifikasi email (Phase 6 legacy trigger)
+      if (status === 'Verified') {
+        const p = participants.find(part => part.id === id);
+        fetch("/api/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: p.email, fullName: p.full_name, type: 'VERIFIED' })
+        }).catch(() => {});
+      }
+
+    } catch (error) {
+      alert("❌ Gagal memperbarui status pembayaran.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Kalkulasi Metrik
+  const stats = {
+    total: participants.length,
+    verified: participants.filter(p => p.payment_status === 'Verified').length,
+    pending: participants.filter(p => p.payment_status === 'Paid').length
+  };
+
+  // Antrean Verifikasi (Filter status 'Paid')
+  const queue = participants.filter(p => p.payment_status === 'Paid');
 
   return (
     <div className="min-h-screen bg-[#f4f7fb] text-slate-800 font-sans p-4 md:p-8 relative overflow-hidden">
@@ -110,31 +158,32 @@ export default function HQDashboardLight() {
 
         {/* METRICS & MASTER SWITCH */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Skeleton loading untuk metrik (Nanti kita sambungkan ke tabel competition_entries) */}
           {[
-            { title: "Total Pendaftar", value: "---", color: "text-blue-600", icon: "👥" },
-            { title: "Terverifikasi", value: "---", color: "text-green-600", icon: "✅" },
-            { title: "Menunggu Review", value: "---", color: "text-amber-500", icon: "⏳" },
+            { title: "Total Pendaftar", value: stats.total, color: "text-blue-600", icon: "👥" },
+            { title: "Terverifikasi", value: stats.verified, color: "text-green-600", icon: "✅" },
+            { title: "Menunggu Review", value: stats.pending, color: "text-amber-500", icon: "⏳" },
           ].map((stat, idx) => (
-            <div key={idx} className="bg-white/70 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 rounded-3xl flex flex-col justify-between">
+            <div key={idx} className="bg-white/70 backdrop-blur-xl border border-white/60 shadow-sm p-6 rounded-3xl flex flex-col justify-between">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{stat.title}</h3>
                 <span className="text-2xl">{stat.icon}</span>
               </div>
-              <p className={`text-4xl font-black ${stat.color}`}>{stat.value}</p>
+              <p className={`text-4xl font-black ${stat.color}`}>
+                {isLoading ? "..." : stat.value.toLocaleString()}
+              </p>
             </div>
           ))}
 
-          {/* Master Switch Panel - TERHUBUNG KE DATABASE */}
+          {/* Master Switch Panel */}
           <div className="bg-gradient-to-br from-indigo-500 to-blue-600 shadow-lg p-6 rounded-3xl flex flex-col justify-between text-white relative overflow-hidden">
-            {isLoading && <div className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-sm z-10"><span className="animate-spin text-2xl">⏳</span></div>}
+            {isLoading && <div className="absolute inset-0 bg-black/10 backdrop-blur-sm z-10 flex items-center justify-center"><span className="animate-spin text-xl">🌀</span></div>}
             <h3 className="text-sm font-bold text-indigo-100 uppercase tracking-wider mb-4">Pendaftaran</h3>
             <div className="flex items-center justify-between">
               <span className="text-2xl font-black">{isRegOpen ? "OPEN" : "CLOSED"}</span>
               <button 
                 onClick={() => saveSettings(!isRegOpen)}
                 disabled={isSaving}
-                className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${isRegOpen ? 'bg-green-400' : 'bg-slate-400/50'}`}
+                className={`w-14 h-8 rounded-full p-1 transition-all duration-300 ${isRegOpen ? 'bg-green-400' : 'bg-slate-400/50'}`}
               >
                 <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isRegOpen ? 'translate-x-6' : 'translate-x-0'}`}></div>
               </button>
@@ -145,11 +194,11 @@ export default function HQDashboardLight() {
         {/* ACTION PANELS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* TERMINAL SIARAN - TERHUBUNG KE DATABASE */}
-          <div className="lg:col-span-1 bg-white/70 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 rounded-3xl relative">
+          {/* TERMINAL SIARAN */}
+          <div className="lg:col-span-1 bg-white/70 backdrop-blur-xl border border-white/60 shadow-sm p-6 rounded-3xl relative">
             {isLoading && <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 rounded-3xl"></div>}
             <h3 className="text-lg font-bold text-slate-800 mb-2">📢 Terminal Siaran</h3>
-            <p className="text-sm text-slate-500 mb-6">Teks ini akan tayang di dashboard peserta.</p>
+            <p className="text-sm text-slate-500 mb-6">Teks tayang di dashboard peserta.</p>
             
             <textarea 
               value={broadcastText}
@@ -160,23 +209,104 @@ export default function HQDashboardLight() {
             <button 
               onClick={() => saveSettings()}
               disabled={isSaving}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md flex justify-center items-center gap-2"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md"
             >
-              {isSaving ? "Mengirim..." : "Kirim Siaran Global"}
+              {isSaving ? "Sinkronisasi..." : "Kirim Siaran Global"}
             </button>
           </div>
 
-          {/* TABEL VERIFIKASI (Segera Di-wiring) */}
-          <div className="lg:col-span-2 bg-white/70 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 rounded-3xl flex items-center justify-center text-slate-400">
-            <div className="text-center">
-              <p className="text-4xl mb-2">🚧</p>
-              <h3 className="font-bold text-lg text-slate-600">Tabel Verifikasi Peserta</h3>
-              <p className="text-sm">Menunggu sinkronisasi data dari tabel competition_entries...</p>
+          {/* TABEL VERIFIKASI PEMBAYARAN */}
+          <div className="lg:col-span-2 bg-white/70 backdrop-blur-xl border border-white/60 shadow-sm p-6 rounded-3xl overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-slate-800">⚡ Antrean Verifikasi Pembayaran</h3>
+              <span className="px-3 py-1 bg-amber-100 text-amber-600 rounded-full text-xs font-bold">
+                {queue.length} Tertunda
+              </span>
+            </div>
+            
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
+                    <th className="pb-3 font-semibold">Nama Peserta</th>
+                    <th className="pb-3 font-semibold">Kategori</th>
+                    <th className="pb-3 font-semibold">Bukti TF</th>
+                    <th className="pb-3 font-semibold text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm text-slate-700">
+                  {isLoading ? (
+                    <tr><td colSpan={4} className="py-10 text-center text-slate-400">Memuat antrean...</td></tr>
+                  ) : queue.length === 0 ? (
+                    <tr><td colSpan={4} className="py-10 text-center text-slate-400 font-medium">✨ Antrean Bersih. Semua pembayaran sudah diverifikasi.</td></tr>
+                  ) : (
+                    queue.map((p) => (
+                      <tr key={p.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
+                        <td className="py-4">
+                          <div className="font-bold text-slate-800">{p.full_name}</div>
+                          <div className="text-[10px] text-slate-400 uppercase tracking-widest">{p.email}</div>
+                        </td>
+                        <td className="py-4">
+                          <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-md text-[10px] font-black uppercase">
+                            {p.category}
+                          </span>
+                        </td>
+                        <td className="py-4">
+                          {p.payment_proof_url ? (
+                            <button 
+                              onClick={() => setViewImage(p.payment_proof_url)}
+                              className="text-blue-500 hover:underline font-bold text-xs"
+                            >
+                              Lihat Gambar
+                            </button>
+                          ) : (
+                            <span className="text-slate-300 italic text-xs">Tidak ada file</span>
+                          )}
+                        </td>
+                        <td className="py-4 text-right">
+                          <div className="flex justify-end gap-2">
+                             <button 
+                              onClick={() => updatePaymentStatus(p.id, 'Verified')}
+                              disabled={isSaving}
+                              className="p-2 bg-green-100 text-green-600 hover:bg-green-600 hover:text-white rounded-xl transition-all"
+                              title="Terima"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                            </button>
+                            <button 
+                              onClick={() => updatePaymentStatus(p.id, 'Wait')}
+                              disabled={isSaving}
+                              className="p-2 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white rounded-xl transition-all"
+                              title="Tolak"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
         </div>
       </div>
+
+      {/* LIGHTBOX INSPECTOR */}
+      {viewImage && (
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-8">
+           <button 
+            onClick={() => setViewImage(null)}
+            className="absolute top-10 right-10 text-white/50 hover:text-white text-4xl"
+          >
+            &times;
+          </button>
+          <img src={viewImage} alt="Bukti Transfer" className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border-4 border-white/10" />
+        </div>
+      )}
+
     </div>
   );
 }
