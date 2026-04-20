@@ -30,12 +30,14 @@ export default function LoginForm() {
         document.cookie = "ncc_admin_hint=1; path=/; max-age=604800; samesite=lax";
       }
 
-      // 🚀 Alternatif 1: Router Push + Refresh (Taktik 1.5 detik agar sesi matang)
+      // 🚀 Alternatif 2: Navigasi Dobrak (Hard Redirect 1 detik)
       setTimeout(() => {
-        const destination = result.isAdmin ? "/hq" : "/dashboard";
-        router.push(destination);
-        router.refresh();
-      }, 1500);
+        if (result.isAdmin) {
+          window.location.href = '/hq'; 
+        } else {
+          window.location.href = '/dashboard';
+        }
+      }, 1000);
     } else {
       const errorMsg = result.error ?? "Terjadi kesalahan.";
       setError(errorMsg);
