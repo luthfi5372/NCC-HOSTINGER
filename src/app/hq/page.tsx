@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from '@supabase/ssr';
 import { 
@@ -17,8 +17,24 @@ import {
   Key,
   Trash2,
   X,
-  CheckCircle2
+  CheckCircle2,
+  TrendingUp,
+  PieChart as PieIcon,
+  Activity
 } from "lucide-react";
+import { 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  Legend,
+  CartesianGrid
+} from "recharts";
 
 export default function HQDashboardLight() {
   const router = useRouter();
@@ -201,6 +217,38 @@ export default function HQDashboardLight() {
     }
   };
 
+  // --- TELEMETRI DATA PROCESSING ---
+  const categoryData = useMemo(() => {
+    const rawData = [
+      { name: 'MIPA', value: participants.filter(p => p.category === 'Olimpiade MIPA').length },
+      { name: 'LKTI', value: participants.filter(p => p.category === 'LKTI Nasional').length },
+      { name: 'SPEECH', value: participants.filter(p => p.category === 'Speech Contest').length },
+      { name: 'MTQ', value: participants.filter(p => p.category === 'MTQ Nasional').length },
+    ].filter(item => item.value > 0);
+    return rawData;
+  }, [participants]);
+
+  const dailyTrendData = useMemo(() => {
+    const last14Days = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      return d.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    }).reverse();
+
+    const counts: Record<string, number> = {};
+    participants.forEach(p => {
+      const date = new Date(p.created_at).toLocaleDateString('en-CA');
+      counts[date] = (counts[date] || 0) + 1;
+    });
+
+    return last14Days.map(date => ({
+      date: date.split('-').slice(1).join('/'), // MM/DD
+      count: counts[date] || 0
+    }));
+  }, [participants]);
+
+  const CHART_COLORS = ['#2563eb', '#6366f1', '#8b5cf6', '#d946ef'];
+
   // Logic Radar (Filtering)
   const filteredParticipants = participants.filter(p => {
     const matchesSearch = 
@@ -291,6 +339,112 @@ export default function HQDashboardLight() {
               >
                 <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isRegOpen ? 'translate-x-6' : 'translate-x-0'}`}></div>
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* RADAR ANALITIK (NEW) - Executive Telemetry */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150">
+          {/* Pie Chart: Distribusi Kategori */}
+          <div className="bg-white/70 backdrop-blur-xl border border-white/60 p-8 rounded-[2.5rem] shadow-xl h-[360px] flex flex-col relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <PieIcon size={16} className="text-blue-500" />
+                  Persentase Kategori Lomba
+                </h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Sifat Peminat NCC</p>
+              </div>
+              <div className="bg-blue-50 p-2 rounded-xl">
+                <Activity size={18} className="text-blue-600" />
+              </div>
+            </div>
+            
+            <div className="flex-1 relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={85}
+                    paddingAngle={8}
+                    dataKey="value"
+                    animationBegin={200}
+                    animationDuration={1500}
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} stroke="rgba(255,255,255,0.5)" strokeWidth={2} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)' }}
+                    itemStyle={{ fontWeight: '800', fontSize: '12px' }}
+                  />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle"/>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
+                <span className="text-3xl font-black text-slate-800 leading-none">{participants.length}</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Total Entry</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Area Chart: Tren Pendaftaran 14 Hari Terakhir */}
+          <div className="bg-white/70 backdrop-blur-xl border border-white/60 p-8 rounded-[2.5rem] shadow-xl h-[360px] flex flex-col relative group">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <TrendingUp size={16} className="text-indigo-500" />
+                  Tren Pendaftaran Harian
+                </h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Aktivitas 14 Hari Terakhir</p>
+              </div>
+              <div className="bg-indigo-50 p-2 rounded-xl">
+                <Zap size={18} className="text-indigo-600" />
+              </div>
+            </div>
+
+            <div className="flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={dailyTrendData}>
+                  <defs>
+                    <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
+                    tickMargin={10}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)' }}
+                    itemStyle={{ fontWeight: '800', fontSize: '12px', color: '#4f46e5' }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="count" 
+                    stroke="#4f46e5" 
+                    strokeWidth={4}
+                    fillOpacity={1} 
+                    fill="url(#colorCount)" 
+                    animationBegin={500}
+                    animationDuration={2000}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
