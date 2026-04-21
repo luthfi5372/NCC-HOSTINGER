@@ -605,6 +605,7 @@ export default function HQDashboardLight() {
                   ) : (
                     filteredParticipants.map((p) => (
                       <tr key={p.id} className="border-b border-slate-100 group hover:bg-slate-50/50 transition-colors">
+                        {/* Build Trigger: NCC-13-SYNC-FORCE-001 */}
                         <td className="py-5">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600 shadow-sm border border-indigo-200">
