@@ -295,28 +295,28 @@ export default function HQDashboardLight() {
           </div>
         </div>
 
-        {/* HUD TAB SELECTOR */}
-        <div className="flex p-1.5 bg-white/50 backdrop-blur-xl border border-white/40 rounded-2xl w-fit">
+        {/* AREA TAB KONTROL - Navigasi Ruang Kerja */}
+        <div className="flex gap-4 mb-2 border-b border-slate-200 pb-4 overflow-x-auto">
           <button 
             onClick={() => setActiveTab("VERIFIKASI")}
-            className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === "VERIFIKASI" ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-800"}`}
+            className={`px-6 py-2.5 rounded-2xl font-black text-sm transition-all flex items-center gap-2 ${activeTab === "VERIFIKASI" ? "bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105" : "bg-white/50 text-slate-500 hover:bg-white hover:text-blue-600 border border-transparent hover:border-blue-100"}`}
           >
-            ⚡ Antrean Verifikasi
+            <Zap size={16} /> Antrean Verifikasi
           </button>
           <button 
             onClick={() => setActiveTab("USERS")}
-            className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === "USERS" ? "bg-indigo-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-800"}`}
+            className={`px-6 py-2.5 rounded-2xl font-black text-sm transition-all flex items-center gap-2 ${activeTab === "USERS" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-105" : "bg-white/50 text-slate-500 hover:bg-white hover:text-indigo-600 border border-transparent hover:border-indigo-100"}`}
           >
-            🗄️ Master Registry
+            <Users size={16} /> Master Data Peserta
           </button>
         </div>
 
         {/* MAIN DATA PANELS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* BROADCAST CENTER (Only visible on Verifikasi tab or small screens) */}
+          {/* TAB 1: VERIFIKASI PEMBAYARAN */}
           {activeTab === "VERIFIKASI" && (
-            <div className="lg:col-span-1 bg-white/70 backdrop-blur-xl border border-white/60 shadow-sm p-6 rounded-3xl relative animate-in fade-in slide-in-from-left-4 duration-300">
+            <div className="lg:col-span-1 bg-white/70 backdrop-blur-xl border border-white/60 shadow-sm p-6 rounded-3xl relative animate-in fade-in slide-in-from-bottom-4 duration-500">
               {isLoading && <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 rounded-3xl"></div>}
               <div className="flex items-center gap-2 mb-2">
                 <Megaphone size={20} className="text-blue-500" />
@@ -341,21 +341,14 @@ export default function HQDashboardLight() {
           )}
 
           {/* MAIN RADAR TABLE */}
-          <div className={`${activeTab === 'USERS' ? 'lg:col-span-3' : 'lg:col-span-2'} bg-white/70 backdrop-blur-xl border border-white/60 shadow-sm p-6 rounded-3xl overflow-hidden flex flex-col animate-in fade-in slide-in-from-right-4 duration-300`}>
+          <div className={`${activeTab === 'USERS' ? 'lg:col-span-3' : 'lg:col-span-2'} bg-white/70 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 rounded-3xl overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500`}>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  {activeTab === "VERIFIKASI" ? (
-                    <Zap size={20} className="text-amber-500 fill-amber-500" />
-                  ) : (
-                    <Users size={20} className="text-indigo-600" />
-                  )}
-                  <h3 className="text-lg font-bold text-slate-800">
-                    {activeTab === "VERIFIKASI" ? "Antrean Verifikasi" : "Master Data Peserta"}
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-500 font-medium">
-                  {activeTab === "VERIFIKASI" ? "Radar peninjauan bukti transfer pendaftar." : "God Mode: Kendali mutlak seluruh data peserta."}
+                <h3 className="text-xl font-black text-slate-800">
+                  {activeTab === "VERIFIKASI" ? "⚡ Antrean Verifikasi" : "🗄️ Master Registry Pengguna"}
+                </h3>
+                <p className="text-sm text-slate-500">
+                  {activeTab === "VERIFIKASI" ? "Radar peninjauan bukti transfer pendaftar." : "Manajemen seluruh akun terdaftar di sistem NCC 13th."}
                 </p>
               </div>
               
@@ -365,10 +358,10 @@ export default function HQDashboardLight() {
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input 
                     type="text" 
-                    placeholder="Search radar..." 
+                    placeholder="Cari email atau nama..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full sm:w-48 bg-white/50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    className="w-full md:w-80 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
                   />
                 </div>
                 <select 
@@ -388,11 +381,11 @@ export default function HQDashboardLight() {
             <div className="overflow-x-auto flex-1">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    <th className="pb-4">Data Peserta</th>
-                    <th className="pb-4">Kontak / Kategori</th>
-                    {activeTab === "VERIFIKASI" && <th className="pb-4">Bukti TF</th>}
-                    <th className="pb-4 text-right">Aksi Administrator</th>
+                  <tr className="border-b border-slate-200 text-xs text-slate-400 uppercase tracking-widest font-black">
+                    <th className="pb-4">Profil Peserta</th>
+                    <th className="pb-4">Kontak & Kategori</th>
+                    {activeTab === "VERIFIKASI" ? <th className="pb-4">Bukti TF</th> : <th className="pb-4">Status Pembayaran</th>}
+                    <th className="pb-4 text-right">Otoritas Admin</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
@@ -402,29 +395,30 @@ export default function HQDashboardLight() {
                     <tr><td colSpan={4} className="py-12 text-center text-slate-400 font-black italic">Radar bersih. Tidak ada data yang sesuai.</td></tr>
                   ) : (
                     filteredParticipants.map((p) => (
-                      <tr key={p.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-100/30 transition-all group">
+                      <tr key={p.id} className="border-b border-slate-100 group hover:bg-slate-50/50 transition-colors">
                         <td className="py-5">
-                          <div className="font-bold text-slate-800">{p.full_name}</div>
-                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{p.school}</div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600 shadow-sm border border-indigo-200">
+                              {p.full_name?.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-black text-slate-800 uppercase text-xs tracking-wide">{p.full_name}</p>
+                              <p className="text-[10px] text-slate-400 font-mono">UID: {String(p.id).slice(0, 8).toUpperCase()}-...</p>
+                            </div>
+                          </div>
                         </td>
                         <td className="py-5">
-                          <div className="text-xs font-medium text-slate-600 mb-1">{p.email}</div>
-                          <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-md text-[8px] font-black uppercase tracking-tighter">
-                            {p.category}
-                          </span>
+                          <p className="text-xs font-bold tracking-tight text-slate-600">{p.email}</p>
+                          <p className="text-[10px] text-slate-400">{p.category} - {p.school}</p>
                         </td>
-                        {activeTab === "VERIFIKASI" && (
                           <td className="py-5">
-                            {p.payment_proof_url ? (
-                              <button 
-                                onClick={() => setViewImage(p.payment_proof_url)}
-                                className="text-blue-500 hover:text-blue-700 font-black text-[10px] uppercase underline underline-offset-4 decoration-2"
-                              >
-                                View Proof
-                              </button>
-                            ) : (
-                              <span className="text-slate-300 italic text-[10px]">No File</span>
-                            )}
+                            <span className={`px-3 py-1 text-[10px] font-black rounded-full border ${
+                              p.payment_status === 'Verified' ? 'bg-green-50 text-green-600 border-green-100' :
+                              p.payment_status === 'Paid' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                              'bg-slate-50 text-slate-500 border-slate-100'
+                            }`}>
+                              {p.payment_status === 'Verified' ? 'TERVERIFIKASI' : p.payment_status === 'Paid' ? 'MENUNGGU REVIEW' : 'BELUM BAYAR'}
+                            </span>
                           </td>
                         )}
                         <td className="py-5 text-right">
