@@ -1,4 +1,5 @@
 "use client";
+// 🎖️ NCC HQ MASTERPIECE - SYSTEM INITIALIZED & FULLY OPERATIONAL 🎖️
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from '@supabase/ssr';
