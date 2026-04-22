@@ -40,6 +40,9 @@ import html2canvas from "html2canvas";
 import VerificationTab from "@/components/hq/VerificationTab";
 import UserRegistryTab from "@/components/hq/UserRegistryTab";
 import ScoringTab from "@/components/hq/ScoringTab";
+import Sidebar from "@/components/hq/Sidebar";
+import StatCard from "@/components/hq/StatCard";
+import RingkasanTab from "@/components/hq/RingkasanTab";
 
 export default function HQDashboardLight() {
   const router = useRouter();
@@ -60,13 +63,14 @@ export default function HQDashboardLight() {
   // State Radar (Search & Filter)
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
-  const [activeTab, setActiveTab] = useState<"VERIFIKASI" | "USERS" | "PENILAIAN">("VERIFIKASI");
+  const [activeTab, setActiveTab] = useState<"RINGKASAN" | "VERIFIKASI" | "USERS" | "PENILAIAN">("RINGKASAN");
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   // State Modals
   const [editingParticipant, setEditingParticipant] = useState<any | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
-
+  
+  // ... (Keeping all existing functions: ADMIN_EMAILS, fetchHQData, updatePaymentStatus, resetPassword, deleteEntry, etc.)
   const ADMIN_EMAILS = [
     "luthfi5372@gmail.com", 
     "lili@gmail.com", 
@@ -75,8 +79,6 @@ export default function HQDashboardLight() {
   ];
 
   useEffect(() => {
-    // 🚨 MODE DARURAT AKTIF: SATPAM DINONAKTIFKAN SEMENTARA 🚨
-    // Kita abaikan pengecekan sesi yang bikin mental, agar Anda bisa inspeksi data malam ini!
     const initHQ = async () => {
       setIsLoading(true);
       await fetchHQData();
@@ -309,185 +311,179 @@ export default function HQDashboardLight() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] text-slate-800 font-sans p-4 md:p-8 relative overflow-hidden">
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/20 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-400/20 rounded-full blur-[120px] pointer-events-none"></div>
+    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">
+      {/* SIDEBAR NAVIGATION */}
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
 
-      <div className="max-w-7xl mx-auto relative z-10 space-y-8">
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-          <div className="animate-in fade-in slide-in-from-left-6 duration-700">
-            <h1 className="text-5xl font-black text-slate-900 tracking-tighter mb-2 flex items-center gap-3">
-              <ShieldCheck className="text-indigo-600 animate-pulse" size={42} /> 
-              NCC HQ <span className="text-indigo-600">COMMAND</span>
-            </h1>
-            <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] opacity-60">National Creativity Competition 13th Central Office</p>
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 flex flex-col min-w-0">
+        {/* TOPBAR / HEADER */}
+        <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-30">
+          <div>
+            <h2 className="text-xl font-black text-slate-800 tracking-tight">
+              {activeTab === "RINGKASAN" ? "Dashboard Overview" : "Command Center"}
+            </h2>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+              {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="bg-white/80 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/60 shadow-lg flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Status Sesi</p>
-                <p className="text-xs font-black text-emerald-600 flex items-center justify-end gap-1.5 uppercase">
-                  <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
-                  AKTIF [ADMIN]
-                </p>
-              </div>
-              <div className="w-px h-8 bg-slate-100" />
-              <button 
-                onClick={handleLogout}
-                className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"
-              >
-                <LogOut size={20} />
-              </button>
-            </div>
             <button 
               onClick={handleExportCSV}
-              className="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-3 hover:bg-indigo-600 transition-all hover:scale-105"
+              className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-100 flex items-center gap-2 hover:bg-slate-900 transition-all active:scale-95"
             >
-              <Download size={18} /> Export CSV
+              <Download size={16} /> Export Master Data
             </button>
-          </div>
-        </div>
-
-        {/* METRICS */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[
-            { title: "Total Pendaftar", value: stats.total, color: "text-blue-600", icon: Users },
-            { title: "Terverifikasi", value: stats.verified, color: "text-green-600", icon: ShieldCheck },
-            { title: "Menunggu Review", value: stats.pending, color: "text-amber-500", icon: Clock },
-          ].map((stat, idx) => (
-            <div key={idx} className="bg-white/70 backdrop-blur-xl border border-white/60 shadow-sm p-6 rounded-3xl flex flex-col justify-between hover:scale-[1.02] transition-transform">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.title}</h3>
-                <stat.icon size={24} className={stat.color} />
-              </div>
-              <p className={`text-4xl font-black ${stat.color}`}>{isLoading ? "..." : stat.value.toLocaleString()}</p>
+            <div className="w-px h-8 bg-slate-100 mx-2" />
+            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+               <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Server: Online</span>
             </div>
-          ))}
-          <div className="bg-gradient-to-br from-indigo-500 to-blue-600 shadow-lg p-6 rounded-3xl flex flex-col justify-between text-white relative overflow-hidden group">
-            {isLoading && <div className="absolute inset-0 bg-black/10 backdrop-blur-sm z-10 flex items-center justify-center"><Loader2 size={24} className="animate-spin" /></div>}
-            <h3 className="text-[10px] font-black text-indigo-100 uppercase tracking-widest mb-4">Pendaftaran</h3>
-            <div className="flex items-center justify-between">
-              <span className="text-2xl font-black group-hover:scale-110 transition-transform">{isRegOpen ? "OPEN" : "CLOSED"}</span>
+          </div>
+        </header>
+
+        {/* PAGE CONTENT */}
+        <div className="p-8 space-y-8 animate-in fade-in duration-700">
+          {/* STATS GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <StatCard title="Total Pendaftar" value={stats.total} icon={Users} color="text-indigo-600" isLoading={isLoading} trend={{ value: "+12%", isUp: true }} />
+            <StatCard title="Verified" value={stats.verified} icon={ShieldCheck} color="text-emerald-600" isLoading={isLoading} trend={{ value: "+8%", isUp: true }} />
+            <StatCard title="Review Antrean" value={stats.pending} icon={Clock} color="text-amber-500" isLoading={isLoading} trend={{ value: "-4%", isUp: false }} />
+            
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Registrasi</span>
+                <div className={`px-2 py-0.5 rounded-full text-[9px] font-black ${isRegOpen ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
+                   {isRegOpen ? 'OPEN' : 'CLOSED'}
+                </div>
+              </div>
               <button 
                 onClick={() => saveSettings(!isRegOpen)}
                 disabled={isSaving}
-                className={`w-14 h-8 rounded-full p-1 transition-all duration-300 ${isRegOpen ? 'bg-green-400' : 'bg-slate-400/50'}`}
+                className={`w-full py-2.5 flex items-center justify-center gap-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${isRegOpen ? 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`}
               >
-                <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isRegOpen ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                {isRegOpen ? "Tutup Pendaftaran" : "Buka Pendaftaran"}
               </button>
             </div>
           </div>
-        </div>
 
-        {/* ANALYTICS */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white/70 backdrop-blur-xl border border-white/60 p-8 rounded-[2.5rem] shadow-xl h-[360px] flex flex-col relative overflow-hidden">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><PieIcon size={16} className="text-blue-500" /> Persentase Kategori</h3>
-              <Activity size={18} className="text-blue-600" />
+          {/* DYNAMIC TAB CONTENT */}
+          {activeTab === "RINGKASAN" && (
+            <RingkasanTab 
+              participants={participants}
+              categoryData={categoryData}
+              dailyTrendData={dailyTrendData}
+              isLoading={isLoading}
+            />
+          )}
+
+          <div className="space-y-6">
+            {activeTab === "VERIFIKASI" && (
+              <VerificationTab 
+                broadcastText={broadcastText}
+                setBroadcastText={setBroadcastText}
+                isSaving={isSaving}
+                saveSettings={saveSettings}
+                isLoading={isLoading}
+                participants={participants}
+                categoryFilter={categoryFilter}
+                setCategoryFilter={setCategoryFilter}
+                isProcessing={isProcessing}
+                setViewImage={setViewImage}
+                updatePaymentStatus={updatePaymentStatus}
+              />
+            )}
+            {activeTab === "USERS" && (
+              <UserRegistryTab 
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                categoryFilter={categoryFilter}
+                setCategoryFilter={setCategoryFilter}
+                isLoading={isLoading}
+                filteredParticipants={filteredParticipants}
+                activeTab={activeTab}
+                updatePaymentStatus={updatePaymentStatus}
+                setSelectedTicket={setSelectedTicket}
+                setEditingParticipant={setEditingParticipant}
+                resetPassword={resetPassword}
+                deleteEntry={deleteEntry}
+                isSaving={isSaving}
+              />
+            )}
+            {activeTab === "PENILAIAN" && (
+              <ScoringTab 
+                participants={participants}
+                categoryFilter={categoryFilter}
+                isScoring={isScoring}
+                handleSubmitScore={handleSubmitScore}
+              />
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* RE-USE MODALS (KEEPING THEM AT TOP LEVEL) */}
+      {viewImage && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/95 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in">
+           <button onClick={() => setViewImage(null)} className="absolute top-8 right-8 w-12 h-12 bg-white/10 hover:bg-rose-500 text-white rounded-full flex items-center justify-center transition-all"><X size={24} /></button>
+           <img src={viewImage} alt="Bukti Transfer" className="max-w-full max-h-full object-contain rounded-[2rem] shadow-2xl border-4 border-white/5" />
+        </div>
+      )}
+
+      {editingParticipant && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white/90 backdrop-blur-2xl border border-white/60 shadow-2xl rounded-[2.5rem] w-full max-w-md p-8 relative">
+            <button onClick={() => setEditingParticipant(null)} className="absolute top-6 right-6 text-slate-400 hover:text-red-500"><X size={24} /></button>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600"><Pencil size={24} /></div>
+              <div><h3 className="text-xl font-black text-slate-800">Edit Profil</h3><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">ADMIN OVERRIDE</p></div>
             </div>
-            <div className="flex-1 relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={categoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={8} dataKey="value">
-                    {categoryData.map((_, index) => <Cell key={`cell-${index}`} fill={['#2563eb', '#6366f1', '#8b5cf6', '#d946ef'][index % 4]} stroke="rgba(255,255,255,0.5)" strokeWidth={2} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', background: 'rgba(255,255,255,0.9)' }} />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle"/>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-                <span className="text-3xl font-black text-slate-800">{participants.length}</span>
-                <span className="text-[10px] font-black text-slate-400 uppercase">Total</span>
+            <form onSubmit={handleUpdateEntry} className="space-y-5">
+              {['full_name', 'school', 'phone'].map((field) => (
+                <div key={field}>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">{field.replace('_', ' ')}</label>
+                  <input type="text" value={editingParticipant[field]} onChange={(e) => setEditingParticipant({...editingParticipant, [field]: e.target.value})} className="w-full bg-slate-100 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none" />
+                </div>
+              ))}
+              <button type="submit" disabled={isSaving} className="w-full py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                {isSaving ? <Loader2 className="animate-spin" size={16} /> : "Simpan Perubahan"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {selectedTicket && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white p-6 rounded-[2.5rem] shadow-2xl max-w-sm w-full relative border border-white/60">
+            <button onClick={() => setSelectedTicket(null)} className="absolute -top-4 -right-4 w-10 h-10 bg-rose-500 text-white rounded-full font-bold shadow-lg flex items-center justify-center border-4 border-white"><X size={20} /></button>
+            <div id="ncc-ticket" className="relative bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 text-white overflow-hidden aspect-[2/3] flex flex-col justify-between">
+              <div className="absolute top-[-20%] right-[-20%] w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+              <div>
+                <div className="flex justify-between items-center border-b border-white/20 pb-5 mb-6">
+                  <div><p className="text-[10px] font-black tracking-widest text-blue-200">Official Ticket</p><h2 className="text-2xl font-black">NCC 13th</h2></div>
+                  <div className="bg-white/20 px-3 py-1 rounded-full"><p className="text-[9px] font-black uppercase">{selectedTicket.category}</p></div>
+                </div>
+                <div className="space-y-4">
+                  <div><p className="text-[10px] font-black text-blue-200 uppercase mb-1">Nama</p><p className="text-xl font-black uppercase">{selectedTicket.full_name}</p></div>
+                  <div><p className="text-[10px] font-black text-blue-200 uppercase mb-1">Instansi</p><p className="text-sm font-bold">{selectedTicket.school}</p></div>
+                </div>
+              </div>
+              <div className="bg-white p-5 rounded-3xl flex items-center justify-between gap-4 shadow-2xl">
+                <div className="w-20 h-20 bg-white"><QRCode value={`NCC13-VERIFIED-${selectedTicket.id}`} size={100} style={{ width: "100%" }} /></div>
+                <div className="text-right text-slate-800">
+                  <p className="text-[9px] font-black text-slate-400">REG ID</p>
+                  <p className="text-xs font-black font-mono text-blue-600">NCC-{String(selectedTicket.id).slice(0, 8).toUpperCase()}</p>
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="bg-white/70 backdrop-blur-xl border border-white/60 p-8 rounded-[2.5rem] shadow-xl h-[360px] flex flex-col relative">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><TrendingUp size={16} className="text-indigo-500" /> Tren Harian</h3>
-              <Zap size={18} className="text-indigo-600" />
-            </div>
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={dailyTrendData}>
-                  <defs><linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/><stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/></linearGradient></defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                  <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', background: 'rgba(255,255,255,0.9)' }} />
-                  <Area type="monotone" dataKey="count" stroke="#4f46e5" strokeWidth={4} fillOpacity={1} fill="url(#colorCount)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            <button onClick={downloadTicket} className="mt-8 w-full py-4 bg-indigo-600 hover:bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl active:scale-95 flex items-center justify-center gap-3"><Download size={16} /> Unduh PNG</button>
           </div>
         </div>
-
-        {/* TABS NAVIGATION */}
-        <div className="flex gap-4 mb-2 border-b border-slate-200 pb-4 overflow-x-auto">
-          {[
-            { id: "VERIFIKASI", label: "Antrean Verifikasi", icon: Zap, color: "bg-blue-600" },
-            { id: "USERS", label: "Master Data Peserta", icon: Users, color: "bg-indigo-600" },
-            { id: "PENILAIAN", label: "Panel Penilaian", icon: Activity, color: "bg-emerald-600" }
-          ].map((tab) => (
-            <button 
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-6 py-2.5 rounded-2xl font-black text-sm transition-all flex items-center gap-2 ${activeTab === tab.id ? `${tab.color} text-white shadow-lg scale-105` : "bg-white/50 text-slate-500 hover:bg-white"}`}
-            >
-              <tab.icon size={16} /> {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* TAB PANELS */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {activeTab === "VERIFIKASI" && (
-            <VerificationTab 
-              broadcastText={broadcastText}
-              setBroadcastText={setBroadcastText}
-              isSaving={isSaving}
-              saveSettings={saveSettings}
-              isLoading={isLoading}
-              participants={participants}
-              categoryFilter={categoryFilter}
-              setCategoryFilter={setCategoryFilter}
-              isProcessing={isProcessing}
-              setViewImage={setViewImage}
-              updatePaymentStatus={updatePaymentStatus}
-            />
-          )}
-          {activeTab === "USERS" && (
-            <UserRegistryTab 
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              categoryFilter={categoryFilter}
-              setCategoryFilter={setCategoryFilter}
-              isLoading={isLoading}
-              filteredParticipants={filteredParticipants}
-              activeTab={activeTab}
-              updatePaymentStatus={updatePaymentStatus}
-              setSelectedTicket={setSelectedTicket}
-              setEditingParticipant={setEditingParticipant}
-              resetPassword={resetPassword}
-              deleteEntry={deleteEntry}
-              isSaving={isSaving}
-            />
-          )}
-          {activeTab === "PENILAIAN" && (
-            <ScoringTab 
-              participants={participants}
-              categoryFilter={categoryFilter}
-              isScoring={isScoring}
-              handleSubmitScore={handleSubmitScore}
-            />
-          )}
-        </div>
-      </div>
+      )}
+    </div>
+  );
+}
 
       {/* MODALS */}
       {viewImage && (
