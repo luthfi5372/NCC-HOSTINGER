@@ -318,7 +318,7 @@ export default function HQDashboardLight() {
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* TOPBAR / HEADER (MAHA KARYA STYLE) */}
-        <header className="h-24 bg-[#F8FAFC]/80 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-30">
+        <header className="h-44 md:h-24 bg-[#F8FAFC]/80 backdrop-blur-md flex flex-col md:flex-row items-start md:items-center justify-between px-8 sticky top-0 z-30 gap-4 py-4 md:py-0 border-b border-white/40">
           <div>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">
               {activeTab === "RINGKASAN" ? "Dashboard" : 
@@ -330,9 +330,36 @@ export default function HQDashboardLight() {
             </p>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            {/* MESIN PENCARI (LIVE SEARCH) */}
+            <div className="relative group flex-1 md:w-64">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+              <input 
+                type="text" 
+                placeholder="Cari Peserta / ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white border border-slate-100 rounded-xl pl-12 pr-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+              />
+            </div>
+
+            {/* RADAR FILTER (CATEGORY) */}
+            <select 
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="bg-white border border-slate-100 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm cursor-pointer"
+            >
+              <option value="ALL">Semua Lomba</option>
+              <option value="Olimpiade MIPA">MIPA</option>
+              <option value="LKTI Nasional">LKTI</option>
+              <option value="Speech Contest">Speech</option>
+              <option value="MTQ Nasional">MTQ</option>
+            </select>
+
+            <div className="w-px h-8 bg-slate-200 hidden md:block mx-1" />
+
             {/* Filter Tanggal (Masterpiece Detail) */}
-            <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-slate-100 text-xs font-black text-slate-600 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+            <div className="hidden lg:flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-slate-100 text-xs font-black text-slate-600 shadow-sm">
               <Calendar size={16} className="text-slate-400" />
               {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })}
             </div>
@@ -383,10 +410,12 @@ export default function HQDashboardLight() {
           {/* DYNAMIC TAB CONTENT */}
           {activeTab === "RINGKASAN" && (
             <RingkasanTab 
-              participants={participants}
+              participants={filteredParticipants}
               categoryData={categoryData}
               dailyTrendData={dailyTrendData}
               isLoading={isLoading}
+              updatePaymentStatus={updatePaymentStatus}
+              isProcessing={isProcessing}
             />
           )}
 

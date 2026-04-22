@@ -19,13 +19,17 @@ interface RingkasanTabProps {
   categoryData: any[];
   dailyTrendData: any[];
   isLoading: boolean;
+  updatePaymentStatus: (id: string, status: string) => void;
+  isProcessing: string | null;
 }
 
 export default function RingkasanTab({ 
   participants, 
   categoryData, 
   dailyTrendData, 
-  isLoading 
+  isLoading,
+  updatePaymentStatus,
+  isProcessing
 }: RingkasanTabProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -149,22 +153,23 @@ export default function RingkasanTab({
                 <th className="py-5 px-8">Kategori</th>
                 <th className="py-5 px-8">Biaya</th>
                 <th className="py-5 px-8">Status</th>
+                <th className="py-5 px-8 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {participants.slice(0, 5).map((entry: any, idx: number) => (
                 <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="py-5 px-8 font-bold text-slate-800 text-xs">NCC-{String(entry.id).slice(0, 8).toUpperCase()}</td>
-                  <td className="py-5 px-8 flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-xs uppercase shadow-sm group-hover:scale-110 transition-transform">
+                  <td className="py-5 px-8 font-bold text-slate-800 text-xs text-nowrap">NCC-{String(entry.id).slice(0, 8).toUpperCase()}</td>
+                  <td className="py-5 px-8 flex items-center gap-3 min-w-[200px]">
+                     <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-xs uppercase shadow-sm group-hover:scale-110 transition-transform flex-shrink-0">
                        {(entry.full_name || entry.email || "P").charAt(0)}
                      </div>
-                     <div className="flex flex-col">
-                        <span className="font-bold text-slate-900 leading-none mb-1">{entry.full_name || "Peserta Anonim"}</span>
-                        <span className="text-[10px] text-slate-400 font-medium">{entry.email}</span>
+                     <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-slate-900 leading-none mb-1 truncate">{entry.full_name || "Peserta Anonim"}</span>
+                        <span className="text-[10px] text-slate-400 font-medium truncate">{entry.email}</span>
                      </div>
                   </td>
-                  <td className="py-5 px-8 font-medium italic text-slate-500">{entry.category || "Belum Pilih"}</td>
+                  <td className="py-5 px-8 font-medium italic text-slate-500 whitespace-nowrap">{entry.category || "Belum Pilih"}</td>
                   <td className="py-5 px-8 font-black text-slate-900 text-xs">Rp 150.000</td>
                   <td className="py-5 px-8">
                     <div className="flex flex-col gap-2">
@@ -186,6 +191,34 @@ export default function RingkasanTab({
                           Lihat Bukti TF <TrendingUp size={10} />
                         </a>
                       )}
+                    </div>
+                  </td>
+                  <td className="py-5 px-8">
+                    <div className="flex items-center justify-center gap-2">
+                       {entry.payment_status === 'Pending' ? (
+                          <>
+                             <button 
+                                onClick={() => updatePaymentStatus(entry.id, 'Verified')}
+                                disabled={!!isProcessing}
+                                className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all shadow-sm active:scale-90 disabled:opacity-50"
+                                title="Terima Pembayaran"
+                             >
+                                {isProcessing === entry.id ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} strokeWidth={3} />}
+                             </button>
+                             <button 
+                                onClick={() => updatePaymentStatus(entry.id, 'Rejected')}
+                                disabled={!!isProcessing}
+                                className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all shadow-sm active:scale-90 disabled:opacity-50"
+                                title="Tolak Pembayaran"
+                             >
+                                {isProcessing === entry.id ? <Loader2 className="animate-spin" size={14} /> : <X size={14} strokeWidth={3} />}
+                             </button>
+                          </>
+                       ) : (
+                          <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-300 flex items-center justify-center">
+                             <Check size={14} strokeWidth={3} />
+                          </div>
+                       )}
                     </div>
                   </td>
                 </tr>
