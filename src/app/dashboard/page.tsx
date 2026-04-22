@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Clock,
   ExternalLink,
+  Eye,
   MapPin,
   Phone,
   Mail,
@@ -111,6 +112,7 @@ export default function DashboardPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isTicketOpen, setIsTicketOpen] = useState(false);
+  const [viewImage, setViewImage] = useState<string | null>(null);
 
   // Profile Form States
   const [updateMsg, setUpdateMsg] = useState({ type: "", text: "" });
@@ -439,6 +441,47 @@ export default function DashboardPage() {
       
     } catch (error: any) {
       console.error("Gagal upload:", error);
+      alert("❌ Terjadi kesalahan: " + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteBukti = async (entry: CompetitionEntry) => {
+    if (!window.confirm("⚠️ Apakah Anda yakin ingin menghapus bukti pembayaran ini? Status pendaftaran akan kembali menjadi 'Belum Bayar'.")) return;
+
+    try {
+      setIsUploading(true);
+      const supabase = createClient();
+      
+      // 1. Ekstrak nama file dari URL
+      if (entry.paymentProofUrl) {
+        const urlParts = entry.paymentProofUrl.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        
+        // 2. Hapus dari Storage
+        const { error: storageError } = await supabase.storage
+          .from('payment-proofs')
+          .remove([fileName]);
+          
+        if (storageError) console.error("Gagal hapus file storage:", storageError);
+      }
+
+      // 3. Update Database (Reset ke Wait/Belum Bayar)
+      const { error: dbError } = await supabase
+        .from('competition_entries')
+        .update({ 
+          payment_proof_url: null,
+          payment_status: 'Wait' // Kembali ke status Belum Bayar
+        })
+        .eq('id', entry.id);
+
+      if (dbError) throw dbError;
+
+      alert("🗑️ Bukti berhasil dihapus. Silakan upload ulang jika diperlukan.");
+      refreshData();
+    } catch (error: any) {
+      console.error("Gagal hapus bukti:", error);
       alert("❌ Terjadi kesalahan: " + error.message);
     } finally {
       setIsUploading(false);
@@ -1195,9 +1238,27 @@ export default function DashboardPage() {
                              <CheckCircle2 size={12}/> PAID / LUNAS
                           </span>
                         ) : entry.paymentStatus === "Pending" ? (
-                          <span className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm flex items-center gap-1.5 flex-nowrap whitespace-nowrap animate-pulse">
-                             <Clock size={12}/> VERIFIKASI PANITIA
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm flex items-center gap-1.5 flex-nowrap whitespace-nowrap animate-pulse">
+                               <Clock size={12}/> VERIFIKASI PANITIA
+                            </span>
+                            
+                            {/* TOMBOL LIHAT & HAPUS SAAT PENDING */}
+                            <button 
+                              onClick={() => setViewImage(entry.paymentProofUrl || null)}
+                              title="Lihat Bukti"
+                              className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all border border-blue-100"
+                            >
+                              <Eye size={14} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteBukti(entry)}
+                              title="Hapus / Upload Ulang"
+                              className="p-1.5 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-all border border-rose-100"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         ) : (
                           <div className="flex items-center gap-3">
                             {/* BADGE STATUS LAMA */}
@@ -1212,10 +1273,7 @@ export default function DashboardPage() {
                                 type="file" 
                                 accept="image/*"
                                 className="hidden" 
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) alert(`File ${file.name} terpilih! Tombol Upload sudah di posisi yang benar.`);
-                                }}
+                                onChange={(e) => handleUploadBukti(e, entry)}
                               />
                             </label>
                           </div>
@@ -1731,6 +1789,33 @@ export default function DashboardPage() {
            </AnimatePresence>
         </div>
       </main>
+
+      {/* ─── MODAL PREVIEW IMAGE ─── */}
+      <AnimatePresence>
+        {viewImage && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-10">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setViewImage(null)}
+              className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-5xl w-full max-h-full aspect-auto bg-white rounded-[2rem] overflow-hidden shadow-2xl"
+            >
+              <button 
+                onClick={() => setViewImage(null)}
+                className="absolute top-6 right-6 z-10 p-3 bg-black/50 text-white rounded-full hover:bg-black transition-all backdrop-blur-md"
+              >
+                <X size={24} />
+              </button>
+              <div className="w-full h-full overflow-auto p-4 flex items-center justify-center bg-slate-100">
+                <img src={viewImage} alt="Bukti Transfer" className="max-w-full max-h-full object-contain shadow-2xl rounded-xl" />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
