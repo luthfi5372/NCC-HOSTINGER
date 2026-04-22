@@ -75,10 +75,12 @@ export default function HQDashboardLight() {
   ];
 
   useEffect(() => {
-    const checkSecurityClearance = async () => {
+    // ⏳ Taktik Jeda Waktu (Delayed Clearance):
+    // Kita berikan waktu 1 detik agar browser selesai memproses session/cookies
+    // sebelum Satpam (Route Guard) melakukan pengecekan.
+    const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        // ⚡ Ganti getUser() dengan getSession() untuk menghindari Race Condition
         const { data: { session }, error: authError } = await supabase.auth.getSession();
         
         if (!session || authError) {
@@ -100,8 +102,9 @@ export default function HQDashboardLight() {
       } finally {
         setIsLoading(false);
       }
-    };
-    checkSecurityClearance();
+    }, 1000); // Penantian 1 detik
+
+    return () => clearTimeout(timer);
   }, [router]);
 
   const fetchHQData = async () => {
