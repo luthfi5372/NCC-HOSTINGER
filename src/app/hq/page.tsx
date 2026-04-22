@@ -1014,11 +1014,9 @@ export default function HQDashboardLight() {
                 <Download size={16} /> Unduh ID Card (PNG)
               </button>
             </div>
+            </div>
           </div>
-        </div>
-        </div>
-      </div>
-    )}
+        )}
 
       {/* PORTAL PENILAIAN */}
       {activeTab === "PENILAIAN" && (
@@ -1099,6 +1097,10 @@ export default function HQDashboardLight() {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
+}
+)
 }
