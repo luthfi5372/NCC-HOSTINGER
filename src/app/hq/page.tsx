@@ -198,19 +198,36 @@ export default function ModernHQDashboard() {
                       </td>
                       <td className="py-4 px-6">{entry.category || "Belum Pilih"}</td>
                       <td className="py-4 px-6">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center w-max gap-1
-                          ${entry.payment_status === 'Verified' ? 'bg-green-50 text-green-600' : 
-                            entry.payment_status === 'Pending' ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-600'}
-                        `}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${entry.payment_status === 'Verified' ? 'bg-green-500' : entry.payment_status === 'Pending' ? 'bg-amber-500' : 'bg-slate-500'}`}></div>
-                          {entry.payment_status || "Belum Bayar"}
-                        </span>
-                        
-                        {entry.payment_proof_url && (
-                          <a href={entry.payment_proof_url} target="_blank" rel="noreferrer" className="mt-2 text-[10px] text-blue-600 hover:underline block font-bold">
-                            🔍 LIHAT BUKTI TF
-                          </a>
-                        )}
+                        {/* Flex container agar Status dan Tombol berbaris rapi menyamping */}
+                        <div className="flex items-center gap-3">
+                          
+                          {/* 1. Badge Status (Dibuat sedikit lebih rapi) */}
+                          <span className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center w-max gap-1.5 border
+                            ${entry.payment_status === 'Verified' ? 'bg-green-50 text-green-600 border-green-200' : 
+                              entry.payment_status === 'Pending' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-slate-50 text-slate-500 border-slate-200'}
+                          `}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${entry.payment_status === 'Verified' ? 'bg-green-500' : entry.payment_status === 'Pending' ? 'bg-amber-500' : 'bg-slate-400'}`}></div>
+                            {entry.payment_status || "Wait"}
+                          </span>
+                          
+                          {/* 2. Tombol Modern Bukti TF (Sejajar di sampingnya) */}
+                          {entry.payment_proof_url && (
+                            <a 
+                              href={entry.payment_proof_url} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm rounded-lg text-[11px] font-bold transition-all"
+                            >
+                              {/* Ikon Mata (View) Minimalis */}
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                              </svg>
+                              Bukti TF
+                            </a>
+                          )}
+
+                        </div>
                       </td>
                     </tr>
                   ))
