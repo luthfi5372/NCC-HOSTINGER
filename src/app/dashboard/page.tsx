@@ -19,7 +19,11 @@ export default function UserDashboard() {
     nisn: "",
     province: "",
     competition_type: "Olimpiade MIPA",
-    mentor_name: ""
+    mentor_name: "",
+    // --- AMUNISI BARU: DATA TIM ---
+    team_name: "",
+    participant2_name: "",
+    participant2_nisn: ""
   });
 
   // --- MESIN PENARIK PENGUMUMAN DARI MARKAS BESAR (PINTU CERDAS) ---
@@ -96,6 +100,9 @@ export default function UserDashboard() {
       const { data: urlData } = supabase.storage.from('payment-proofs').getPublicUrl(fileName);
       const photoUrl = urlData.publicUrl;
 
+      // Cek apakah ini lomba tim (MIPA & LKTI)
+      const isTeamEvent = formData.competition_type === "Olimpiade MIPA" || formData.competition_type === "LKTI Nasional";
+
       // 2. Simpan Data ke Tabel competition_entries
       const { error: dbError } = await supabase
         .from('competition_entries')
@@ -103,7 +110,15 @@ export default function UserDashboard() {
           user_id: user.id,
           full_name: user.user_metadata.full_name,
           email: user.email,
-          ...formData,
+          school_name: formData.school_name,
+          nisn: formData.nisn,
+          province: formData.province,
+          competition_type: formData.competition_type,
+          mentor_name: formData.mentor_name,
+          // Data tim hanya dikirim jika isTeamEvent bernilai true
+          team_name: isTeamEvent ? formData.team_name : null,
+          participant2_name: isTeamEvent ? formData.participant2_name : null,
+          participant2_nisn: isTeamEvent ? formData.participant2_nisn : null,
           payment_proof_url: photoUrl,
           payment_status: 'Pending'
         }]);
@@ -120,7 +135,10 @@ export default function UserDashboard() {
         nisn: "",
         province: "",
         competition_type: "Olimpiade MIPA",
-        mentor_name: ""
+        mentor_name: "",
+        team_name: "",
+        participant2_name: "",
+        participant2_nisn: ""
       });
 
     } catch (error: any) {
@@ -294,7 +312,9 @@ export default function UserDashboard() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">NISN (Nomor Induk Siswa)</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                      {formData.competition_type === "Olimpiade MIPA" || formData.competition_type === "LKTI Nasional" ? "NISN (Ketua Tim)" : "NISN (Nomor Induk Siswa)"}
+                    </label>
                     <input 
                       required 
                       type="number" 
@@ -416,6 +436,45 @@ export default function UserDashboard() {
                     </div>
                   </div>
                 </div>
+
+                {/* --- BLOK DINAMIS: DATA TIM (Hanya Muncul untuk MIPA & LKTI) --- */}
+                {(formData.competition_type === "Olimpiade MIPA" || formData.competition_type === "LKTI Nasional") && (
+                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 p-5 bg-blue-50/50 border border-blue-100 rounded-2xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="md:col-span-1">
+                      <label className="text-[10px] font-bold text-blue-500 uppercase tracking-widest block mb-1">Nama Tim</label>
+                      <input 
+                        required 
+                        type="text" 
+                        className="w-full p-3 bg-white border border-blue-200 focus:border-blue-500 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all" 
+                        placeholder="Contoh: Tim Einstein" 
+                        value={formData.team_name}
+                        onChange={(e) => setFormData({...formData, team_name: e.target.value})} 
+                      />
+                    </div>
+                    <div className="md:col-span-1">
+                      <label className="text-[10px] font-bold text-blue-500 uppercase tracking-widest block mb-1">Nama Anggota 2</label>
+                      <input 
+                        required 
+                        type="text" 
+                        className="w-full p-3 bg-white border border-blue-200 focus:border-blue-500 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all" 
+                        placeholder="Nama Lengkap Anggota" 
+                        value={formData.participant2_name}
+                        onChange={(e) => setFormData({...formData, participant2_name: e.target.value})} 
+                      />
+                    </div>
+                    <div className="md:col-span-1">
+                      <label className="text-[10px] font-bold text-blue-500 uppercase tracking-widest block mb-1">NISN Anggota 2</label>
+                      <input 
+                        required 
+                        type="number" 
+                        className="w-full p-3 bg-white border border-blue-200 focus:border-blue-500 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all" 
+                        placeholder="10 Digit NISN" 
+                        value={formData.participant2_nisn}
+                        onChange={(e) => setFormData({...formData, participant2_nisn: e.target.value})} 
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="md:col-span-2 pt-4">
                   <button 
