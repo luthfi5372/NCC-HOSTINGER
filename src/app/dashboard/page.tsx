@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client"; 
-import { Bell, Megaphone, User, Clock, CheckCircle2, AlertCircle } from "lucide-react";
-import { motion } from "framer-motion";
+import { Bell, Megaphone, User, Clock, CheckCircle2, AlertCircle, X, ArrowUpRight, Download } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function UserDashboard() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
