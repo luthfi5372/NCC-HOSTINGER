@@ -10,6 +10,18 @@ export default function UserDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
+  // --- MEMORI REGISTRASI PESERTA ---
+  const [showForm, setShowForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [formData, setFormData] = useState({
+    school_name: "",
+    nisn: "",
+    province: "",
+    competition_type: "Olimpiade MIPA",
+    mentor_name: ""
+  });
+
   // --- MESIN PENARIK PENGUMUMAN DARI MARKAS BESAR ---
   useEffect(() => {
     const fetchAnnouncements = async () => {
@@ -43,6 +55,65 @@ export default function UserDashboard() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // --- MESIN TEMPUR: PENGIRIMAN BERKAS REGISTRASI ---
+  const handleSubmitEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) return alert("⚠️ Mohon unggah bukti transfer terlebih dahulu, Komandan!");
+
+    setIsSubmitting(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+
+      if (!user) throw new Error("Sesi berakhir, silakan login kembali.");
+
+      // 1. Upload Foto ke Brankas Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('payment-proofs')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Ambil URL Foto yang baru diupload
+      const { data: urlData } = supabase.storage.from('payment-proofs').getPublicUrl(fileName);
+      const photoUrl = urlData.publicUrl;
+
+      // 2. Simpan Data ke Tabel competition_entries
+      const { error: dbError } = await supabase
+        .from('competition_entries')
+        .insert([{
+          user_id: user.id,
+          full_name: user.user_metadata.full_name,
+          email: user.email,
+          ...formData,
+          payment_proof_url: photoUrl,
+          payment_status: 'Pending'
+        }]);
+
+      if (dbError) throw dbError;
+
+      alert("✅ MISI BERHASIL! Berkas pendaftaran sudah meluncur ke Markas Besar. Mohon tunggu verifikasi admin.");
+      setShowForm(false);
+      
+      // Reset form
+      setFile(null);
+      setFormData({
+        school_name: "",
+        nisn: "",
+        province: "",
+        competition_type: "Olimpiade MIPA",
+        mentor_name: ""
+      });
+
+    } catch (error: any) {
+      alert(`❌ Misi Gagal: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-6 md:p-12 relative overflow-hidden">
@@ -99,7 +170,10 @@ export default function UserDashboard() {
                   <span className="font-medium text-amber-800">Unggah Bukti Transfer</span>
                 </div>
               </div>
-              <button className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-blue-200 text-sm active:scale-[0.98]">
+              <button 
+                onClick={() => setShowForm(true)}
+                className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-blue-200 text-sm active:scale-[0.98]"
+              >
                 Lengkapi Berkas Sekarang
               </button>
             </div>
@@ -162,6 +236,142 @@ export default function UserDashboard() {
 
         </div>
       </div>
+
+      {/* --- MODAL FORM REGISTRASI (LIQUID GLASS) --- */}
+      <AnimatePresence>
+        {showForm && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white/90 backdrop-blur-2xl w-full max-w-2xl rounded-[2.5rem] border border-white/60 p-8 md:p-10 shadow-2xl overflow-y-auto max-h-[90vh] relative"
+            >
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-800 tracking-tight">Finalisasi Pendaftaran</h2>
+                  <p className="text-slate-500 text-xs font-medium">Lengkapi biodata dan unggah bukti transfer pendaftaran Anda.</p>
+                </div>
+                <button 
+                  onClick={() => setShowForm(false)} 
+                  className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitEntry} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Asal Sekolah / Instansi</label>
+                    <input 
+                      required 
+                      type="text" 
+                      className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all shadow-sm" 
+                      placeholder="Contoh: SMA Darul Ulum 1" 
+                      value={formData.school_name}
+                      onChange={(e) => setFormData({...formData, school_name: e.target.value})} 
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">NISN (Nomor Induk Siswa)</label>
+                    <input 
+                      required 
+                      type="number" 
+                      className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all shadow-sm" 
+                      placeholder="Masukkan 10 Digit NISN" 
+                      value={formData.nisn}
+                      onChange={(e) => setFormData({...formData, nisn: e.target.value})} 
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Cabang Lomba</label>
+                    <div className="relative">
+                      <select 
+                        className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none shadow-sm"
+                        value={formData.competition_type}
+                        onChange={(e) => setFormData({...formData, competition_type: e.target.value})}
+                      >
+                        <option>Olimpiade MIPA</option>
+                        <option>Speech Contest</option>
+                        <option>LKTI Nasional</option>
+                        <option>MTQ</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <ArrowUpRight size={16} className="rotate-90" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Provinsi Asal</label>
+                    <input 
+                      required 
+                      type="text" 
+                      className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all shadow-sm" 
+                      placeholder="Contoh: Jawa Timur" 
+                      value={formData.province}
+                      onChange={(e) => setFormData({...formData, province: e.target.value})} 
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nama Pembina (Opsional)</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all shadow-sm" 
+                      placeholder="Nama Guru Pembimbing" 
+                      value={formData.mentor_name}
+                      onChange={(e) => setFormData({...formData, mentor_name: e.target.value})} 
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Bukti Transfer (JPG/PNG)</label>
+                    <div className="relative group overflow-hidden">
+                      <div className={`border-2 border-dashed ${file ? 'border-emerald-200 bg-emerald-50/50' : 'border-blue-200 bg-blue-50/50'} rounded-xl p-5 text-center transition-all hover:border-blue-400`}>
+                        <input 
+                          required 
+                          type="file" 
+                          accept="image/*" 
+                          className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                          onChange={(e) => setFile(e.target.files?.[0] || null)} 
+                        />
+                        <div className="flex flex-col items-center">
+                          <Download size={20} className={`${file ? 'text-emerald-500' : 'text-blue-500'} mb-2`} />
+                          <p className={`text-[11px] font-bold ${file ? 'text-emerald-600' : 'text-blue-600'} uppercase tracking-tight`}>
+                            {file ? file.name : "Klik untuk Pilih Foto"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 pt-4">
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="w-full bg-slate-900 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-slate-900/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>KIRIM PENDAFTARAN SEKARANG <CheckCircle2 size={18} /></>
+                    )}
+                  </button>
+                  <p className="text-[10px] text-slate-400 text-center mt-4 font-medium uppercase tracking-widest">Data yang dikirim bersifat final dan akan diverifikasi oleh Panitia NCC.</p>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
