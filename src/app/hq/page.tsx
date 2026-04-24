@@ -141,6 +141,48 @@ export default function ModernHQDashboard() {
     setDynamicChartData(finalLineData);
   }, [realEntries]);
 
+  // --- 📥 FITUR 1: MESIN EKSPOR CSV CERDAS ---
+  const handleExportCSV = () => {
+    // 1. Tentukan data mana yang mau di-ekspor (hanya yang Terverifikasi)
+    const dataToExport = realEntries.filter(e => e.payment_status === 'Verified');
+    
+    if (dataToExport.length === 0) return alert("Tidak ada data peserta terverifikasi untuk di-ekspor.");
+
+    // 2. Tentukan Header Kolom
+    const headers = ["ID Tiket", "Nama Lengkap", "Email", "NISN", "Sekolah", "Provinsi", "Kategori", "Pembina", "Waktu Daftar"];
+    
+    // 3. Susun Baris Data
+    const rows = dataToExport.map(e => [
+      `NCC-${e.id}`,
+      e.full_name || "-",
+      e.email || "-",
+      e.nisn || "-",
+      e.school_name || e.school || "-",
+      e.province || e.city || "-",
+      e.competition_type || e.category || "-",
+      e.mentor_name || "-",
+      new Date(e.created_at).toLocaleString('id-ID')
+    ]);
+
+    // 4. Gabungkan menjadi format CSV
+    const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n");
+    
+    // 5. Trigger Download otomatis
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Data_Peserta_NCC13_${new Date().toLocaleDateString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // --- 🖨️ FITUR 2: MESIN CETAK FISIK ---
+  const handlePrintCard = () => {
+    window.print(); // Cara termudah & paling stabil untuk browser
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -151,6 +193,19 @@ export default function ModernHQDashboard() {
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden relative">
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .print-area, .print-area * { visibility: visible; }
+          .print-area { 
+            position: absolute; 
+            left: 50%; 
+            top: 40%; 
+            transform: translate(-50%, -50%) scale(1.8); 
+            width: 320px !important;
+          }
+        }
+      `}</style>
       {/* Ornamen Latar Belakang untuk Efek Kaca */}
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-400/20 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
@@ -201,8 +256,11 @@ export default function ModernHQDashboard() {
               <Calendar size={16} className="text-slate-400" />
               April 2026
             </div>
-            <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shadow-blue-200">
-              <Download size={16} />
+            <button 
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shadow-blue-200"
+            >
+              <Download size={18} />
               Export CSV
             </button>
             <div className="h-10 w-10 bg-white/50 backdrop-blur-md border border-white/60 rounded-full flex items-center justify-center text-slate-600 shadow-sm ml-2 relative">
@@ -580,7 +638,7 @@ export default function ModernHQDashboard() {
                <button onClick={() => setSelectedIdCard(null)} className="absolute top-4 right-4 p-2 bg-black/5 hover:bg-black/10 rounded-full transition-colors z-10"><X size={16} className="text-slate-600"/></button>
                
                {/* Kanvas ID Card */}
-               <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl p-6 text-center shadow-inner relative overflow-hidden mt-4">
+               <div className="print-area bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl p-6 text-center shadow-inner relative overflow-hidden mt-4">
                   <div className="absolute top-[-20%] left-[-20%] w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
                   
                   <div className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mb-6">ID Card Peserta</div>
@@ -601,7 +659,10 @@ export default function ModernHQDashboard() {
                   </div>
                </div>
                
-               <button className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-200">
+               <button 
+                 onClick={handlePrintCard}
+                 className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-200"
+               >
                   <Printer size={18} /> Cetak Kartu
                </button>
             </div>
