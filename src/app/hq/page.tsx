@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { 
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
-  Bell, MoreHorizontal, Sparkles
+  Bell, MoreHorizontal, Sparkles, Search, Filter
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -20,6 +20,8 @@ export default function ModernHQDashboard() {
   const [dynamicChartData, setDynamicChartData] = useState<any[]>([]);
   const [dynamicBarData, setDynamicBarData] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("Dashboard");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState("All");
   const supabase = createClient();
 
   // --- MESIN EKSEKUTOR STATUS ---
@@ -256,23 +258,58 @@ export default function ModernHQDashboard() {
           </>
         )}
 
-        {/* 🎛️ KONTEN TAB: PESERTA (BUKU INDUK KOMPREHENSIF) */}
+        {/* 🎛️ KONTEN TAB: PESERTA (BUKU INDUK + LIVE SEARCH) */}
         {activeTab === "Peserta" && (
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div>
-                <h3 className="font-bold text-slate-800">Buku Induk Peserta Resmi</h3>
-                <p className="text-xs text-slate-500 mt-1">Database lengkap peserta terverifikasi NCC 13th.</p>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="p-6 border-b border-slate-100">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="font-bold text-slate-800">Buku Induk Peserta Resmi</h3>
+                  <p className="text-xs text-slate-500 mt-1">Database lengkap peserta terverifikasi NCC 13th.</p>
+                </div>
+                <span className="bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-xs font-bold border border-blue-200 shadow-sm">
+                  Total Tiket Aktif: {realEntries.filter(e => e.payment_status === 'Verified').length}
+                </span>
               </div>
-              <span className="bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-xs font-bold border border-blue-200 shadow-sm">
-                Total Tiket Aktif: {realEntries.filter(e => e.payment_status === 'Verified').length}
-              </span>
+
+              {/* 🔍 BARIS MESIN PENCARI & FILTER */}
+              <div className="flex flex-col md:flex-row gap-4 items-center">
+                {/* Kolom Pencarian */}
+                <div className="relative flex-1 w-full">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search size={16} className="text-slate-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Cari nama, email, atau ID tiket (misal: NCC-15)..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-slate-700"
+                  />
+                </div>
+                
+                {/* Dropdown Kategori Lomba */}
+                <div className="relative w-full md:w-64">
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 appearance-none text-slate-700 font-medium"
+                  >
+                    <option value="All">Semua Kategori</option>
+                    <option value="Olimpiade MIPA">Olimpiade MIPA</option>
+                    <option value="Speech Contest">Speech Contest</option>
+                    <option value="LKTI Nasional">LKTI Nasional</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <Filter size={14} className="text-slate-400" />
+                  </div>
+                </div>
+              </div>
             </div>
             
-            {/* overflow-x-auto agar bisa digeser ke kanan jika layar kecil */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-slate-600 whitespace-nowrap">
-                <thead className="bg-white text-slate-500 font-bold border-b border-slate-100 text-[11px] uppercase tracking-wider">
+                <thead className="bg-slate-50/50 text-slate-500 font-bold border-b border-slate-100 text-[11px] uppercase tracking-wider">
                   <tr>
                     <th className="py-4 px-6">ID TIKET</th>
                     <th className="py-4 px-6">PROFIL PESERTA</th>
@@ -283,26 +320,42 @@ export default function ModernHQDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {realEntries.filter(e => e.payment_status === 'Verified').length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
-                        Belum ada peserta yang berhasil diverifikasi.
-                      </td>
-                    </tr>
-                  ) : (
-                    realEntries.filter(e => e.payment_status === 'Verified').map((entry: any, idx: number) => {
+                  {realEntries
+                    .filter(e => e.payment_status === 'Verified')
+                    .filter(e => {
+                      if (!searchQuery) return true;
+                      const query = searchQuery.toLowerCase();
+                      return (e.full_name || "").toLowerCase().includes(query) || 
+                             (e.email || "").toLowerCase().includes(query) || 
+                             `ncc-${e.id}`.toLowerCase().includes(query);
+                    })
+                    .filter(e => filterCategory === "All" || (e.competition_type || e.category) === filterCategory)
+                    .length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
+                          Tidak ada peserta yang cocok dengan radar pencarian Anda.
+                        </td>
+                      </tr>
+                    ) : (
+                    realEntries
+                      .filter(e => e.payment_status === 'Verified')
+                      .filter(e => {
+                        if (!searchQuery) return true;
+                        const query = searchQuery.toLowerCase();
+                        return (e.full_name || "").toLowerCase().includes(query) || 
+                               (e.email || "").toLowerCase().includes(query) || 
+                               `ncc-${e.id}`.toLowerCase().includes(query);
+                      })
+                      .filter(e => filterCategory === "All" || (e.competition_type || e.category) === filterCategory)
+                      .map((entry: any, idx: number) => {
                       
-                      // Format Tanggal dan Jam
                       const dateObj = entry.created_at ? new Date(entry.created_at) : new Date();
                       const dateStr = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
                       const timeStr = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
                       return (
                         <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
-                          {/* KOLOM 1: ID */}
                           <td className="py-4 px-6 font-black text-blue-600">NCC-{entry.id}</td>
-                          
-                          {/* KOLOM 2: PROFIL (Nama, Email, NISN ditumpuk) */}
                           <td className="py-4 px-6 flex items-center gap-3">
                              <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-blue-600 text-sm uppercase shrink-0">
                                {(entry.full_name || entry.email || "U").charAt(0)}
@@ -314,16 +367,12 @@ export default function ModernHQDashboard() {
                                </div>
                              </div>
                           </td>
-
-                          {/* KOLOM 3: SEKOLAH (Nama Sekolah & Provinsi ditumpuk) */}
                           <td className="py-4 px-6">
                             <div className="font-bold text-slate-700">{entry.school_name || entry.school || "Belum Diisi"}</div>
                             <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                                📍 {entry.province || entry.city || "Provinsi belum diisi"}
                             </div>
                           </td>
-
-                          {/* KOLOM 4: KATEGORI & PEMBINA */}
                           <td className="py-4 px-6">
                             <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-[11px] font-bold border border-slate-200">
                               {entry.competition_type || entry.category || "Belum Pilih"}
@@ -332,14 +381,10 @@ export default function ModernHQDashboard() {
                               Pembina: <span className="font-medium text-slate-700">{entry.mentor_name || "-"}</span>
                             </div>
                           </td>
-
-                          {/* KOLOM 5: WAKTU DAFTAR (Tanggal & Jam) */}
                           <td className="py-4 px-6">
                             <div className="font-medium text-slate-800">{dateStr}</div>
                             <div className="text-[11px] text-slate-500 mt-0.5">⏰ Pukul {timeStr} WIB</div>
                           </td>
-
-                          {/* KOLOM 6: STATUS */}
                           <td className="py-4 px-6">
                             <span className="px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center w-max gap-1.5 border bg-green-50 text-green-600 border-green-200 shadow-sm">
                               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
