@@ -327,14 +327,63 @@ export default function UserDashboard() {
                 <div className="space-y-5">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Provinsi Asal</label>
-                    <input 
-                      required 
-                      type="text" 
-                      className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all shadow-sm" 
-                      placeholder="Contoh: Jawa Timur" 
-                      value={formData.province}
-                      onChange={(e) => setFormData({...formData, province: e.target.value})} 
-                    />
+                    <div className="relative">
+                      <select 
+                        required 
+                        value={formData.province}
+                        onChange={(e) => setFormData({...formData, province: e.target.value})}
+                        className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none shadow-sm"
+                      >
+                        <option value="" disabled>Pilih Provinsi...</option>
+                        {/* Sumatera */}
+                        <option value="Aceh">Aceh</option>
+                        <option value="Sumatera Utara">Sumatera Utara</option>
+                        <option value="Sumatera Barat">Sumatera Barat</option>
+                        <option value="Riau">Riau</option>
+                        <option value="Kepulauan Riau">Kepulauan Riau</option>
+                        <option value="Jambi">Jambi</option>
+                        <option value="Bengkulu">Bengkulu</option>
+                        <option value="Sumatera Selatan">Sumatera Selatan</option>
+                        <option value="Kepulauan Bangka Belitung">Kepulauan Bangka Belitung</option>
+                        <option value="Lampung">Lampung</option>
+                        {/* Jawa */}
+                        <option value="Banten">Banten</option>
+                        <option value="DKI Jakarta">DKI Jakarta</option>
+                        <option value="Jawa Barat">Jawa Barat</option>
+                        <option value="Jawa Tengah">Jawa Tengah</option>
+                        <option value="DI Yogyakarta">DI Yogyakarta</option>
+                        <option value="Jawa Timur">Jawa Timur</option>
+                        {/* Bali & Nusa Tenggara */}
+                        <option value="Bali">Bali</option>
+                        <option value="Nusa Tenggara Barat">Nusa Tenggara Barat</option>
+                        <option value="Nusa Tenggara Timur">Nusa Tenggara Timur</option>
+                        {/* Kalimantan */}
+                        <option value="Kalimantan Barat">Kalimantan Barat</option>
+                        <option value="Kalimantan Tengah">Kalimantan Tengah</option>
+                        <option value="Kalimantan Selatan">Kalimantan Selatan</option>
+                        <option value="Kalimantan Timur">Kalimantan Timur</option>
+                        <option value="Kalimantan Utara">Kalimantan Utara</option>
+                        {/* Sulawesi */}
+                        <option value="Sulawesi Utara">Sulawesi Utara</option>
+                        <option value="Gorontalo">Gorontalo</option>
+                        <option value="Sulawesi Tengah">Sulawesi Tengah</option>
+                        <option value="Sulawesi Barat">Sulawesi Barat</option>
+                        <option value="Sulawesi Selatan">Sulawesi Selatan</option>
+                        <option value="Sulawesi Tenggara">Sulawesi Tenggara</option>
+                        {/* Maluku & Papua */}
+                        <option value="Maluku Utara">Maluku Utara</option>
+                        <option value="Maluku">Maluku</option>
+                        <option value="Papua Barat">Papua Barat</option>
+                        <option value="Papua Barat Daya">Papua Barat Daya</option>
+                        <option value="Papua">Papua</option>
+                        <option value="Papua Tengah">Papua Tengah</option>
+                        <option value="Papua Pegunungan">Papua Pegunungan</option>
+                        <option value="Papua Selatan">Papua Selatan</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <ArrowUpRight size={16} className="rotate-90" />
+                      </div>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nama Pembina (Opsional)</label>
