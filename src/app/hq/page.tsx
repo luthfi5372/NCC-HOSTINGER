@@ -22,6 +22,7 @@ export default function ModernHQDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
+  const [timeFilter, setTimeFilter] = useState("All"); // Opsi: 'Today', '7Days', '1Month', 'All'
   const [selectedParticipant, setSelectedParticipant] = useState<any | null>(null);
   const [selectedIdCard, setSelectedIdCard] = useState<any | null>(null);
   const supabase = createClient();
@@ -101,22 +102,40 @@ export default function ModernHQDashboard() {
     };
   }, []);
 
-  // --- MESIN PENGOLAH DATA GRAFIK REAL-TIME ---
+  // --- MESIN PENGOLAH DATA GRAFIK REAL-TIME (DENGAN FILTER WAKTU) ---
   useEffect(() => {
     if (realEntries.length === 0) return;
+
+    // 1. Hitung batas waktu (Cutoff Date) berdasarkan filter yang aktif
+    const now = new Date();
+    let cutoffDate = new Date(0); // Default 'All' (dari awal waktu)
+
+    if (timeFilter === "Today") {
+      cutoffDate = new Date(now.setHours(0, 0, 0, 0)); // Hari ini mulai jam 00:00
+    } else if (timeFilter === "7Days") {
+      cutoffDate = new Date(now.setDate(now.getDate() - 7)); // 7 Hari ke belakang
+    } else if (timeFilter === "1Month") {
+      cutoffDate = new Date(now.setMonth(now.getMonth() - 1)); // 1 Bulan ke belakang
+    }
+
+    // 2. Saring data mentah berdasarkan waktu terlebih dahulu
+    const filteredEntries = realEntries.filter(entry => {
+      const entryDate = entry.created_at ? new Date(entry.created_at) : new Date();
+      return entryDate >= cutoffDate;
+    });
 
     const categoryMap: Record<string, number> = {};
     const dateMap: Record<string, { name: string, pendaftar: number, timestamp: number }> = {};
 
-    realEntries.forEach(entry => {
-      // 1. Rekap Data Kategori (Bar Chart)
-      const category = entry.category || "Belum Pilih";
+    // 3. Olah data yang sudah disaring
+    filteredEntries.forEach(entry => {
+      // Rekap Data Kategori (Bar Chart)
+      const category = entry.competition_type || entry.category || "Belum Pilih";
       categoryMap[category] = (categoryMap[category] || 0) + 1;
 
-      // 2. Rekap Data Tanggal (Line Chart)
+      // Rekap Data Tanggal (Line Chart)
       if (entry.created_at) {
         const date = new Date(entry.created_at);
-        // Ubah format jadi "23 Apr"
         const dateStr = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }); 
         const timeKey = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 
@@ -127,19 +146,15 @@ export default function ModernHQDashboard() {
       }
     });
 
-    // Ubah format objek menjadi Array yang bisa dibaca Recharts
-    const finalBarData = Object.keys(categoryMap).map(key => ({
-      name: key,
-      total: categoryMap[key]
-    }));
-
+    // 4. Ubah format untuk grafik
+    const finalBarData = Object.keys(categoryMap).map(key => ({ name: key, total: categoryMap[key] }));
     const finalLineData = Object.values(dateMap)
-      .sort((a, b) => a.timestamp - b.timestamp) // Urutkan dari tanggal paling lama ke baru
+      .sort((a, b) => a.timestamp - b.timestamp)
       .map(item => ({ name: item.name, pendaftar: item.pendaftar }));
 
     setDynamicBarData(finalBarData);
     setDynamicChartData(finalLineData);
-  }, [realEntries]);
+  }, [realEntries, timeFilter]);
 
   // --- 📥 FITUR 1: MESIN EKSPOR CSV CERDAS ---
   const handleExportCSV = () => {
@@ -278,6 +293,41 @@ export default function ModernHQDashboard() {
           <StatCard title="Terverifikasi" value={realEntries.filter(e => e.payment_status === 'Verified').length.toString()} trend="Aman" isUp={true} />
           <StatCard title="Menunggu Review" value={realEntries.filter(e => e.payment_status === 'Pending').length.toString()} trend="Action Needed" isUp={false} />
           <StatCard title="Estimasi Dana" value={`Rp ${(realEntries.length * 150000).toLocaleString('id-ID')}`} trend="IDR" isUp={true} />
+        </div>
+
+        {/* 🔥 PANEL KENDALI MESIN WAKTU */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 animate-in fade-in slide-in-from-left duration-700">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">Analisis Tren Pendaftaran</h3>
+            <p className="text-sm text-slate-500">Visualisasi pergerakan data berdasarkan periode waktu.</p>
+          </div>
+          
+          <div className="bg-white/50 backdrop-blur-xl border border-white/60 p-1.5 rounded-xl flex flex-wrap gap-1 shadow-[0_4px_20px_rgb(0,0,0,0.03)] text-xs font-bold w-full sm:w-auto">
+            <button 
+              onClick={() => setTimeFilter('Today')} 
+              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg transition-all ${timeFilter === 'Today' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-white/80 hover:text-slate-700'}`}
+            >
+              Hari Ini
+            </button>
+            <button 
+              onClick={() => setTimeFilter('7Days')} 
+              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg transition-all ${timeFilter === '7Days' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-white/80 hover:text-slate-700'}`}
+            >
+              7 Hari
+            </button>
+            <button 
+              onClick={() => setTimeFilter('1Month')} 
+              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg transition-all ${timeFilter === '1Month' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-white/80 hover:text-slate-700'}`}
+            >
+              1 Bulan
+            </button>
+            <button 
+              onClick={() => setTimeFilter('All')} 
+              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg transition-all ${timeFilter === 'All' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-white/80 hover:text-slate-700'}`}
+            >
+              Keseluruhan
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
