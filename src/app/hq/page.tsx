@@ -297,12 +297,13 @@ export default function ModernHQDashboard() {
                   <select
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
-                    className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 appearance-none text-slate-700 font-medium"
+                    className="w-full pl-4 pr-10 py-2.5 bg-white/50 backdrop-blur-xl border border-white/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 appearance-none text-slate-700 font-medium shadow-sm"
                   >
                     <option value="All">Semua Kategori</option>
                     <option value="Olimpiade MIPA">Olimpiade MIPA</option>
                     <option value="Speech Contest">Speech Contest</option>
                     <option value="LKTI Nasional">LKTI Nasional</option>
+                    <option value="MTQ Nasional">MTQ Nasional</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     <Filter size={14} className="text-slate-400" />
