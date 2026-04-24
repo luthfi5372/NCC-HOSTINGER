@@ -22,6 +22,34 @@ export default function ModernHQDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const supabase = createClient();
 
+  // --- MESIN EKSEKUTOR STATUS ---
+  const handleUpdateStatus = async (id: string | number, newStatus: string) => {
+    // 1. Konfirmasi manual agar tidak salah pencet
+    const isConfirmed = window.confirm(`Apakah Anda yakin ingin mengubah status pendaftar ini menjadi ${newStatus}?`);
+    if (!isConfirmed) return;
+
+    try {
+      // 2. Tembakkan perintah update ke Supabase
+      const { error } = await supabase
+        .from('competition_entries')
+        .update({ payment_status: newStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // 3. Perbarui layar secara instan (tanpa perlu refresh web)
+      setRealEntries(prevEntries => 
+        prevEntries.map(entry => 
+          entry.id === id ? { ...entry, payment_status: newStatus } : entry
+        )
+      );
+
+      alert(`✅ Komando berhasil! Status telah menjadi ${newStatus}.`);
+    } catch (error: any) {
+      alert(`❌ Misi Gagal: ${error.message}`);
+    }
+  };
+
   useEffect(() => {
     const fetchRealData = async () => {
       try {
@@ -201,76 +229,6 @@ export default function ModernHQDashboard() {
             </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h3 className="font-bold text-slate-800">Antrean Pendaftaran Asli</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-600">
-              <thead className="bg-slate-50/50 text-slate-500 font-medium border-b border-slate-100">
-                <tr>
-                  <th className="py-4 px-6">ID</th>
-                  <th className="py-4 px-6">NAMA PESERTA</th>
-                  <th className="py-4 px-6">KATEGORI</th>
-                  <th className="py-4 px-6">STATUS</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {realEntries.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-slate-400">Belum ada pendaftar di radar...</td>
-                  </tr>
-                ) : (
-                  realEntries.map((entry: any, idx: number) => (
-                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-4 px-6 font-medium text-slate-800">NCC-{entry.id}</td>
-                      <td className="py-4 px-6 flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 text-xs uppercase">
-                           {(entry.full_name || entry.email || "U").charAt(0)}
-                         </div>
-                         {entry.full_name || entry.email || "Peserta Anonim"}
-                      </td>
-                      <td className="py-4 px-6">{entry.category || "Belum Pilih"}</td>
-                      <td className="py-4 px-6">
-                        {/* Flex container agar Status dan Tombol berbaris rapi menyamping */}
-                        <div className="flex items-center gap-3">
-                          
-                          {/* 1. Badge Status (Dibuat sedikit lebih rapi) */}
-                          <span className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center w-max gap-1.5 border
-                            ${entry.payment_status === 'Verified' ? 'bg-green-50 text-green-600 border-green-200' : 
-                              entry.payment_status === 'Pending' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-slate-50 text-slate-500 border-slate-200'}
-                          `}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${entry.payment_status === 'Verified' ? 'bg-green-500' : entry.payment_status === 'Pending' ? 'bg-amber-500' : 'bg-slate-400'}`}></div>
-                            {entry.payment_status || "Wait"}
-                          </span>
-                          
-                          {/* 2. Tombol Modern Bukti TF (Sejajar di sampingnya) */}
-                          {entry.payment_proof_url && (
-                            <a 
-                              href={entry.payment_proof_url} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm rounded-lg text-[11px] font-bold transition-all"
-                            >
-                              {/* Ikon Mata (View) Minimalis */}
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-                                <circle cx="12" cy="12" r="3"/>
-                              </svg>
-                              Bukti TF
-                            </a>
-                          )}
-
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-            </div>
           </>
         )}
 
@@ -284,13 +242,104 @@ export default function ModernHQDashboard() {
           </div>
         )}
 
-        {/* 🎛️ KONTEN TAB: VERIFIKASI */}
         {activeTab === "Verifikasi" && (
-          <div className="bg-white p-12 rounded-2xl border border-slate-100 shadow-sm text-center flex flex-col items-center justify-center min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <FileCheck size={64} className="text-amber-200 mb-4" />
-            <h2 className="text-xl font-bold text-slate-800">Modul Verifikasi Bukti TF</h2>
-            <p className="text-slate-500 mt-2">Anda memiliki {realEntries.filter(e => e.payment_status === 'Pending').length} berkas yang menunggu untuk ditinjau.</p>
-            <button className="mt-6 bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all active:scale-95 shadow-md shadow-blue-200">Mulai Verifikasi</button>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <FileCheck size={20} className="text-blue-600" />
+                Antrean Verifikasi Pembayaran
+              </h3>
+              <span className="text-xs font-bold px-3 py-1 bg-amber-100 text-amber-700 rounded-full animate-pulse">
+                {realEntries.filter(e => e.payment_status === 'Pending').length} Menunggu
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-600">
+                <thead className="bg-white text-slate-500 font-medium border-b border-slate-100">
+                  <tr>
+                    <th className="py-4 px-6">ID</th>
+                    <th className="py-4 px-6">NAMA PESERTA</th>
+                    <th className="py-4 px-6">KATEGORI</th>
+                    <th className="py-4 px-6">STATUS & AKSI</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {realEntries.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-12 text-center text-slate-400 flex flex-col items-center">
+                        <Sparkles size={40} className="mb-2 opacity-20" />
+                        Belum ada pendaftar di radar...
+                      </td>
+                    </tr>
+                  ) : (
+                    realEntries.map((entry: any, idx: number) => (
+                      <tr key={idx} className="hover:bg-slate-50/30 transition-colors group">
+                        <td className="py-4 px-6 font-medium text-slate-800">NCC-{entry.id}</td>
+                        <td className="py-4 px-6 flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs uppercase border border-blue-100">
+                             {(entry.full_name || entry.email || "U").charAt(0)}
+                           </div>
+                           <div className="flex flex-col">
+                             <span className="font-bold text-slate-900 leading-tight">{entry.full_name || "Peserta Anonim"}</span>
+                             <span className="text-[10px] text-slate-400">{entry.email}</span>
+                           </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase tracking-wider">
+                            {entry.category || "General"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col gap-2">
+                            {/* BAGIAN 1: TOMBOL AKSI */}
+                            {(!entry.payment_status || entry.payment_status === 'Pending' || entry.payment_status === 'Wait') ? (
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => handleUpdateStatus(entry.id, 'Verified')}
+                                  className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-[11px] font-bold rounded-lg transition-all shadow-sm flex items-center gap-1 active:scale-95"
+                                >
+                                  ✅ Terima
+                                </button>
+                                <button 
+                                  onClick={() => handleUpdateStatus(entry.id, 'Rejected')}
+                                  className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold rounded-lg transition-all shadow-sm flex items-center gap-1 active:scale-95"
+                                >
+                                  ❌ Tolak
+                                </button>
+                              </div>
+                            ) : (
+                              <span className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center w-max gap-1.5 border
+                                ${entry.payment_status === 'Verified' ? 'bg-green-50 text-green-600 border-green-200' : 
+                                  entry.payment_status === 'Rejected' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-50 text-slate-500 border-slate-200'}
+                              `}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${entry.payment_status === 'Verified' ? 'bg-green-500' : entry.payment_status === 'Rejected' ? 'bg-red-500' : 'bg-slate-400'}`}></div>
+                                {entry.payment_status}
+                              </span>
+                            )}
+
+                            {/* BAGIAN 2: TOMBOL BUKTI TF */}
+                            {entry.payment_proof_url && (
+                              <a 
+                                href={entry.payment_proof_url} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="flex items-center w-max gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm rounded-lg text-[11px] font-bold transition-all"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                  <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                Bukti TF
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
