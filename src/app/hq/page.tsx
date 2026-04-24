@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { 
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
-  Bell, MoreHorizontal, Sparkles, Search, Filter
+  Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -22,6 +22,8 @@ export default function ModernHQDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
+  const [selectedParticipant, setSelectedParticipant] = useState<any | null>(null);
+  const [selectedIdCard, setSelectedIdCard] = useState<any | null>(null);
   const supabase = createClient();
 
   // --- MESIN EKSEKUTOR STATUS ---
@@ -322,6 +324,7 @@ export default function ModernHQDashboard() {
                     <th className="py-4 px-6">KATEGORI & PEMBINA</th>
                     <th className="py-4 px-6">WAKTU DAFTAR</th>
                     <th className="py-4 px-6">STATUS</th>
+                    <th className="py-4 px-6 text-center">AKSI</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -337,7 +340,7 @@ export default function ModernHQDashboard() {
                     .filter(e => filterCategory === "All" || (e.competition_type || e.category) === filterCategory)
                     .length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
+                        <td colSpan={7} className="py-12 text-center text-slate-400 font-medium">
                           Tidak ada peserta yang cocok dengan radar pencarian Anda.
                         </td>
                       </tr>
@@ -359,7 +362,11 @@ export default function ModernHQDashboard() {
                       const timeStr = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
                       return (
-                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                        <tr 
+                          key={idx} 
+                          onClick={() => setSelectedParticipant(entry)}
+                          className="hover:bg-blue-50/50 transition-colors cursor-pointer"
+                        >
                           <td className="py-4 px-6 font-black text-blue-600">NCC-{entry.id}</td>
                           <td className="py-4 px-6 flex items-center gap-3">
                              <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-blue-600 text-sm uppercase shrink-0">
@@ -379,7 +386,7 @@ export default function ModernHQDashboard() {
                             </div>
                           </td>
                           <td className="py-4 px-6">
-                            <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-[11px] font-bold border border-slate-200">
+                            <span className="bg-slate-100/80 text-slate-700 px-2.5 py-1 rounded-md text-[11px] font-bold border border-slate-200/60">
                               {entry.competition_type || entry.category || "Belum Pilih"}
                             </span>
                             <div className="text-[11px] text-slate-500 mt-1.5">
@@ -388,13 +395,26 @@ export default function ModernHQDashboard() {
                           </td>
                           <td className="py-4 px-6">
                             <div className="font-medium text-slate-800">{dateStr}</div>
-                            <div className="text-[11px] text-slate-500 mt-0.5">⏰ Pukul {timeStr} WIB</div>
+                            <div className="text-[11px] text-slate-500 mt-0.5">⏰ Pukul {timeStr}</div>
                           </td>
                           <td className="py-4 px-6">
-                            <span className="px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center w-max gap-1.5 border bg-green-50 text-green-600 border-green-200 shadow-sm">
+                            <span className="px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center w-max gap-1.5 border bg-green-500/10 text-green-700 border-green-500/20 shadow-sm">
                               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
                               Active
                             </span>
+                          </td>
+                          {/* KOLOM AKSI BARU */}
+                          <td className="py-4 px-6 text-center">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation(); // Mencegah Slide-out terbuka saat klik tombol ID Card
+                                setSelectedIdCard(entry);
+                              }}
+                              className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all shadow-sm border border-blue-100"
+                              title="Cetak ID Card"
+                            >
+                              <IdCard size={18} />
+                            </button>
                           </td>
                         </tr>
                       );
@@ -513,6 +533,78 @@ export default function ModernHQDashboard() {
             <Settings size={64} className="text-slate-200 mb-4" />
             <h2 className="text-xl font-bold text-slate-800">Konfigurasi Sistem</h2>
             <p className="text-slate-500 mt-2">Atur periode pendaftaran, kategori lomba, dan akses admin.</p>
+          </div>
+        )}
+        {/* ================= PANEL 1: SLIDE-OUT DETAIL PESERTA ================= */}
+        {selectedParticipant && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/20 backdrop-blur-sm transition-all duration-300">
+            {/* Area kosong untuk klik tutup */}
+            <div className="flex-1" onClick={() => setSelectedParticipant(null)}></div>
+            
+            <div className="w-full max-w-md bg-white/80 backdrop-blur-2xl h-full shadow-2xl border-l border-white/60 p-8 flex flex-col overflow-y-auto animate-in slide-in-from-right duration-300">
+              <div className="flex justify-between items-center mb-8 pb-4 border-b border-slate-200/50">
+                 <h2 className="text-xl font-bold text-slate-800">Detail Administrasi</h2>
+                 <button onClick={() => setSelectedParticipant(null)} className="p-2 bg-white/50 hover:bg-slate-100 rounded-full border border-slate-200/50 transition-colors"><X size={20}/></button>
+              </div>
+              
+              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-4xl font-black shadow-lg mb-6 border-4 border-white">
+                {(selectedParticipant.full_name || "U").charAt(0)}
+              </div>
+              <h3 className="text-2xl font-bold text-slate-800 mb-1">{selectedParticipant.full_name || "Nama tidak tersedia"}</h3>
+              <p className="text-slate-500 font-medium mb-6">{selectedParticipant.competition_type || selectedParticipant.category || "Belum ada kategori"}</p>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-white/60 border border-slate-100 rounded-xl shadow-sm">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nomor Induk Siswa (NISN)</p>
+                  <p className="font-semibold text-slate-800">{selectedParticipant.nisn || "Data Kosong"}</p>
+                </div>
+                <div className="p-4 bg-white/60 border border-slate-100 rounded-xl shadow-sm">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Informasi Kontak</p>
+                  <p className="font-semibold text-slate-800 mb-1">{selectedParticipant.email || "Email tidak ada"}</p>
+                  <p className="font-semibold text-slate-800">{selectedParticipant.whatsapp_number || selectedParticipant.phone || "No. HP tidak ada"}</p>
+                </div>
+                <div className="p-4 bg-white/60 border border-slate-100 rounded-xl shadow-sm">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Institusi / Sekolah</p>
+                  <p className="font-semibold text-slate-800 mb-1">{selectedParticipant.school_name || selectedParticipant.school || "Data Kosong"}</p>
+                  <p className="text-sm text-slate-600">📍 {selectedParticipant.province || selectedParticipant.city || "Provinsi tidak dicantumkan"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= PANEL 2: MODAL GENERATOR ID CARD ================= */}
+        {selectedIdCard && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md transition-all">
+            <div className="w-full max-w-sm bg-white/90 backdrop-blur-xl rounded-3xl border border-white/60 p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
+               <button onClick={() => setSelectedIdCard(null)} className="absolute top-4 right-4 p-2 bg-black/5 hover:bg-black/10 rounded-full transition-colors z-10"><X size={16} className="text-slate-600"/></button>
+               
+               {/* Kanvas ID Card */}
+               <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl p-6 text-center shadow-inner relative overflow-hidden mt-4">
+                  <div className="absolute top-[-20%] left-[-20%] w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+                  
+                  <div className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mb-6">ID Card Peserta</div>
+                  
+                  <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full mx-auto mb-4 flex items-center justify-center text-3xl font-bold border border-white/40 shadow-lg text-white">
+                     {(selectedIdCard.full_name || "U").charAt(0)}
+                  </div>
+                  <h3 className="text-xl font-bold mb-1 text-white">{selectedIdCard.full_name}</h3>
+                  <p className="text-blue-200 text-xs mb-6 font-medium">{selectedIdCard.school_name || selectedIdCard.school}</p>
+                  
+                  <div className="bg-white/10 backdrop-blur-md rounded-xl py-3 border border-white/20 mb-3 shadow-sm">
+                     <span className="text-[10px] text-blue-200 block uppercase font-bold tracking-widest mb-0.5">Kategori</span>
+                     <span className="font-bold text-white text-sm">{selectedIdCard.competition_type || selectedIdCard.category}</span>
+                  </div>
+                  
+                  <div className="inline-block px-4 py-1.5 bg-black/20 rounded-full border border-white/10 text-xs text-white font-mono mt-2">
+                    ID: NCC-{selectedIdCard.id}
+                  </div>
+               </div>
+               
+               <button className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-200">
+                  <Printer size={18} /> Cetak Kartu
+               </button>
+            </div>
           </div>
         )}
       </main>
