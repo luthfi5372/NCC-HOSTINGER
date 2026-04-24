@@ -4,7 +4,7 @@ import { User, Mail, Lock, Type, ArrowRight, AlertCircle, CheckCircle2 } from "l
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { registerLocalUser } from "@/app/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function DaftarPage() {
@@ -19,6 +19,7 @@ export default function DaftarPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -33,40 +34,46 @@ export default function DaftarPage() {
     e.preventDefault();
     setError(null);
 
-    // Validation
+    // 1. Validasi Keamanan Dasar
     if (!formData.username || !formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError("Semua kolom wajib diisi.");
-      return;
-    }
-    if (formData.password.length < 6) {
-      setError("Kata sandi minimal 6 karakter.");
+      setError("⚠️ Semua kolom wajib diisi, Komandan!");
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      setError("Konfirmasi kata sandi tidak cocok.");
+      setError("⚠️ Kata sandi dan konfirmasinya tidak cocok!");
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError("⚠️ Kata sandi minimal harus 6 karakter.");
       return;
     }
 
     setLoading(true);
     try {
-      const data = new FormData();
-      data.append("username", formData.username);
-      data.append("fullName", formData.fullName);
-      data.append("email", formData.email);
-      data.append("password", formData.password);
+      // 2. Tembakkan Data ke Supabase Auth
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+            username: formData.username,
+          }
+        }
+      });
 
-      const result = await registerLocalUser(data);
+      if (authError) throw authError;
 
-      if (result.success) {
-        setSubmitted(true);
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 1500);
-      } else {
-        setError(result.error || "Gagal membuat akun. Mungkin email sudah terdaftar.");
-      }
-    } catch (err) {
-      setError("Terjadi kesalahan sistem. Silakan coba lagi.");
+      // 3. Tampilkan Efek Sukses Premium
+      setSubmitted(true);
+      
+      // Tunggu sebentar agar user melihat animasi sukses, lalu lempar ke login
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
+
+    } catch (error: any) {
+      setError(`❌ Pendaftaran Gagal: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -89,7 +96,7 @@ export default function DaftarPage() {
           </div>
           <h2 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">Akun Berhasil Dibuat!</h2>
           <p className="text-slate-500 font-medium leading-relaxed mb-8 text-sm">
-            Selamat datang di NCC. Tunggu sebentar, kami sedang mengalihkan Anda ke dashboard...
+            Selamat datang di NCC. Silakan masuk dengan akun baru Anda untuk mengakses dashboard.
           </p>
           <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
              <motion.div 
