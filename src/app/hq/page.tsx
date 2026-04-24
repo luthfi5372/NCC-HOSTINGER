@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { 
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
-  Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight
+  Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight,
+  CheckCircle2, AlertCircle 
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -34,47 +35,66 @@ export default function ModernHQDashboard() {
   const [isSending, setIsSending] = useState(false);
   const supabase = createClient();
 
+  // --- MEMORI SISTEM NOTIFIKASI KUSTOM ---
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" as "success" | "error" });
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: "", message: "", onConfirm: () => {} });
+
+  // Fungsi pemanggil Toast
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000); 
+  };
+
   // --- MESIN EKSEKUTOR STATUS ---
   const handleUpdateStatus = async (id: string | number, newStatus: string) => {
-    // 1. Konfirmasi manual agar tidak salah pencet
-    const isConfirmed = window.confirm(`Apakah Anda yakin ingin mengubah status pendaftar ini menjadi ${newStatus}?`);
-    if (!isConfirmed) return;
+    setConfirmModal({
+      show: true,
+      title: "Konfirmasi Perubahan Status",
+      message: `Apakah Anda yakin ingin mengubah status pendaftar ini menjadi ${newStatus}?`,
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, show: false }));
+        try {
+          const { error } = await supabase
+            .from('competition_entries')
+            .update({ payment_status: newStatus })
+            .eq('id', id);
 
-    try {
-      // 2. Tembakkan perintah update ke Supabase
-      const { error } = await supabase
-        .from('competition_entries')
-        .update({ payment_status: newStatus })
-        .eq('id', id);
+          if (error) throw error;
 
-      if (error) throw error;
+          setRealEntries(prevEntries => 
+            prevEntries.map(entry => 
+              entry.id === id ? { ...entry, payment_status: newStatus } : entry
+            )
+          );
 
-      // 3. Perbarui layar secara instan (tanpa perlu refresh web)
-      setRealEntries(prevEntries => 
-        prevEntries.map(entry => 
-          entry.id === id ? { ...entry, payment_status: newStatus } : entry
-        )
-      );
-
-      alert(`✅ Komando berhasil! Status telah menjadi ${newStatus}.`);
-    } catch (error: any) {
-      alert(`❌ Misi Gagal: ${error.message}`);
-    }
+          showToast(`✅ Komando berhasil! Status telah menjadi ${newStatus}.`, "success");
+        } catch (error: any) {
+          showToast(`❌ Misi Gagal: ${error.message}`, "error");
+        }
+      }
+    });
   };
 
   // --- MESIN EKSEKUTOR SIARAN ---
-  const handleSendBroadcast = async () => {
+  const handleSendClick = () => {
     if (!broadcastTitle || !broadcastMessage) {
-      return alert("⚠️ Judul dan isi pesan tidak boleh kosong, Komandan!");
+      return showToast("Judul dan isi pesan tidak boleh kosong, Komandan!", "error");
     }
 
-    if (broadcastTarget === "specific" && selectedUserIds.length === 0) {
-      return alert("⚠️ Pilih minimal satu peserta untuk pengumuman spesifik ini!");
+    if (broadcastTarget === "specific" && (selectedUserIds || []).length === 0) {
+      return showToast("Pilih minimal satu peserta untuk pengumuman spesifik ini!", "error");
     }
 
-    const confirmSend = window.confirm(`Pesan "${broadcastTitle}" akan dikirim ke ${broadcastTarget === 'specific' ? `${selectedUserIds.length} peserta terpilih` : 'dashboard peserta'}. Lanjutkan?`);
-    if (!confirmSend) return;
+    setConfirmModal({
+      show: true,
+      title: "Konfirmasi Siaran Komando",
+      message: `Pesan "${broadcastTitle}" akan segera ditembakkan ke target sasaran. Tindakan ini tidak dapat dibatalkan. Lanjutkan?`,
+      onConfirm: executeBroadcast
+    });
+  };
 
+  const executeBroadcast = async () => {
+    setConfirmModal(prev => ({ ...prev, show: false }));
     setIsSending(true);
     try {
       const { error } = await supabase
@@ -90,12 +110,12 @@ export default function ModernHQDashboard() {
 
       if (error) throw error;
 
-      alert("✅ MISI BERHASIL! Pengumuman spesifik sudah mengudara.");
+      showToast("✅ MISI BERHASIL! Pengumuman resmi mengudara.", "success");
       setBroadcastTitle("");
       setBroadcastMessage("");
       setSelectedUserIds([]);
     } catch (error: any) {
-      alert(`❌ Misi Gagal: ${error.message}`);
+      showToast(`❌ Misi Gagal: ${error.message}`, "error");
     } finally {
       setIsSending(false);
     }
@@ -804,7 +824,7 @@ export default function ModernHQDashboard() {
 
                 {/* Tombol Eksekusi */}
                 <button 
-                  onClick={handleSendBroadcast}
+                  onClick={handleSendClick}
                   disabled={isSending}
                   className={`w-full mt-4 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/20 active:scale-[0.99]
                     ${isSending ? 'bg-slate-500 cursor-not-allowed' : 'bg-slate-900 hover:bg-slate-800'}
@@ -903,6 +923,55 @@ export default function ModernHQDashboard() {
           </div>
         )}
       </main>
+
+      {/* ========================================================= */}
+      {/* 🌟 SISTEM NOTIFIKASI TOAST (MENGAMBANG DI POJOK KANAN ATAS) */}
+      {/* ========================================================= */}
+      <div className={`fixed top-8 right-8 z-[100] transition-all duration-500 transform ${toast.show ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0 pointer-events-none'}`}>
+        <div className="bg-white/80 backdrop-blur-2xl border border-white/60 shadow-2xl rounded-2xl p-4 flex items-center gap-3">
+          {toast.type === 'success' ? (
+            <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><CheckCircle2 size={18} /></div>
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center"><AlertCircle size={18} /></div>
+          )}
+          <div>
+            <p className="font-bold text-slate-800 text-sm">{toast.type === 'success' ? 'Berhasil' : 'Peringatan'}</p>
+            <p className="text-xs text-slate-500 font-medium">{toast.message}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* 🌟 MODAL KONFIRMASI LIQUID GLASS (MENGGANTIKAN window.confirm) */}
+      {/* ========================================================= */}
+      <div className={`fixed inset-0 z-[90] flex items-center justify-center p-4 transition-all duration-300 ${confirmModal.show ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        {/* Latar Belakang Gelap */}
+        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}></div>
+        
+        {/* Kotak Modal */}
+        <div className={`bg-white/90 backdrop-blur-3xl border border-white/60 shadow-2xl rounded-[2rem] p-8 max-w-md w-full relative transition-all duration-500 transform ${confirmModal.show ? 'scale-100 translate-y-0' : 'scale-95 translate-y-8'}`}>
+          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[1.5rem] flex items-center justify-center mb-6 shadow-inner mx-auto border border-blue-100/50">
+            <Megaphone size={36} />
+          </div>
+          <h3 className="text-2xl font-black text-slate-800 text-center mb-2 tracking-tight">{confirmModal.title}</h3>
+          <p className="text-slate-500 text-center mb-8 text-sm leading-relaxed">{confirmModal.message}</p>
+          
+          <div className="flex gap-4">
+            <button 
+              onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))} 
+              className="flex-1 py-4 rounded-2xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+            >
+              Batalkan
+            </button>
+            <button 
+              onClick={confirmModal.onConfirm} 
+              className="flex-1 py-4 rounded-2xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
+            >
+              Eksekusi
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
