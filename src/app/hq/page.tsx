@@ -30,6 +30,7 @@ export default function ModernHQDashboard() {
   const [broadcastTitle, setBroadcastTitle] = useState("");
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastTarget, setBroadcastTarget] = useState("All");
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
   const supabase = createClient();
 
@@ -67,7 +68,11 @@ export default function ModernHQDashboard() {
       return alert("⚠️ Judul dan isi pesan tidak boleh kosong, Komandan!");
     }
 
-    const confirmSend = window.confirm(`Pesan "${broadcastTitle}" akan dikirim ke dashboard peserta. Lanjutkan?`);
+    if (broadcastTarget === "specific" && selectedUserIds.length === 0) {
+      return alert("⚠️ Pilih minimal satu peserta untuk pengumuman spesifik ini!");
+    }
+
+    const confirmSend = window.confirm(`Pesan "${broadcastTitle}" akan dikirim ke ${broadcastTarget === 'specific' ? `${selectedUserIds.length} peserta terpilih` : 'dashboard peserta'}. Lanjutkan?`);
     if (!confirmSend) return;
 
     setIsSending(true);
@@ -78,15 +83,17 @@ export default function ModernHQDashboard() {
           {
             title: broadcastTitle,
             content: broadcastMessage,
-            target_audience: broadcastTarget
+            target_audience: broadcastTarget,
+            target_user_ids: broadcastTarget === 'specific' ? selectedUserIds : []
           }
         ]);
 
       if (error) throw error;
 
-      alert("✅ MISI BERHASIL! Pengumuman sudah mengudara.");
+      alert("✅ MISI BERHASIL! Pengumuman spesifik sudah mengudara.");
       setBroadcastTitle("");
       setBroadcastMessage("");
+      setSelectedUserIds([]);
     } catch (error: any) {
       alert(`❌ Misi Gagal: ${error.message}`);
     } finally {
@@ -711,9 +718,76 @@ export default function ModernHQDashboard() {
                       <option value="All">Seluruh Peserta</option>
                       <option value="Verified">Peserta Terverifikasi</option>
                       <option value="Pending">Menunggu Pembayaran</option>
+                      <option value="specific">Peserta Tertentu (Pilih Manual)</option>
                     </select>
                   </div>
                 </div>
+
+                {/* --- SELEKSI PESERTA SPESIFIK (HANYA MUNCUL JIKA TARGET ADALAH SPECIFIC) --- */}
+                {broadcastTarget === "specific" && (
+                  <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl animate-in fade-in zoom-in-95 duration-300">
+                    <div className="flex justify-between items-center mb-4">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Daftar Peserta NCC ({realEntries.length})</label>
+                      <div className="flex gap-2">
+                        <button 
+                          type="button"
+                          onClick={() => setSelectedUserIds(realEntries.map(e => e.user_id).filter(id => id))} 
+                          className="text-[10px] font-bold text-blue-600 hover:underline"
+                        >
+                          Pilih Semua
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button 
+                          type="button"
+                          onClick={() => setSelectedUserIds([])} 
+                          className="text-[10px] font-bold text-slate-400 hover:underline"
+                        >
+                          Kosongkan
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                      {realEntries.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic col-span-full py-4 text-center">Belum ada data peserta di radar.</p>
+                      ) : (
+                        realEntries.map((entry) => (
+                          <label 
+                            key={entry.id} 
+                            className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group ${
+                              selectedUserIds.includes(entry.user_id) 
+                              ? 'bg-blue-50 border-blue-200 shadow-sm' 
+                              : 'bg-white border-slate-100 hover:border-slate-200'
+                            }`}
+                          >
+                            <input 
+                              type="checkbox" 
+                              className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer"
+                              checked={selectedUserIds.includes(entry.user_id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedUserIds([...selectedUserIds, entry.user_id]);
+                                } else {
+                                  setSelectedUserIds(selectedUserIds.filter(id => id !== entry.user_id));
+                                }
+                              }}
+                            />
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-slate-700 truncate">{entry.full_name}</p>
+                              <p className="text-[10px] text-slate-400 truncate">{entry.school_name || entry.school}</p>
+                            </div>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                    
+                    <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between">
+                       <p className="text-[10px] font-medium text-slate-500 italic">
+                         Terpilih: <span className="font-bold text-blue-600">{selectedUserIds.length}</span> orang
+                       </p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Isi Pesan Siaran</label>

@@ -22,14 +22,29 @@ export default function UserDashboard() {
     mentor_name: ""
   });
 
-  // --- MESIN PENARIK PENGUMUMAN DARI MARKAS BESAR ---
+  // --- MESIN PENARIK PENGUMUMAN DARI MARKAS BESAR (PINTU CERDAS) ---
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        // Tarik data dari tabel announcements, urutkan dari yang paling baru
+        // 1. Dapatkan Identitas & Status User
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // 2. Cek Status Pendaftaran User (untuk filter target_audience)
+        const { data: entryData } = await supabase
+          .from('competition_entries')
+          .select('payment_status')
+          .eq('user_id', user.id)
+          .single();
+
+        const userStatus = entryData?.payment_status || "Pending";
+
+        // 3. Tarik data pengumuman dengan Filter Berlapis (Pintu Cerdas)
+        // Logika: Ambil jika (Target=All) ATAU (Target=Status Anda) ATAU (ID Anda ada di daftar spesifik)
         const { data, error } = await supabase
           .from('announcements')
           .select('*')
+          .or(`target_audience.eq.All, target_audience.eq.${userStatus}, target_user_ids.cs.{${user.id}}`)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
