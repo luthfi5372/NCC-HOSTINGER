@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { 
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
-  Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard
+  Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -25,6 +25,12 @@ export default function ModernHQDashboard() {
   const [timeFilter, setTimeFilter] = useState("All"); // Opsi: 'Today', '7Days', '1Month', 'All'
   const [selectedParticipant, setSelectedParticipant] = useState<any | null>(null);
   const [selectedIdCard, setSelectedIdCard] = useState<any | null>(null);
+
+  // --- MEMORI SIARAN KOMANDO ---
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [broadcastTarget, setBroadcastTarget] = useState("All");
+  const [isSending, setIsSending] = useState(false);
   const supabase = createClient();
 
   // --- MESIN EKSEKUTOR STATUS ---
@@ -52,6 +58,39 @@ export default function ModernHQDashboard() {
       alert(`✅ Komando berhasil! Status telah menjadi ${newStatus}.`);
     } catch (error: any) {
       alert(`❌ Misi Gagal: ${error.message}`);
+    }
+  };
+
+  // --- MESIN EKSEKUTOR SIARAN ---
+  const handleSendBroadcast = async () => {
+    if (!broadcastTitle || !broadcastMessage) {
+      return alert("⚠️ Judul dan isi pesan tidak boleh kosong, Komandan!");
+    }
+
+    const confirmSend = window.confirm(`Pesan "${broadcastTitle}" akan dikirim ke dashboard peserta. Lanjutkan?`);
+    if (!confirmSend) return;
+
+    setIsSending(true);
+    try {
+      const { error } = await supabase
+        .from('announcements')
+        .insert([
+          {
+            title: broadcastTitle,
+            content: broadcastMessage,
+            target_audience: broadcastTarget
+          }
+        ]);
+
+      if (error) throw error;
+
+      alert("✅ MISI BERHASIL! Pengumuman sudah mengudara.");
+      setBroadcastTitle("");
+      setBroadcastMessage("");
+    } catch (error: any) {
+      alert(`❌ Misi Gagal: ${error.message}`);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -239,6 +278,7 @@ export default function ModernHQDashboard() {
             <NavItem icon={<LayoutDashboard size={20} />} text="Dashboard" active={activeTab === "Dashboard"} onClick={() => setActiveTab("Dashboard")} />
             <NavItem icon={<Users size={20} />} text="Peserta" active={activeTab === "Peserta"} onClick={() => setActiveTab("Peserta")} />
             <NavItem icon={<FileCheck size={20} />} text="Verifikasi" badge={realEntries.filter(e => e.payment_status === 'Pending').length.toString()} active={activeTab === "Verifikasi"} onClick={() => setActiveTab("Verifikasi")} />
+            <NavItem icon={<Megaphone size={20} />} text="Pengumuman" active={activeTab === "Pengumuman"} onClick={() => setActiveTab("Pengumuman")} />
             <NavItem icon={<Settings size={20} />} text="Pengaturan" active={activeTab === "Pengaturan"} onClick={() => setActiveTab("Pengaturan")} />
           </nav>
         </div>
@@ -631,6 +671,83 @@ export default function ModernHQDashboard() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* 🎛️ KONTEN TAB: PENGUMUMAN (SIARAN KOMANDO) */}
+        {activeTab === "Pengumuman" && (
+          <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white/50 backdrop-blur-xl border border-white/60 rounded-3xl p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                  <Megaphone size={24} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Siaran Komando</h2>
+                  <p className="text-slate-500 text-sm">Kirim pengumuman real-time ke seluruh dashboard peserta NCC.</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Judul Pengumuman</label>
+                    <input 
+                      type="text" 
+                      value={broadcastTitle}
+                      onChange={(e) => setBroadcastTitle(e.target.value)}
+                      placeholder="Contoh: Selamat Datang di NCC 13th!" 
+                      className="w-full px-5 py-3.5 bg-white/60 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-slate-700 placeholder:text-slate-400 shadow-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Target Audiens</label>
+                    <select 
+                      value={broadcastTarget}
+                      onChange={(e) => setBroadcastTarget(e.target.value)}
+                      className="w-full px-5 py-3.5 bg-white/60 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-slate-700 appearance-none shadow-sm"
+                    >
+                      <option value="All">Seluruh Peserta</option>
+                      <option value="Verified">Peserta Terverifikasi</option>
+                      <option value="Pending">Menunggu Pembayaran</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Isi Pesan Siaran</label>
+                  <textarea 
+                    value={broadcastMessage}
+                    onChange={(e) => setBroadcastMessage(e.target.value)}
+                    rows={5}
+                    placeholder="Tuliskan detail pengumuman Anda di sini..." 
+                    className="w-full px-5 py-4 bg-white/60 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-slate-700 placeholder:text-slate-400 shadow-sm resize-none"
+                  ></textarea>
+                </div>
+
+                <div className="pt-4">
+                  <button 
+                    onClick={handleSendBroadcast}
+                    disabled={isSending}
+                    className="w-full bg-slate-900 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {isSending ? (
+                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>SIARKAN PESAN SEKARANG <ArrowRight size={18} /></>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 p-6 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-start gap-4">
+               <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Sparkles size={20}/></div>
+               <div>
+                  <h4 className="text-sm font-bold text-blue-900 mb-1">Tips Komando</h4>
+                  <p className="text-xs text-blue-700 leading-relaxed">Pesan yang Anda kirim akan langsung muncul di halaman Dashboard masing-masing peserta. Gunakan fitur ini untuk informasi mendesak atau ucapan selamat.</p>
+               </div>
             </div>
           </div>
         )}
