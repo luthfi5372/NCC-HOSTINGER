@@ -346,38 +346,133 @@ export default function UserDashboard() {
               )}
             </div>
 
-            {/* --- WIDGET BARU: JADWAL PENTING (TIMELINE) --- */}
+            {/* --- WIDGET JADWAL PENTING (TIMELINE RESMI NCC 13TH) --- */}
             <div className="bg-white/60 backdrop-blur-xl border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-8 mt-8">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200/50">
+              <div className="flex items-center gap-3 mb-8 pb-5 border-b border-slate-200/50">
                 <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
                   <Calendar size={20} />
                 </div>
-                <h2 className="text-lg font-bold text-slate-800">Jadwal Penting Lomba</h2>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Jadwal Perlombaan NCC 13th</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Seluruh cabang lomba • Gelombang I & II</p>
+                </div>
               </div>
 
-              <div className="relative border-l-2 border-indigo-100 ml-4 space-y-8 pb-4">
-                {/* Item Timeline 1 */}
-                <div className="relative pl-6">
-                  <div className="absolute w-4 h-4 bg-indigo-500 rounded-full border-4 border-white -left-[9px] top-1 shadow-sm"></div>
-                  <h3 className="font-bold text-slate-800 text-sm">Pendaftaran Gelombang 1</h3>
-                  <p className="text-xs font-bold text-indigo-500 mt-1">1 Mei - 30 Juni 2026</p>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">Pendaftaran dengan biaya *Early Bird* dibuka untuk seluruh cabang lomba.</p>
+              <div className="space-y-8">
+
+                {/* ── 1. LKTI ── */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0"></span>
+                    <h3 className="font-black text-slate-800 text-sm uppercase tracking-wide">LKTI – Lomba Karya Tulis Ilmiah</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Gel I */}
+                    <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-4 space-y-2.5">
+                      <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3">Gelombang I</p>
+                      <div><p className="text-xs font-bold text-slate-700">Pendaftaran & Abstrak</p><p className="text-[11px] text-blue-500 font-semibold">16 Juli – 3 September</p></div>
+                      <div><p className="text-xs font-bold text-slate-700">Pengumuman Tahap I</p><p className="text-[11px] text-blue-500 font-semibold">10 September</p></div>
+                      <div><p className="text-xs font-bold text-slate-700">Pengumpulan Fullpaper</p><p className="text-[11px] text-blue-500 font-semibold">12 – 18 September</p></div>
+                      <div><p className="text-xs font-bold text-slate-700">Pengumuman Tahap II</p><p className="text-[11px] text-blue-500 font-semibold">26 September</p></div>
+                    </div>
+                    {/* Gel II */}
+                    <div className="bg-slate-50/80 border border-slate-100 rounded-2xl p-4 space-y-2.5">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Gelombang II</p>
+                      <div><p className="text-xs font-bold text-slate-600">Pendaftaran & Abstrak</p><p className="text-[11px] text-slate-400 font-semibold">1 – 25 Oktober</p></div>
+                      <div><p className="text-xs font-bold text-slate-600">Pengumuman Tahap I</p><p className="text-[11px] text-slate-400 font-semibold">31 Oktober</p></div>
+                      <div><p className="text-xs font-bold text-slate-600">Pengumpulan Fullpaper</p><p className="text-[11px] text-slate-400 font-semibold">1 – 9 November</p></div>
+                      <div><p className="text-xs font-bold text-slate-600">Pengumuman Tahap II</p><p className="text-[11px] text-slate-400 font-semibold">16 November</p></div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Item Timeline 2 */}
-                <div className="relative pl-6">
-                  <div className="absolute w-4 h-4 bg-slate-300 rounded-full border-4 border-white -left-[9px] top-1"></div>
-                  <h3 className="font-bold text-slate-600 text-sm">Technical Meeting (Online)</h3>
-                  <p className="text-xs font-bold text-slate-400 mt-1">15 Juli 2026</p>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">Penjelasan teknis lomba secara virtual via Zoom Meeting.</p>
+                <hr className="border-slate-100" />
+
+                {/* ── 2. OLIMPIADE ── */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                    <h3 className="font-black text-slate-800 text-sm uppercase tracking-wide">Olimpiade MIPA</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Gel I */}
+                    <div className="bg-amber-50/60 border border-amber-100 rounded-2xl p-4 space-y-2.5">
+                      <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3">Gelombang I</p>
+                      <div><p className="text-xs font-bold text-slate-700">Pendaftaran</p><p className="text-[11px] text-amber-500 font-semibold">16 Juli – 3 September</p></div>
+                      <div><p className="text-xs font-bold text-slate-700">Seleksi 1</p><p className="text-[11px] text-amber-500 font-semibold">10 September</p></div>
+                      <div><p className="text-xs font-bold text-slate-700">Seleksi 2</p><p className="text-[11px] text-amber-500 font-semibold">14 September</p></div>
+                      <div><p className="text-xs font-bold text-slate-700">Pengumuman Tahap I</p><p className="text-[11px] text-amber-500 font-semibold">21 September</p></div>
+                    </div>
+                    {/* Gel II */}
+                    <div className="bg-slate-50/80 border border-slate-100 rounded-2xl p-4 space-y-2.5">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Gelombang II</p>
+                      <div><p className="text-xs font-bold text-slate-600">Pendaftaran</p><p className="text-[11px] text-slate-400 font-semibold">1 – 25 Oktober</p></div>
+                      <div><p className="text-xs font-bold text-slate-600">Simulasi</p><p className="text-[11px] text-slate-400 font-semibold">29 Oktober</p></div>
+                      <div><p className="text-xs font-bold text-slate-600">Seleksi</p><p className="text-[11px] text-slate-400 font-semibold">2 November</p></div>
+                      <div><p className="text-xs font-bold text-slate-600">Pengumuman</p><p className="text-[11px] text-slate-400 font-semibold">8 November</p></div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Item Timeline 3 */}
-                <div className="relative pl-6">
-                  <div className="absolute w-4 h-4 bg-slate-300 rounded-full border-4 border-white -left-[9px] top-1"></div>
-                  <h3 className="font-bold text-slate-600 text-sm">Babak Penyisihan</h3>
-                  <p className="text-xs font-bold text-slate-400 mt-1">1 - 2 Agustus 2026</p>
+                <hr className="border-slate-100" />
+
+                {/* ── 3. SPEECH ── */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0"></span>
+                    <h3 className="font-black text-slate-800 text-sm uppercase tracking-wide">Speech Contest</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Gel I */}
+                    <div className="bg-purple-50/60 border border-purple-100 rounded-2xl p-4 space-y-2.5">
+                      <p className="text-[10px] font-black text-purple-500 uppercase tracking-widest mb-3">Gelombang I</p>
+                      <div><p className="text-xs font-bold text-slate-700">Pendaftaran & Naskah</p><p className="text-[11px] text-purple-500 font-semibold">16 Juli – 3 September</p></div>
+                      <div><p className="text-xs font-bold text-slate-700">Pengumuman</p><p className="text-[11px] text-purple-500 font-semibold">14 September</p></div>
+                    </div>
+                    {/* Gel II */}
+                    <div className="bg-slate-50/80 border border-slate-100 rounded-2xl p-4 space-y-2.5">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Gelombang II</p>
+                      <div><p className="text-xs font-bold text-slate-600">Pendaftaran & Naskah</p><p className="text-[11px] text-slate-400 font-semibold">1 – 25 Oktober</p></div>
+                      <div><p className="text-xs font-bold text-slate-600">Pengumuman</p><p className="text-[11px] text-slate-400 font-semibold">14 November</p></div>
+                    </div>
+                  </div>
                 </div>
+
+                <hr className="border-slate-100" />
+
+                {/* ── 4. MTQ ── */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0"></span>
+                    <h3 className="font-black text-slate-800 text-sm uppercase tracking-wide">MTQ</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Gel I */}
+                    <div className="bg-green-50/60 border border-green-100 rounded-2xl p-4 space-y-2.5">
+                      <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-3">Gelombang I</p>
+                      <div><p className="text-xs font-bold text-slate-700">Pendaftaran & Video</p><p className="text-[11px] text-green-600 font-semibold">16 Juli – 3 September</p></div>
+                      <div><p className="text-xs font-bold text-slate-700">Pengumuman</p><p className="text-[11px] text-green-600 font-semibold">14 September</p></div>
+                    </div>
+                    {/* Gel II */}
+                    <div className="bg-slate-50/80 border border-slate-100 rounded-2xl p-4 space-y-2.5">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Gelombang II</p>
+                      <div><p className="text-xs font-bold text-slate-600">Pendaftaran</p><p className="text-[11px] text-slate-400 font-semibold">1 – 25 Oktober</p></div>
+                      <div><p className="text-xs font-bold text-slate-600">Pengumuman</p><p className="text-[11px] text-slate-400 font-semibold">14 November</p></div>
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="border-slate-100" />
+
+                {/* ── 📌 TM SEMUA LOMBA ── */}
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-5 flex items-center gap-4">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0 text-lg">📌</div>
+                  <div>
+                    <p className="font-black text-white text-sm">Technical Meeting – Semua Lomba</p>
+                    <p className="text-indigo-200 text-xs font-semibold mt-0.5">18 November • Semua Cabang Lomba</p>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
