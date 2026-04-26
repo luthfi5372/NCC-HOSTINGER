@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
   Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight,
-  CheckCircle2, AlertCircle, LogOut 
+  CheckCircle2, AlertCircle, LogOut, Trash2 
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -41,9 +41,36 @@ export default function ModernHQDashboard() {
     router.push('/login'); // Lempar kembali ke halaman login
   };
 
+  // --- 🗑️ FUNGSI PEMUSNAH DATA PESERTA ---
+  const executeDelete = async () => {
+    if (!deleteModal.id) return;
+    
+    try {
+      // Hapus dari database Supabase
+      const { error } = await supabase
+        .from('competition_entries')
+        .delete()
+        .eq('id', deleteModal.id);
+
+      if (error) throw error;
+
+      // Bersihkan dari layar Markas Besar tanpa perlu refresh halaman
+      setRealEntries(realEntries.filter((e: any) => e.id !== deleteModal.id));
+      showToast(`Data peserta ${deleteModal.name} berhasil dimusnahkan.`, "success");
+      
+    } catch (error: any) {
+      showToast(`Gagal menghapus: ${error.message}`, "error");
+    } finally {
+      setDeleteModal({ show: false, id: null, name: "" }); // Tutup modal
+    }
+  };
+
   // --- MEMORI SISTEM NOTIFIKASI KUSTOM ---
   const [toast, setToast] = useState({ show: false, message: "", type: "success" as "success" | "error" });
   const [confirmModal, setConfirmModal] = useState({ show: false, title: "", message: "", onConfirm: () => {} });
+
+  // --- MEMORI MODAL DELETE ---
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: "" });
 
   // Fungsi pemanggil Toast
   const showToast = (message: string, type: "success" | "error" = "success") => {
@@ -596,16 +623,28 @@ export default function ModernHQDashboard() {
                           </td>
                           {/* KOLOM AKSI BARU */}
                           <td className="py-4 px-6 text-center">
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation(); // Mencegah Slide-out terbuka saat klik tombol ID Card
-                                setSelectedIdCard(entry);
-                              }}
-                              className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all shadow-sm border border-blue-100"
-                              title="Cetak ID Card"
-                            >
-                              <IdCard size={18} />
-                            </button>
+                            <div className="flex items-center justify-center gap-2">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedIdCard(entry);
+                                }}
+                                className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all shadow-sm border border-blue-100"
+                                title="Cetak ID Card"
+                              >
+                                <IdCard size={18} />
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteModal({ show: true, id: entry.id, name: entry.full_name });
+                                }}
+                                title="Hapus Data Peserta"
+                                className="text-red-500 hover:text-red-700 p-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -707,6 +746,14 @@ export default function ModernHQDashboard() {
                                 Bukti TF
                               </a>
                             )}
+                            
+                            <button 
+                              onClick={() => setDeleteModal({ show: true, id: entry.id, name: entry.full_name })}
+                              title="Hapus Data Peserta"
+                              className="text-red-500 hover:text-red-700 p-1.5 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -984,6 +1031,38 @@ export default function ModernHQDashboard() {
               className="flex-1 py-4 rounded-2xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
             >
               Eksekusi
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* 🚨 MODAL KONFIRMASI DELETE (PEMUSNAH) */}
+      {/* ========================================================= */}
+      <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-300 ${deleteModal.show ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setDeleteModal({ ...deleteModal, show: false })}></div>
+        
+        <div className={`bg-white backdrop-blur-3xl border border-red-100 shadow-2xl rounded-[2rem] p-8 max-w-md w-full relative transition-all duration-500 transform ${deleteModal.show ? 'scale-100 translate-y-0' : 'scale-95 translate-y-8'}`}>
+          <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[1.5rem] flex items-center justify-center mb-6 shadow-inner mx-auto border border-red-100/50">
+            <Trash2 size={36} />
+          </div>
+          <h3 className="text-2xl font-black text-slate-800 text-center mb-2 tracking-tight">Hapus Peserta?</h3>
+          <p className="text-slate-500 text-center mb-8 text-sm leading-relaxed">
+            Anda yakin ingin menghapus data pendaftaran atas nama <strong className="text-slate-800">{deleteModal.name}</strong>? Tindakan ini akan menghapus data dari sistem secara permanen.
+          </p>
+          
+          <div className="flex gap-4">
+            <button 
+              onClick={() => setDeleteModal({ ...deleteModal, show: false })} 
+              className="flex-1 py-4 rounded-2xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+            >
+              Batal
+            </button>
+            <button 
+              onClick={executeDelete} 
+              className="flex-1 py-4 rounded-2xl font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95"
+            >
+              Ya, Hapus Data
             </button>
           </div>
         </div>
