@@ -90,6 +90,11 @@ export default function UserDashboard() {
   const handleSubmitEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) return showToast("Mohon unggah bukti transfer terlebih dahulu!", "error");
+    
+    // --- 🛡️ KATUP KEAMANAN: UKURAN FILE ---
+    if (file.size > 2 * 1024 * 1024) { // Batas maksimal 2 MB
+      return showToast("⚠️ Ukuran foto maksimal 2MB agar sistem tidak melambat!", "error");
+    }
 
     setIsSubmitting(true);
     try {
@@ -145,9 +150,9 @@ export default function UserDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-6 md:p-12 relative overflow-hidden">
-      {/* Ornamen Background */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-400/20 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
+      {/* Ornamen Background - Optimized for performance */}
+      <div className="absolute top-[-5%] left-[-5%] w-64 h-64 bg-blue-400/10 rounded-full blur-2xl pointer-events-none"></div>
+      <div className="absolute bottom-[-5%] right-[-2%] w-64 h-64 bg-indigo-400/10 rounded-full blur-2xl pointer-events-none"></div>
 
       <div className="max-w-5xl mx-auto relative z-10">
         
@@ -160,7 +165,7 @@ export default function UserDashboard() {
           
           {/* Bagian Kanan Header (Status + Logout) */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 bg-white/60 backdrop-blur-xl border border-white/80 px-4 py-2 rounded-2xl shadow-sm">
+            <div className="flex items-center gap-3 bg-white/90 backdrop-blur-md border border-white/80 px-4 py-2 rounded-2xl shadow-sm">
               <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
                 {currentUser?.user_metadata?.full_name?.charAt(0)?.toUpperCase() || "P"}
               </div>
@@ -182,7 +187,7 @@ export default function UserDashboard() {
             <button 
               onClick={handleLogout}
               title="Keluar dari Akun"
-              className="p-3 bg-white/60 backdrop-blur-xl border border-white/80 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-2xl shadow-sm transition-all flex items-center justify-center active:scale-95"
+              className="p-3 bg-white/90 backdrop-blur-md border border-white/80 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-2xl shadow-sm transition-all flex items-center justify-center active:scale-95"
             >
               <LogOut size={20} />
             </button>
@@ -195,7 +200,7 @@ export default function UserDashboard() {
           <div className="space-y-6">
             
             {!userEntry && (
-              <div className="bg-white/60 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-6">
+              <div className="bg-white/90 backdrop-blur-md border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-6">
                 <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                   <AlertCircle size={18} className="text-blue-500" />
                   Langkah Selanjutnya
@@ -251,12 +256,12 @@ export default function UserDashboard() {
 
           {/* KOLOM KANAN: PAPAN PENGUMUMAN */}
           <div className="lg:col-span-2">
-            <div className="bg-white/60 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-8 min-h-[400px]">
+            <div className="bg-white/90 backdrop-blur-md border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-8 min-h-[400px]">
               <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200/50">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                   <Megaphone size={22} className="text-blue-600" /> Papan Pengumuman Resmi
                 </h2>
-                <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 animate-pulse">
+                <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
                   <Bell size={12} /> Live
                 </span>
               </div>
@@ -304,7 +309,7 @@ export default function UserDashboard() {
 
       {/* TOAST NOTIFICATION */}
       <div className={`fixed top-8 right-8 z-[100] transition-all duration-500 transform ${toast.show ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0 pointer-events-none'}`}>
-        <div className="bg-white/80 backdrop-blur-2xl border border-white/60 shadow-2xl rounded-2xl p-4 flex items-center gap-3">
+        <div className="bg-white/95 backdrop-blur-md border border-white/60 shadow-2xl rounded-2xl p-4 flex items-center gap-3">
           {toast.type === 'success' ? (
             <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><CheckCircle2 size={18} /></div>
           ) : (
@@ -320,7 +325,7 @@ export default function UserDashboard() {
       {/* MODAL FORM REGISTRASI */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
-          <div className="bg-white/90 backdrop-blur-2xl w-full max-w-2xl rounded-3xl border border-white/60 p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+          <div className="bg-white/95 backdrop-blur-md w-full max-w-2xl rounded-3xl border border-white/60 p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black text-slate-800">Finalisasi Pendaftaran</h2>
               <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -414,8 +419,8 @@ export default function UserDashboard() {
                 </div>
               </div>
 
-              {/* BLOK DINAMIS TIM */}
-              <div className={`md:col-span-2 overflow-hidden transition-all duration-500 ease-in-out ${isTeamEvent ? "max-h-[500px] opacity-100 mt-2" : "max-h-0 opacity-0 m-0"}`}>
+              {/* BLOK DINAMIS TIM - Optimized Animation */}
+              <div className={`md:col-span-2 overflow-hidden transition-all duration-300 ease-out ${isTeamEvent ? "max-h-[300px] opacity-100 mt-2" : "max-h-0 opacity-0 m-0 border-none"}`}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-5 bg-blue-50/50 rounded-2xl border border-blue-100">
                   <div className="md:col-span-1">
                     <label className="text-[10px] font-bold text-blue-500 uppercase tracking-wider block mb-1">Nama Tim</label>

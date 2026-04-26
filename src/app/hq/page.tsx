@@ -320,12 +320,12 @@ export default function ModernHQDashboard() {
           }
         }
       `}</style>
-      {/* Ornamen Latar Belakang untuk Efek Kaca */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-400/20 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
+      {/* Ornamen Latar Belakang - Optimized */}
+      <div className="absolute top-[-5%] left-[-5%] w-64 h-64 bg-blue-400/10 rounded-full blur-2xl pointer-events-none"></div>
+      <div className="absolute bottom-[-5%] right-[-2%] w-64 h-64 bg-indigo-400/10 rounded-full blur-2xl pointer-events-none"></div>
       
       {/* ================= SIDEBAR (LIQUID GLASS) ================= */}
-      <aside className="w-64 bg-white/40 backdrop-blur-2xl backdrop-saturate-150 border-r border-white/60 flex flex-col justify-between p-6 relative z-10 shadow-[4px_0_24px_rgb(0,0,0,0.02)]">
+      <aside className="w-64 bg-white/90 backdrop-blur-md border-r border-white/60 flex flex-col justify-between p-6 relative z-10 shadow-[4px_0_24px_rgb(0,0,0,0.02)]">
         <div>
           <div className="flex items-center gap-3 mb-10 px-2">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-200">
@@ -412,7 +412,7 @@ export default function ModernHQDashboard() {
             <p className="text-sm text-slate-500">Visualisasi pergerakan data berdasarkan periode waktu.</p>
           </div>
           
-          <div className="bg-white/50 backdrop-blur-xl border border-white/60 p-1.5 rounded-xl flex flex-wrap gap-1 shadow-[0_4px_20px_rgb(0,0,0,0.03)] text-xs font-bold w-full sm:w-auto">
+          <div className="bg-white/90 backdrop-blur-md border border-white/60 p-1.5 rounded-xl flex flex-wrap gap-1 shadow-[0_4px_20px_rgb(0,0,0,0.03)] text-xs font-bold w-full sm:w-auto">
             <button 
               onClick={() => setTimeFilter('Today')} 
               className={`flex-1 sm:flex-none px-4 py-2 rounded-lg transition-all ${timeFilter === 'Today' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-white/80 hover:text-slate-700'}`}
@@ -441,7 +441,7 @@ export default function ModernHQDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white/50 backdrop-blur-xl backdrop-saturate-150 p-6 rounded-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] col-span-2">
+          <div className="bg-white/90 backdrop-blur-md backdrop-saturate-150 p-6 rounded-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] col-span-2">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h3 className="font-bold text-slate-800">Tren Pendaftaran Harian</h3>
@@ -462,7 +462,7 @@ export default function ModernHQDashboard() {
             </div>
           </div>
 
-          <div className="bg-white/50 backdrop-blur-xl backdrop-saturate-150 p-6 rounded-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <div className="bg-white/90 backdrop-blur-md backdrop-saturate-150 p-6 rounded-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
              <div className="flex justify-between items-center mb-6">
               <h3 className="font-bold text-slate-800">Peminat Kategori</h3>
               <MoreHorizontal size={20} className="text-slate-400" />
@@ -484,7 +484,7 @@ export default function ModernHQDashboard() {
 
         {/* 🎛️ KONTEN TAB: PESERTA (BUKU INDUK + LIVE SEARCH) */}
         {activeTab === "Peserta" && (
-          <div className="bg-white/50 backdrop-blur-xl backdrop-saturate-150 rounded-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-white/90 backdrop-blur-md backdrop-saturate-150 rounded-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="p-6 border-b border-slate-100">
               <div className="flex justify-between items-center mb-6">
                 <div>
@@ -517,7 +517,7 @@ export default function ModernHQDashboard() {
                   <select
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
-                    className="w-full pl-4 pr-10 py-2.5 bg-white/50 backdrop-blur-xl border border-white/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 appearance-none text-slate-700 font-medium shadow-sm"
+                    className="w-full pl-4 pr-10 py-2.5 bg-white/90 backdrop-blur-md border border-white/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 appearance-none text-slate-700 font-medium shadow-sm"
                   >
                     <option value="All">Semua Kategori</option>
                     <option value="Olimpiade MIPA">Olimpiade MIPA</option>
@@ -617,7 +617,7 @@ export default function ModernHQDashboard() {
                           </td>
                           <td className="py-4 px-6">
                             <span className="px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center w-max gap-1.5 border bg-green-500/10 text-green-700 border-green-500/20 shadow-sm">
-                              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                              <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
                               Active
                             </span>
                           </td>
@@ -657,13 +657,13 @@ export default function ModernHQDashboard() {
         )}
 
         {activeTab === "Verifikasi" && (
-          <div className="bg-white/50 backdrop-blur-xl backdrop-saturate-150 rounded-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-white/90 backdrop-blur-md backdrop-saturate-150 rounded-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <h3 className="font-bold text-slate-800 flex items-center gap-2">
                 <FileCheck size={20} className="text-blue-600" />
                 Antrean Verifikasi Pembayaran
               </h3>
-              <span className="text-xs font-bold px-3 py-1 bg-amber-100 text-amber-700 rounded-full animate-pulse">
+              <span className="text-xs font-bold px-3 py-1 bg-amber-100 text-amber-700 rounded-full shadow-sm border border-amber-200">
                 {realEntries.filter(e => e.payment_status === 'Pending').length} Menunggu
               </span>
             </div>
@@ -767,7 +767,7 @@ export default function ModernHQDashboard() {
 
         {/* 🎛️ KONTEN TAB: PENGUMUMAN (BROADCAST CENTER) */}
         {activeTab === "Pengumuman" && (
-          <div className="bg-white/50 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-8 md:p-12 min-h-[500px]">
+          <div className="bg-white/90 backdrop-blur-md border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-8 md:p-12 min-h-[500px]">
             <div className="max-w-3xl mx-auto">
               
               {/* Header Ruangan */}
