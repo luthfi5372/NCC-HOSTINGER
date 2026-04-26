@@ -41,27 +41,26 @@ export default function ModernHQDashboard() {
     router.push('/login'); // Lempar kembali ke halaman login
   };
 
-  // --- 🗑️ FUNGSI PEMUSNAH DATA PESERTA ---
+  // --- 🗑️ FUNGSI PEMUSNAH ABSOLUT ---
   const executeDelete = async () => {
-    if (!deleteModal.id) return;
+    if (!deleteModal.userId) return; // Pastikan KTP Digitalnya ada
     
     try {
-      // Hapus dari database Supabase
-      const { error } = await supabase
-        .from('competition_entries')
-        .delete()
-        .eq('id', deleteModal.id);
+      // Panggil peluncur rudal (RPC) yang baru kita buat di Supabase
+      const { error } = await supabase.rpc('delete_participant_completely', {
+        target_user_id: deleteModal.userId
+      });
 
       if (error) throw error;
 
       // Bersihkan dari layar Markas Besar tanpa perlu refresh halaman
       setRealEntries(realEntries.filter((e: any) => e.id !== deleteModal.id));
-      showToast(`Data peserta ${deleteModal.name} berhasil dimusnahkan.`, "success");
+      showToast(`Peserta ${deleteModal.name} berhasil dihapus permanen dari sistem!`, "success");
       
     } catch (error: any) {
       showToast(`Gagal menghapus: ${error.message}`, "error");
     } finally {
-      setDeleteModal({ show: false, id: null, name: "" }); // Tutup modal
+      setDeleteModal({ show: false, id: null, userId: null, name: "" }); // Tutup modal
     }
   };
 
@@ -69,8 +68,8 @@ export default function ModernHQDashboard() {
   const [toast, setToast] = useState({ show: false, message: "", type: "success" as "success" | "error" });
   const [confirmModal, setConfirmModal] = useState({ show: false, title: "", message: "", onConfirm: () => {} });
 
-  // --- MEMORI MODAL DELETE ---
-  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: "" });
+  // --- MEMORI MODAL DELETE (UPGRADED) ---
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, userId: null, name: "" });
 
   // Fungsi pemanggil Toast
   const showToast = (message: string, type: "success" | "error" = "success") => {
@@ -637,9 +636,9 @@ export default function ModernHQDashboard() {
                               <button 
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setDeleteModal({ show: true, id: entry.id, name: entry.full_name });
+                                  setDeleteModal({ show: true, id: entry.id, userId: entry.user_id, name: entry.full_name });
                                 }}
-                                title="Hapus Data Peserta"
+                                title="Hapus Data Peserta Permanen"
                                 className="text-red-500 hover:text-red-700 p-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
                               >
                                 <Trash2 size={18} />
@@ -748,8 +747,8 @@ export default function ModernHQDashboard() {
                             )}
                             
                             <button 
-                              onClick={() => setDeleteModal({ show: true, id: entry.id, name: entry.full_name })}
-                              title="Hapus Data Peserta"
+                              onClick={() => setDeleteModal({ show: true, id: entry.id, userId: entry.user_id, name: entry.full_name })}
+                              title="Hapus Data Peserta Permanen"
                               className="text-red-500 hover:text-red-700 p-1.5 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
                             >
                               <Trash2 size={16} />
@@ -1062,7 +1061,7 @@ export default function ModernHQDashboard() {
               onClick={executeDelete} 
               className="flex-1 py-4 rounded-2xl font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95"
             >
-              Ya, Hapus Data
+              Ya, Hapus Permanen
             </button>
           </div>
         </div>
