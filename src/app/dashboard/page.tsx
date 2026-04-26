@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase"; 
-import { Bell, Megaphone, User, Clock, CheckCircle2, AlertCircle, LogOut, IdCard, Printer } from "lucide-react";
+import { Bell, Megaphone, User, Clock, CheckCircle2, AlertCircle, LogOut, IdCard, Printer, Calendar, BookOpen, Image as ImageIcon, MessageCircle } from "lucide-react";
 
 export default function UserDashboard() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -261,6 +261,39 @@ export default function UserDashboard() {
                 </button>
               </div>
             )}
+
+            {/* --- WIDGET BARU: PUSAT UNDUHAN & HELPDESK --- */}
+            <div className="grid grid-cols-1 gap-4 mt-6">
+              <a href="#" target="_blank" className="flex items-center gap-4 p-4 bg-white/60 backdrop-blur-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 rounded-2xl transition-all group shadow-sm">
+                <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <BookOpen size={20} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">Buku Panduan</h4>
+                  <p className="text-[11px] font-medium text-slate-500 mt-0.5">Syarat & Ketentuan Lomba (PDF)</p>
+                </div>
+              </a>
+
+              <a href="#" target="_blank" className="flex items-center gap-4 p-4 bg-white/60 backdrop-blur-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 rounded-2xl transition-all group shadow-sm">
+                <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <ImageIcon size={20} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">Twibbon Resmi</h4>
+                  <p className="text-[11px] font-medium text-slate-500 mt-0.5">Unduh aset untuk kampanye IG</p>
+                </div>
+              </a>
+
+              <a href="https://wa.me/6281234567890" target="_blank" className="flex items-center gap-4 p-4 bg-white/60 backdrop-blur-xl border border-slate-200 hover:border-green-300 hover:bg-green-50/50 rounded-2xl transition-all group shadow-sm">
+                <div className="w-10 h-10 bg-green-100 text-green-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <MessageCircle size={20} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">Hubungi Panitia</h4>
+                  <p className="text-[11px] font-medium text-slate-500 mt-0.5">Bantuan kendala pendaftaran (WA)</p>
+                </div>
+              </a>
+            </div>
           </div>
 
           {/* KOLOM KANAN: PAPAN PENGUMUMAN */}
@@ -311,6 +344,41 @@ export default function UserDashboard() {
                   })}
                 </div>
               )}
+            </div>
+
+            {/* --- WIDGET BARU: JADWAL PENTING (TIMELINE) --- */}
+            <div className="bg-white/60 backdrop-blur-xl border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-8 mt-8">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200/50">
+                <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
+                  <Calendar size={20} />
+                </div>
+                <h2 className="text-lg font-bold text-slate-800">Jadwal Penting Lomba</h2>
+              </div>
+
+              <div className="relative border-l-2 border-indigo-100 ml-4 space-y-8 pb-4">
+                {/* Item Timeline 1 */}
+                <div className="relative pl-6">
+                  <div className="absolute w-4 h-4 bg-indigo-500 rounded-full border-4 border-white -left-[9px] top-1 shadow-sm"></div>
+                  <h3 className="font-bold text-slate-800 text-sm">Pendaftaran Gelombang 1</h3>
+                  <p className="text-xs font-bold text-indigo-500 mt-1">1 Mei - 30 Juni 2026</p>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">Pendaftaran dengan biaya *Early Bird* dibuka untuk seluruh cabang lomba.</p>
+                </div>
+
+                {/* Item Timeline 2 */}
+                <div className="relative pl-6">
+                  <div className="absolute w-4 h-4 bg-slate-300 rounded-full border-4 border-white -left-[9px] top-1"></div>
+                  <h3 className="font-bold text-slate-600 text-sm">Technical Meeting (Online)</h3>
+                  <p className="text-xs font-bold text-slate-400 mt-1">15 Juli 2026</p>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">Penjelasan teknis lomba secara virtual via Zoom Meeting.</p>
+                </div>
+
+                {/* Item Timeline 3 */}
+                <div className="relative pl-6">
+                  <div className="absolute w-4 h-4 bg-slate-300 rounded-full border-4 border-white -left-[9px] top-1"></div>
+                  <h3 className="font-bold text-slate-600 text-sm">Babak Penyisihan</h3>
+                  <p className="text-xs font-bold text-slate-400 mt-1">1 - 2 Agustus 2026</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
