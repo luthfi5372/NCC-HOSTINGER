@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import html2canvas from "html2canvas";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client"; 
 import { 
@@ -38,7 +39,35 @@ export default function ModernHQDashboard() {
   // --- 🚪 FUNGSI PINTU EVAKUASI ---
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login'); // Lempar kembali ke halaman login
+    router.push('/login');
+  };
+
+  // --- 📸 REFERENSI AREA FOTO ID CARD (ADMIN) ---
+  const idCardRef = useRef<HTMLDivElement>(null);
+  const [isDownloadingCard, setIsDownloadingCard] = useState(false);
+
+  // --- FUNGSI UNDUH ID CARD PNG (ADMIN HQ) ---
+  const handleDownloadCard = async () => {
+    if (!idCardRef.current) return;
+    setIsDownloadingCard(true);
+    try {
+      const canvas = await html2canvas(idCardRef.current, {
+        scale: 3,
+        backgroundColor: '#1e40af',
+        useCORS: true,
+        logging: false,
+      });
+      const image = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `ID_Card_NCC_${selectedIdCard?.full_name?.replace(/\s+/g, '_') || 'Peserta'}.png`;
+      link.click();
+      showToast('ID Card berhasil diunduh sebagai PNG!', 'success');
+    } catch (err) {
+      showToast('Gagal mengunduh ID Card.', 'error');
+    } finally {
+      setIsDownloadingCard(false);
+    }
   };
 
   // --- 🗑️ FUNGSI PEMUSNAH ABSOLUT ---
@@ -968,8 +997,8 @@ export default function ModernHQDashboard() {
             <div className="w-full max-w-sm bg-white/90 backdrop-blur-xl rounded-3xl border border-white/60 p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
                <button onClick={() => setSelectedIdCard(null)} className="absolute top-4 right-4 p-2 bg-black/5 hover:bg-black/10 rounded-full transition-colors z-10"><X size={16} className="text-slate-600"/></button>
                
-               {/* Kanvas ID Card */}
-               <div className="print-area bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl p-6 text-center shadow-inner relative overflow-hidden mt-4">
+               {/* Kanvas ID Card — area yang akan difoto kamera */}
+               <div ref={idCardRef} className="print-area bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl p-6 text-center shadow-inner relative overflow-hidden mt-4">
                   <div className="absolute top-[-20%] left-[-20%] w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
                   
                   <div className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mb-6">ID Card Peserta</div>
@@ -990,12 +1019,27 @@ export default function ModernHQDashboard() {
                   </div>
                </div>
                
-               <button 
-                 onClick={handlePrintCard}
-                 className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-200"
-               >
-                  <Printer size={18} /> Cetak Kartu
-               </button>
+               {/* Tombol Aksi — DI LUAR ref agar tidak ikut terfoto */}
+               <div className="flex gap-2 mt-4">
+                 <button 
+                   onClick={handleDownloadCard}
+                   disabled={isDownloadingCard}
+                   className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-200 active:scale-95 text-sm"
+                 >
+                   {isDownloadingCard ? (
+                     <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></div> Memproses...</>
+                   ) : (
+                     <><Download size={16} /> Unduh PNG</>
+                   )}
+                 </button>
+                 <button
+                   onClick={handlePrintCard}
+                   className="px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors"
+                   title="Cetak"
+                 >
+                   <Printer size={18} />
+                 </button>
+               </div>
             </div>
           </div>
         )}
