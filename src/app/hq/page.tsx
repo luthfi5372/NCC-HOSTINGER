@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import html2canvas from "html2canvas";
+import * as htmlToImage from 'html-to-image';
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client"; 
 import { 
@@ -46,32 +46,25 @@ export default function ModernHQDashboard() {
   const idCardRef = useRef<HTMLDivElement>(null);
   const [isDownloadingCard, setIsDownloadingCard] = useState(false);
 
-  // --- FUNGSI UNDUH ID CARD PNG (ADMIN HQ) ---
+  // --- FUNGSI UNDUH ID CARD PNG (html-to-image — RINGAN & ANTI-GAGAL) ---
   const handleDownloadCard = async () => {
     if (!idCardRef.current) {
       return showToast('Sistem belum siap, coba sebentar lagi.', 'error');
     }
     setIsDownloadingCard(true);
     try {
-      // Tunggu 500ms agar semua transisi CSS selesai sebelum difoto
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const canvas = await html2canvas(idCardRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#1e40af',
-        logging: false,
+      const dataUrl = await htmlToImage.toPng(idCardRef.current, {
+        quality: 1.0,
+        pixelRatio: 2,
       });
-      const image = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.href = image;
+      link.href = dataUrl;
       link.download = `ID_Card_NCC_${selectedIdCard?.full_name?.replace(/\s+/g, '_') || 'Peserta'}.png`;
       link.click();
       showToast('ID Card berhasil diunduh sebagai PNG!', 'success');
     } catch (err) {
-      console.error('Detail Error Kamera:', err);
-      showToast('Gagal mengunduh. Coba lagi dalam 5 detik.', 'error');
+      console.error('Detail Error:', err);
+      showToast('Gagal mengunduh. Coba lagi.', 'error');
     } finally {
       setIsDownloadingCard(false);
     }

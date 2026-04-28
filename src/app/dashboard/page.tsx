@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import html2canvas from "html2canvas";
+import * as htmlToImage from 'html-to-image';
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase"; 
 import { Bell, Megaphone, User, Clock, CheckCircle2, AlertCircle, LogOut, IdCard, Printer, Calendar, BookOpen, Image as ImageIcon, MessageCircle, Pin, X, MapPin, School } from "lucide-react";
@@ -27,32 +27,25 @@ export default function UserDashboard() {
   // --- 📸 REFERENSI AREA FOTO ID CARD ---
   const idCardRef = useRef<HTMLDivElement>(null);
 
-  // --- FUNGSI UNDUH ID CARD (MODE ANTI-GAGAL) ---
+  // --- FUNGSI UNDUH ID CARD (html-to-image — RINGAN & ANTI-GAGAL) ---
   const handleDownloadCard = async () => {
     if (!idCardRef.current) {
       return showToast('Sistem belum siap, coba sebentar lagi.', 'error');
     }
     setIsDownloading(true);
     try {
-      // Tunggu 500ms agar semua transisi CSS selesai sebelum difoto
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const canvas = await html2canvas(idCardRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
+      const dataUrl = await htmlToImage.toPng(idCardRef.current, {
+        quality: 1.0,
+        pixelRatio: 2,
       });
-      const image = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.href = image;
+      link.href = dataUrl;
       link.download = `ID_Card_NCC_${userEntry?.full_name?.replace(/\s+/g, '_') || 'Peserta'}.png`;
       link.click();
       showToast('ID Card berhasil diunduh sebagai PNG!', 'success');
     } catch (err) {
-      console.error('Detail Error Kamera:', err);
-      showToast('Gagal mengunduh. Coba lagi dalam 5 detik.', 'error');
+      console.error('Detail Error:', err);
+      showToast('Gagal mengunduh. Coba lagi.', 'error');
     } finally {
       setIsDownloading(false);
     }
