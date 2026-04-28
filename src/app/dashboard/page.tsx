@@ -658,41 +658,45 @@ export default function UserDashboard() {
           
           <div className="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-sm w-full relative print:shadow-none print:w-[350px]">
 
-            {/* ====== AREA YANG AKAN DIFOTO OLEH KAMERA (ref terpasang di sini) ====== */}
-            <div ref={idCardRef}>
-              {/* Bagian Atas Card — BERSIH DARI BLUR untuk html2canvas */}
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-800 p-8 text-center text-white">
-                <h2 className="font-black text-3xl tracking-tight">NCC 13th</h2>
-                <p className="text-blue-200 text-[10px] font-bold tracking-widest uppercase mt-1">Official Participant Card</p>
-              </div>
-
-              {/* Bagian Bawah Card */}
-              <div className="p-6 text-center bg-white relative">
-                {/* Avatar Inisial */}
-                <div className="w-20 h-20 bg-blue-50 rounded-full mx-auto -mt-16 border-4 border-white flex items-center justify-center text-3xl font-black text-blue-600 mb-3 shadow-lg relative z-20">
-                  {userEntry?.full_name?.charAt(0).toUpperCase() || "P"}
+            {/* ====== AREA FOTO — wrapper dengan padding agar border-radius tidak terpotong ====== */}
+            <div className="p-2">
+              <div 
+                ref={idCardRef} 
+                className="rounded-2xl overflow-hidden"
+                style={{ width: '320px', backgroundColor: '#ffffff' }}
+              >
+                {/* Header biru */}
+                <div className="bg-gradient-to-br from-blue-600 to-indigo-800 p-8 text-center text-white">
+                  <h2 className="font-black text-3xl tracking-tight">NCC 13th</h2>
+                  <p className="text-blue-200 text-[10px] font-bold tracking-widest uppercase mt-1">Official Participant Card</p>
                 </div>
 
-                <h3 className="font-black text-xl text-slate-800 uppercase mb-1">{userEntry?.full_name}</h3>
-                <div className="inline-block px-3 py-1 bg-blue-50 text-blue-600 font-bold text-xs rounded-full mb-6 border border-blue-100">
-                  {userEntry?.competition_type}
-                </div>
-
-                {/* Grid Data */}
-                <div className="grid grid-cols-2 gap-3 text-left bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100">
-                  <div>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">ID Tiket Resmi</p>
-                    <p className="text-sm font-black text-slate-700 font-mono">NCC-{userEntry?.id ? String(userEntry.id).substring(0,6).toUpperCase() : "XXXXXX"}</p>
+                {/* Body putih */}
+                <div className="p-6 pb-2 text-center bg-white">
+                  <div className="w-20 h-20 bg-blue-50 rounded-full mx-auto -mt-16 border-4 border-white flex items-center justify-center text-3xl font-black text-blue-600 mb-3 shadow-lg">
+                    {userEntry?.full_name?.charAt(0).toUpperCase() || "P"}
                   </div>
-                  <div>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Asal Instansi</p>
-                    <p className="text-sm font-bold text-slate-700 truncate" title={userEntry?.school_name}>{userEntry?.school_name}</p>
+
+                  <h3 className="font-black text-xl text-slate-800 uppercase mb-1">{userEntry?.full_name}</h3>
+                  <div className="inline-block px-3 py-1 bg-blue-50 text-blue-600 font-bold text-xs rounded-full mb-5 border border-blue-100">
+                    {userEntry?.competition_type}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-left bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100">
+                    <div>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">ID Tiket Resmi</p>
+                      <p className="text-sm font-black text-slate-700 font-mono">NCC-{userEntry?.id ? String(userEntry.id).substring(0,6).toUpperCase() : "XXXXXX"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Asal Instansi</p>
+                      <p className="text-sm font-bold text-slate-700 truncate" title={userEntry?.school_name}>{userEntry?.school_name}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Pita Dekorasi */}
-              <div className="h-2 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+                {/* Pita Dekorasi */}
+                <div className="h-2 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+              </div>
             </div>
             {/* ====== BATAS AREA FOTO ====== */}
 

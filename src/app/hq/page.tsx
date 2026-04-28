@@ -997,24 +997,32 @@ export default function ModernHQDashboard() {
             <div className="w-full max-w-sm bg-white/90 backdrop-blur-xl rounded-3xl border border-white/60 p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
                <button onClick={() => setSelectedIdCard(null)} className="absolute top-4 right-4 p-2 bg-black/5 hover:bg-black/10 rounded-full transition-colors z-10"><X size={16} className="text-slate-600"/></button>
                
-               {/* Kanvas ID Card — BERSIH DARI BLUR untuk html2canvas */}
-               <div ref={idCardRef} className="print-area bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl p-6 text-center shadow-inner relative overflow-hidden mt-4">
-                  <div className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mb-6">ID Card Peserta</div>
-                  
-                  <div className="w-20 h-20 bg-white/20 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl font-bold border border-white/40 shadow-lg text-white">
-                     {(selectedIdCard.full_name || "U").charAt(0)}
-                  </div>
-                  <h3 className="text-xl font-bold mb-1 text-white">{selectedIdCard.full_name}</h3>
-                  <p className="text-blue-200 text-xs mb-6 font-medium">{selectedIdCard.school_name || selectedIdCard.school}</p>
-                  
-                  <div className="bg-white/10 backdrop-blur-md rounded-xl py-3 border border-white/20 mb-3 shadow-sm">
-                     <span className="text-[10px] text-blue-200 block uppercase font-bold tracking-widest mb-0.5">Kategori</span>
-                     <span className="font-bold text-white text-sm">{selectedIdCard.competition_type || selectedIdCard.category}</span>
-                  </div>
-                  
-                  <div className="inline-block px-4 py-1.5 bg-black/20 rounded-full border border-white/10 text-xs text-white font-mono mt-2">
-                    ID: NCC-{selectedIdCard.id}
-                  </div>
+               {/* Area foto — wrapper dengan padding agar border-radius tidak terpotong */}
+               <div className="p-2">
+                 <div 
+                   ref={idCardRef} 
+                   className="print-area rounded-2xl overflow-hidden"
+                   style={{ width: '320px', backgroundColor: '#1e3a8a' }}
+                 >
+                   <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-6 pb-4 text-center relative">
+                     <div className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mb-6">ID Card Peserta</div>
+                   
+                     <div className="w-20 h-20 bg-white/20 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl font-bold border border-white/40 shadow-lg text-white">
+                       {(selectedIdCard.full_name || "U").charAt(0)}
+                     </div>
+                     <h3 className="text-xl font-bold mb-1 text-white">{selectedIdCard.full_name}</h3>
+                     <p className="text-blue-200 text-xs mb-6 font-medium">{selectedIdCard.school_name || selectedIdCard.school}</p>
+                   
+                     <div className="bg-white/10 rounded-xl py-3 border border-white/20 mb-3">
+                       <span className="text-[10px] text-blue-200 block uppercase font-bold tracking-widest mb-0.5">Kategori</span>
+                       <span className="font-bold text-white text-sm">{selectedIdCard.competition_type || selectedIdCard.category}</span>
+                     </div>
+                   
+                     <div className="inline-block px-4 py-1.5 bg-black/20 rounded-full border border-white/10 text-xs text-white font-mono mt-2 mb-2">
+                       ID: NCC-{selectedIdCard.id}
+                     </div>
+                   </div>
+                 </div>
                </div>
                
                {/* Tombol Aksi — DI LUAR ref agar tidak ikut terfoto */}
