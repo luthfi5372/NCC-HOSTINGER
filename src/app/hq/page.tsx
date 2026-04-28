@@ -52,7 +52,7 @@ export default function ModernHQDashboard() {
     setIsDownloadingCard(true);
     try {
       const canvas = await html2canvas(idCardRef.current, {
-        scale: 3,
+        scale: 2,
         backgroundColor: '#1e40af',
         useCORS: true,
         logging: false,
@@ -997,13 +997,11 @@ export default function ModernHQDashboard() {
             <div className="w-full max-w-sm bg-white/90 backdrop-blur-xl rounded-3xl border border-white/60 p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
                <button onClick={() => setSelectedIdCard(null)} className="absolute top-4 right-4 p-2 bg-black/5 hover:bg-black/10 rounded-full transition-colors z-10"><X size={16} className="text-slate-600"/></button>
                
-               {/* Kanvas ID Card — area yang akan difoto kamera */}
+               {/* Kanvas ID Card — BERSIH DARI BLUR untuk html2canvas */}
                <div ref={idCardRef} className="print-area bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl p-6 text-center shadow-inner relative overflow-hidden mt-4">
-                  <div className="absolute top-[-20%] left-[-20%] w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
-                  
                   <div className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mb-6">ID Card Peserta</div>
                   
-                  <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full mx-auto mb-4 flex items-center justify-center text-3xl font-bold border border-white/40 shadow-lg text-white">
+                  <div className="w-20 h-20 bg-white/20 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl font-bold border border-white/40 shadow-lg text-white">
                      {(selectedIdCard.full_name || "U").charAt(0)}
                   </div>
                   <h3 className="text-xl font-bold mb-1 text-white">{selectedIdCard.full_name}</h3>

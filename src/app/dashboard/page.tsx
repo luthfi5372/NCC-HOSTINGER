@@ -33,7 +33,7 @@ export default function UserDashboard() {
     setIsDownloading(true);
     try {
       const canvas = await html2canvas(idCardRef.current, {
-        scale: 3,
+        scale: 2,
         backgroundColor: '#ffffff',
         useCORS: true,
         logging: false,
@@ -654,20 +654,16 @@ export default function UserDashboard() {
       {/* 💳 MODAL EKSKLUSIF ID CARD PESERTA */}
       {/* ========================================================= */}
       {showIdCard && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm print:bg-white print:p-0">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 print:bg-white print:p-0">
           
           <div className="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-sm w-full relative print:shadow-none print:w-[350px]">
 
             {/* ====== AREA YANG AKAN DIFOTO OLEH KAMERA (ref terpasang di sini) ====== */}
             <div ref={idCardRef}>
-              {/* Bagian Atas Card */}
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-800 p-8 text-center text-white relative">
-                <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20 pointer-events-none">
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-white rounded-full blur-2xl"></div>
-                  <div className="absolute -bottom-10 -left-5 w-24 h-24 bg-white rounded-full blur-2xl"></div>
-                </div>
-                <h2 className="font-black text-3xl tracking-tight relative z-10">NCC 13th</h2>
-                <p className="text-blue-200 text-[10px] font-bold tracking-widest uppercase mt-1 relative z-10">Official Participant Card</p>
+              {/* Bagian Atas Card — BERSIH DARI BLUR untuk html2canvas */}
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-800 p-8 text-center text-white">
+                <h2 className="font-black text-3xl tracking-tight">NCC 13th</h2>
+                <p className="text-blue-200 text-[10px] font-bold tracking-widest uppercase mt-1">Official Participant Card</p>
               </div>
 
               {/* Bagian Bawah Card */}
