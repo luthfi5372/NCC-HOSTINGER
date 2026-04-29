@@ -11,48 +11,75 @@ import {
 } from "framer-motion";
 import { Calendar, MapPin, Trophy, Users, Clock, ArrowRight } from "lucide-react";
 
-const timeline = [
-  {
-    phase: "Pendaftaran Berkas",
-    date: "16 Juli — 25 Oktober 2026",
-    icon: Users,
-    description: "Gelombang I dibuka 16 Juli - 3 September. Gelombang II dibuka 1 - 25 Oktober untuk semua cabang lomba.",
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    border: "border-blue-100",
-  },
-  {
-    phase: "Seleksi & Ujian Awal",
-    date: "10 September — 2 November",
-    icon: Clock,
-    description: "Seleksi berkas administrasi, ujian CBT Olimpiade MIPA, dan pengiriman naskah tahap awal.",
-    color: "text-indigo-600",
-    bg: "bg-indigo-50",
-    border: "border-indigo-100",
-  },
-  {
-    phase: "Pengumpulan Karya Utama",
-    date: "12 September — 9 November",
-    icon: Trophy,
-    description: "Periode upload fullpaper LKTI Nasional dan pengiriman video performa MTQ orisinal.",
-    color: "text-purple-600",
-    bg: "bg-purple-50",
-    border: "border-purple-100",
-  },
-  {
-    phase: "Pengumuman Kelulusan",
-    date: "26 September — 16 November",
-    icon: Trophy,
-    description: "Pelepasan daftar pemenang resmi babak kualifikasi Gelombang I & II menuju podium juara.",
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-    border: "border-emerald-100",
-  },
-];
+const categoryTimelines = {
+  all: [
+    {
+      phase: "Pendaftaran Berkas",
+      date: "16 Juli — 25 Oktober 2026",
+      icon: Users,
+      description: "Gelombang I dibuka 16 Juli - 3 September. Gelombang II dibuka 1 - 25 Oktober untuk semua cabang lomba.",
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      border: "border-blue-100",
+    },
+    {
+      phase: "Seleksi & Ujian Awal",
+      date: "10 September — 2 November",
+      icon: Clock,
+      description: "Seleksi berkas administrasi, ujian CBT Olimpiade MIPA, dan pengiriman naskah tahap awal.",
+      color: "text-indigo-600",
+      bg: "bg-indigo-50",
+      border: "border-indigo-100",
+    },
+    {
+      phase: "Pengumpulan Karya Utama",
+      date: "12 September — 9 November",
+      icon: Trophy,
+      description: "Periode upload fullpaper LKTI Nasional dan pengiriman video performa MTQ orisinal.",
+      color: "text-purple-600",
+      bg: "bg-purple-50",
+      border: "border-purple-100",
+    },
+    {
+      phase: "Pengumuman Kelulusan",
+      date: "26 September — 16 November",
+      icon: Trophy,
+      description: "Pelepasan daftar pemenang resmi babak kualifikasi Gelombang I & II menuju podium juara.",
+      color: "text-emerald-600",
+      bg: "bg-emerald-50",
+      border: "border-emerald-100",
+    },
+  ],
+  lkti: [
+    { phase: "Gel I: Abstrak", date: "16 Juli — 3 Sep 2026", icon: Users, description: "Pengumpulan abstrak karya tulis ilmiah inovatif Gelombang I.", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
+    { phase: "Gel I: Fullpaper", date: "12 — 18 Sep 2026", icon: Clock, description: "Unggah naskah karya tulis lengkap bagi yang lolos seleksi abstrak.", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
+    { phase: "Gel II: Abstrak", date: "1 — 25 Oktober 2026", icon: Users, description: "Pengumpulan abstrak karya tulis ilmiah Gelombang II.", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
+    { phase: "Gel II: Fullpaper", date: "1 — 9 Nov 2026", icon: Clock, description: "Unggah naskah karya tulis lengkap jalur Gelombang II.", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
+  ],
+  olimpiade: [
+    { phase: "Gel I: Seleksi 1", date: "10 September 2026", icon: Users, description: "Penyaringan awal uji kompetensi Matematika & IPA.", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
+    { phase: "Gel I: Seleksi 2", date: "14 September 2026", icon: Clock, description: "Babak lanjutan pemecahan studi kasus MIPA komprehensif.", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
+    { phase: "Gel II: Simulasi", date: "29 Oktober 2026", icon: Users, description: "Uji coba akses portal Computer Based Test (CBT) Gelombang II.", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
+    { phase: "Gel II: Seleksi Utama", date: "2 November 2026", icon: Trophy, description: "Puncak pertarungan talenta matematika sains Gelombang II.", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
+  ],
+  speech: [
+    { phase: "Gel I: Naskah", date: "16 Juli — 3 Sep 2026", icon: Users, description: "Unggah materi naskah orasi bahasa Inggris Gelombang I.", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
+    { phase: "Gel I: Pengumuman", date: "14 September 2026", icon: Trophy, description: "Rilis daftar nama delegasi terbaik lolos kurasi naskah Gel I.", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
+    { phase: "Gel II: Naskah", date: "1 — 25 Okt 2026", icon: Users, description: "Pengumpulan materi naskah orasi bahasa Inggris Gelombang II.", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
+    { phase: "Gel II: Pengumuman", date: "14 November 2026", icon: Trophy, description: "Pelepasan daftar finalis Speech Contest resmi.", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
+  ],
+  mtq: [
+    { phase: "Gel I: Video Tilawah", date: "16 Juli — 3 Sep 2026", icon: Users, description: "Pengunggahan klip rekaman lantunan ayat Al-Qur'an Gelombang I.", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+    { phase: "Gel I: Pengumuman", date: "14 September 2026", icon: Trophy, description: "Pengumuman hasil kurasi qari/qariah berprestasi Gel I.", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+    { phase: "Gel II: Video Tilawah", date: "1 — 25 Okt 2026", icon: Users, description: "Pengumpulan klip rekaman lantunan ayat Al-Qur'an Gelombang II.", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+    { phase: "Gel II: Pengumuman", date: "14 November 2026", icon: Trophy, description: "Hasil akhir penyeleksian MTQ tingkat nasional.", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+  ]
+};
 
 export default function TimelineSection() {
   const containerRef = useRef<HTMLElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
+  const [activeCategory, setActiveCategory] = useState<"all" | "lkti" | "olimpiade" | "speech" | "mtq">("all");
   
   // Track scroll within this section
   const { scrollYProgress } = useScroll({
@@ -93,16 +120,41 @@ export default function TimelineSection() {
     }
   });
 
+  const currentTimeline = categoryTimelines[activeCategory];
+
   return (
     <section ref={containerRef} id="jadwal" className="relative z-10 min-h-screen w-full py-24 px-6 sm:px-10 bg-transparent overflow-hidden flex flex-col items-center justify-center">
       {/* Header Section */}
-      <div className="text-center mb-10 md:mb-16 max-w-2xl mx-auto shrink-0">
+      <div className="text-center mb-6 max-w-2xl mx-auto shrink-0">
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-slate-900">
           Jadwal <span className="text-indigo-600">Kompetisi</span>
         </h2>
         <p className="text-slate-500 text-sm md:text-base leading-relaxed">
           Ikuti setiap tahap perjalanan menuju panggung nasional melalui jalur yang terus bergerak.
         </p>
+      </div>
+
+      {/* Tab Switcher */}
+      <div className="flex flex-wrap items-center justify-center gap-2 mb-12 bg-slate-100/80 backdrop-blur-sm p-1.5 rounded-2xl border border-slate-200/50 max-w-xl mx-auto z-30 pointer-events-auto">
+        {(["all", "lkti", "olimpiade", "speech", "mtq"] as const).map((cat) => {
+          const labels = { all: "Umum", lkti: "LKTI", olimpiade: "MIPA", speech: "Speech", mtq: "MTQ" };
+          const activeStyles = {
+            all: "bg-blue-600 text-white shadow-md shadow-blue-100",
+            lkti: "bg-blue-600 text-white shadow-md shadow-blue-100",
+            olimpiade: "bg-amber-500 text-white shadow-md shadow-amber-100",
+            speech: "bg-purple-600 text-white shadow-md shadow-purple-100",
+            mtq: "bg-emerald-600 text-white shadow-md shadow-emerald-100",
+          };
+          return (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 ${activeCategory === cat ? activeStyles[cat] : "text-slate-600 hover:bg-white hover:text-slate-900"}`}
+            >
+              {labels[cat]}
+            </button>
+          );
+        })}
       </div>
 
       {/* DESKTOP TIMELINE (SVG MOTION PATH) */}
@@ -159,10 +211,10 @@ export default function TimelineSection() {
         </div>
 
         {/* Nodes */}
-        <TimelineNode index={0} top="9.09%" left="25%" align="left" progress={smoothProgress} trigger={0.15} />
-        <TimelineNode index={1} top="36.36%" left="75%" align="right" progress={smoothProgress} trigger={0.4} />
-        <TimelineNode index={2} top="63.63%" left="25%" align="left" progress={smoothProgress} trigger={0.7} />
-        <TimelineNode index={3} top="90.9%" left="75%" align="right" progress={smoothProgress} trigger={0.9} />
+        <TimelineNode index={0} top="9.09%" left="25%" align="left" progress={smoothProgress} trigger={0.15} activeCategory={activeCategory} />
+        <TimelineNode index={1} top="36.36%" left="75%" align="right" progress={smoothProgress} trigger={0.4} activeCategory={activeCategory} />
+        <TimelineNode index={2} top="63.63%" left="25%" align="left" progress={smoothProgress} trigger={0.7} activeCategory={activeCategory} />
+        <TimelineNode index={3} top="90.9%" left="75%" align="right" progress={smoothProgress} trigger={0.9} activeCategory={activeCategory} />
       </div>
 
       {/* MOBILE TIMELINE FALLBACK */}
@@ -174,8 +226,8 @@ export default function TimelineSection() {
         />
         
         <div className="space-y-12">
-          {timeline.map((item, i) => (
-            <MobileTimelineNode key={i} index={i} progress={smoothProgress} trigger={(i + 1) * 0.2} />
+          {currentTimeline.map((item, i) => (
+            <MobileTimelineNode key={`${activeCategory}-${i}`} index={i} progress={smoothProgress} trigger={(i + 1) * 0.2} activeCategory={activeCategory} />
           ))}
         </div>
       </div>
@@ -187,7 +239,7 @@ export default function TimelineSection() {
         viewport={{ once: true }}
         className="text-center mt-20"
       >
-        <button className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-base text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 hover:scale-105 active:scale-95">
+        <button className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-base text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 hover:scale-105 active:scale-95 z-30 pointer-events-auto">
           Daftar Sekarang
           <ArrowRight size={18} />
         </button>
@@ -207,10 +259,11 @@ interface TimelineNodeProps {
   align: "left" | "right";
   progress: MotionValue<number>;
   trigger: number;
+  activeCategory: keyof typeof categoryTimelines;
 }
 
-function TimelineNode({ index, top, left, align, progress, trigger }: TimelineNodeProps) {
-  const item = timeline[index];
+function TimelineNode({ index, top, left, align, progress, trigger, activeCategory }: TimelineNodeProps) {
+  const item = categoryTimelines[activeCategory][index];
   const Icon = item.icon;
   const [active, setActive] = useState(false);
   
@@ -253,10 +306,11 @@ interface MobileTimelineNodeProps {
   index: number;
   progress: MotionValue<number>;
   trigger: number;
+  activeCategory: keyof typeof categoryTimelines;
 }
 
-function MobileTimelineNode({ index, progress, trigger }: MobileTimelineNodeProps) {
-  const item = timeline[index];
+function MobileTimelineNode({ index, progress, trigger, activeCategory }: MobileTimelineNodeProps) {
+  const item = categoryTimelines[activeCategory][index];
   const Icon = item.icon;
   const [active, setActive] = useState(false);
   
