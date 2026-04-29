@@ -163,7 +163,7 @@ export default function UserDashboard() {
           .or(`target_audience.eq.All,target_audience.eq.${userStatus},target_user_ids.cs.{${user.id}}`)
           .order('created_at', { ascending: false });
 
-        setAnnouncements(announcementsData || []);
+        setAnnouncements((announcementsData || []).filter((item: any) => item.title !== 'SYS_PORTAL_SETTINGS'));
         
       } catch (error) {
         console.error("Gagal menarik data:", error);
