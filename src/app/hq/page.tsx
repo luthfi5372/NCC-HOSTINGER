@@ -1249,7 +1249,44 @@ export default function ModernHQDashboard() {
                 </div>
               </button>
             </div>
+            {/* 1.5 PENGATURAN GELOMBANG PENDAFTARAN */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-white/60">
+              <div className="flex items-center gap-3 mb-8 pb-4 border-b border-slate-100">
+                <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800">Gelombang Pendaftaran (Gelombang I & II)</h3>
+                  <p className="text-xs text-slate-500 font-medium">Buka atau tutup gelombang pendaftaran peserta sesuai timeline kompetisi.</p>
+                </div>
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {waves.map((wave) => (
+                  <div key={wave.id} className={`flex items-center justify-between p-6 rounded-2xl border-2 transition-all duration-300 ${wave.status === 'Aktif' ? 'border-blue-400 bg-blue-50/40 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
+                    <div>
+                      <h4 className="font-bold text-slate-800">{wave.name}</h4>
+                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">{wave.startDate} s/d {wave.endDate}</p>
+                      <p className={`text-[10px] font-bold tracking-widest uppercase mt-2 ${wave.status === 'Aktif' ? 'text-blue-600' : 'text-slate-400'}`}>
+                        {wave.status === 'Aktif' ? '● Sedang Berjalan' : '○ Ditutup'}
+                      </p>
+                    </div>
+                    
+                    <button 
+                      onClick={() => {
+                        toggleWaveStatus(wave.id);
+                        showToast(`${wave.name} ${wave.status === 'Aktif' ? 'Ditutup' : 'Diaktifkan'}`, wave.status === 'Aktif' ? 'error' : 'success');
+                      }}
+                      className={`relative w-16 h-8 rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${wave.status === 'Aktif' ? 'bg-blue-600' : 'bg-slate-300'}`}
+                    >
+                      <div className={`absolute top-1 left-1 bg-white w-6 h-6 rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${wave.status === 'Aktif' ? 'translate-x-8' : 'translate-x-0'}`}>
+                        {wave.status === 'Aktif' ? <FileCheck size={12} className="text-blue-600" /> : <X size={12} className="text-slate-400" />}
+                      </div>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
             {/* 2. KAWALAN PENGUMPULAN FAIL PER KATEGORI */}
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-white/60">
               <div className="flex items-center gap-3 mb-8 pb-4 border-b border-slate-100">
