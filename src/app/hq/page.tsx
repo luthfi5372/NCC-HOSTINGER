@@ -1291,20 +1291,20 @@ export default function ModernHQDashboard() {
                 ))}
               </div>
             </div>
-            {/* 2. KAWALAN PENGUMPULAN FAIL PER KATEGORI */}
+            {/* 2. KAWALAN PENGUMPULAN FAIL PER KATEGORI - GELOMBANG I */}
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-white/60">
               <div className="flex items-center gap-3 mb-8 pb-4 border-b border-slate-100">
                 <div className="p-2.5 bg-indigo-100 text-indigo-600 rounded-xl">
                   <FolderOpen size={20} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-800">Akses Pengumpulan Fail Karya</h3>
-                  <p className="text-xs text-slate-500 font-medium">Buka atau tutup portal penghantaran karya untuk setiap bidang lomba.</p>
+                  <h3 className="text-xl font-black text-slate-800">Akses Pengumpulan Fail Karya (Gelombang I)</h3>
+                  <p className="text-xs text-slate-500 font-medium">Buka atau tutup portal pengumpulan karya Gelombang I.</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {submissionStatus.map((category) => (
+                {submissionStatus.filter(c => c.id.endsWith('_g1')).map((category) => (
                   <div key={category.id} className={`flex items-center justify-between p-5 rounded-2xl border-2 transition-all duration-300 ${category.isOpen ? 'border-indigo-400 bg-indigo-50/40 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
                     <div>
                       <h4 className="font-bold text-slate-800">{category.name}</h4>
@@ -1322,6 +1322,44 @@ export default function ModernHQDashboard() {
                     >
                       <div className={`absolute top-0.5 left-0.5 bg-white w-6 h-6 rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${category.isOpen ? 'translate-x-7' : 'translate-x-0'}`}>
                         {category.isOpen ? <FileCheck size={10} className="text-indigo-600" /> : <X size={10} className="text-slate-400" />}
+                      </div>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 2.5 KAWALAN PENGUMPULAN FAIL PER KATEGORI - GELOMBANG II */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-white/60">
+              <div className="flex items-center gap-3 mb-8 pb-4 border-b border-slate-100">
+                <div className="p-2.5 bg-violet-100 text-violet-600 rounded-xl">
+                  <FolderOpen size={20} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800">Akses Pengumpulan Fail Karya (Gelombang II)</h3>
+                  <p className="text-xs text-slate-500 font-medium">Buka atau tutup portal pengumpulan karya Gelombang II.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {submissionStatus.filter(c => c.id.endsWith('_g2')).map((category) => (
+                  <div key={category.id} className={`flex items-center justify-between p-5 rounded-2xl border-2 transition-all duration-300 ${category.isOpen ? 'border-violet-400 bg-violet-50/40 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
+                    <div>
+                      <h4 className="font-bold text-slate-800">{category.name}</h4>
+                      <p className={`text-[10px] font-bold tracking-widest uppercase mt-1 ${category.isOpen ? 'text-violet-600' : 'text-slate-400'}`}>
+                        {category.isOpen ? '● Portal Terbuka' : '○ Portal Ditutup'}
+                      </p>
+                    </div>
+                    
+                    <button 
+                      onClick={() => {
+                        toggleSubmission(category.id);
+                        showToast(`${category.name} ${!category.isOpen ? 'Portal Dibuka' : 'Portal Ditutup'}`, !category.isOpen ? 'success' : 'error');
+                      }}
+                      className={`relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${category.isOpen ? 'bg-violet-500' : 'bg-slate-300'}`}
+                    >
+                      <div className={`absolute top-0.5 left-0.5 bg-white w-6 h-6 rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${category.isOpen ? 'translate-x-7' : 'translate-x-0'}`}>
+                        {category.isOpen ? <FileCheck size={10} className="text-violet-600" /> : <X size={10} className="text-slate-400" />}
                       </div>
                     </button>
                   </div>
