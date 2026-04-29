@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
   Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight,
-  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target
+  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, FileText
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -34,6 +34,50 @@ export default function ModernHQDashboard() {
   const [broadcastTarget, setBroadcastTarget] = useState("All");
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
+
+  // --- MEMORI KENDALI PORTAL & GELOMBANG ---
+  const [isPortalOpen, setIsPortalOpen] = useState(true);
+  // --- MEMORI KAWALAN KEGIATAN & PORTAL ---
+  const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
+  
+  const [submissionStatus, setSubmissionStatus] = useState([
+    { id: 'mipa', name: 'Olimpiade MIPA', isOpen: false },
+    { id: 'speech', name: 'Speech Contest', isOpen: false },
+    { id: 'lkti', name: 'LKTI Nasional', isOpen: true },
+    { id: 'mtq', name: 'MTQ', isOpen: false },
+  ]);
+
+  const toggleSubmission = (id: string) => {
+    setSubmissionStatus(prev => prev.map(item => 
+      item.id === id ? { ...item, isOpen: !item.isOpen } : item
+    ));
+  };
+
+  const [phaseStatus, setPhaseStatus] = useState([
+    { id: 'tahap1', name: 'Tahap 1: Penyisihan', isOpen: true },
+    { id: 'tahap2', name: 'Tahap 2: Semi Final', isOpen: false },
+    { id: 'tahap3', name: 'Tahap 3: Grand Final', isOpen: false },
+  ]);
+
+  const togglePhase = (id: string) => {
+    setPhaseStatus(prev => prev.map(item => 
+      item.id === id ? { ...item, isOpen: !item.isOpen } : item
+    ));
+  };
+
+  const [waves, setWaves] = useState([
+    { id: 1, name: "Gelombang 1 (Early Bird)", status: "Aktif", startDate: "2026-07-16", endDate: "2026-09-03" },
+    { id: 2, name: "Gelombang 2 (Regular)", status: "Segera", startDate: "2026-10-01", endDate: "2026-10-25" },
+  ]);
+
+  const toggleWaveStatus = (id: number) => {
+    setWaves(prev => prev.map(w => 
+      w.id === id 
+        ? { ...w, status: w.status === 'Aktif' ? 'Tutup' : 'Aktif' } 
+        : w
+    ));
+  };
+
   const supabase = createClient();
 
   // --- 🚪 FUNGSI PINTU EVAKUASI ---
@@ -356,41 +400,55 @@ export default function ModernHQDashboard() {
       <div className="absolute top-[-5%] left-[-5%] w-64 h-64 bg-blue-400/10 rounded-full blur-2xl pointer-events-none"></div>
       <div className="absolute bottom-[-5%] right-[-2%] w-64 h-64 bg-indigo-400/10 rounded-full blur-2xl pointer-events-none"></div>
       
-      {/* ================= SIDEBAR (LIQUID GLASS) ================= */}
-      <aside className="w-64 bg-white/90 backdrop-blur-md border-r border-white/60 flex flex-col justify-between p-6 relative z-10 shadow-[4px_0_24px_rgb(0,0,0,0.02)]">
-        <div>
-          <div className="flex items-center gap-3 mb-10 px-2">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-200">
-              🏆
+      {/* ========================================================= */}
+      {/* 🌟 SIDEBAR NAVIGASI (LIQUID GLASS) */}
+      {/* ========================================================= */}
+      <aside className="w-72 bg-white/70 backdrop-blur-2xl border-r border-white/60 flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-500">
+        <div className="p-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+              <ShieldCheck size={22} className="text-white" />
             </div>
-            <span className="font-bold text-xl tracking-tight">NCC HQ.</span>
-          </div>
-
-          <nav className="space-y-2">
-            <NavItem icon={<LayoutDashboard size={20} />} text="Dashboard" active={activeTab === "Dashboard"} onClick={() => setActiveTab("Dashboard")} />
-            <NavItem icon={<Users size={20} />} text="Peserta" active={activeTab === "Peserta"} onClick={() => setActiveTab("Peserta")} />
-            <NavItem icon={<FileCheck size={20} />} text="Verifikasi" badge={realEntries.filter(e => e.payment_status === 'Pending').length.toString()} active={activeTab === "Verifikasi"} onClick={() => setActiveTab("Verifikasi")} />
-            <NavItem icon={<Megaphone size={20} />} text="Pengumuman" active={activeTab === "Pengumuman"} onClick={() => setActiveTab("Pengumuman")} />
-            <NavItem icon={<Settings size={20} />} text="Pengaturan" active={activeTab === "Pengaturan"} onClick={() => setActiveTab("Pengaturan")} />
-          </nav>
-
-          {/* Tombol Logout Admin */}
-          <div className="mt-6">
-            <button 
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all font-bold text-sm border border-transparent hover:border-red-100"
-            >
-              <LogOut size={20} /> Keluar Sesi
-            </button>
+            <div>
+              <h1 className="font-black text-xl text-slate-800 tracking-tight">NCC HQ.</h1>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Command Center</p>
+            </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-xl shadow-blue-200/50 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-3 opacity-20"><Sparkles size={40}/></div>
-          <h4 className="font-bold mb-1 relative z-10">Fase Kompetisi</h4>
-          <p className="text-blue-100 text-xs mb-4 relative z-10">Pendaftaran Gelombang 1 berlangsung.</p>
-          <button className="w-full bg-white text-blue-700 text-sm font-bold py-2 rounded-xl hover:bg-blue-50 transition-colors relative z-10">
-            Tutup Pendaftaran
+        <nav className="flex-1 px-4 space-y-2 mt-4">
+          {[
+            { id: "Dashboard", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
+            { id: "Peserta", icon: <Users size={18} />, label: "Buku Peserta", count: realEntries.filter((e: any) => e.payment_status === 'Verified' || e.payment_status === 'success').length },
+            { id: "Verifikasi", icon: <CheckCircle size={18} />, label: "Verifikasi Berkas", count: realEntries.filter((e: any) => e.payment_status === 'Pending').length },
+            { id: "Pengumuman", icon: <Megaphone size={18} />, label: "Siaran Info" },
+            { id: "Kegiatan", icon: <CalendarDays size={18} />, label: "Kegiatan" },
+            { id: "Pengaturan", icon: <Settings size={18} />, label: "Pengaturan" }
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 font-bold text-sm ${
+                activeTab === item.id 
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-200 scale-[1.02]" 
+                  : "text-slate-500 hover:bg-white hover:text-blue-600 hover:shadow-sm"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {item.icon} {item.label}
+              </div>
+              {item.count !== undefined && item.count > 0 && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === item.id ? "bg-white/20 text-white" : "bg-red-100 text-red-600 animate-pulse"}`}>
+                  {item.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-6 mt-auto">
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-red-50/50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-2xl transition-all font-bold text-sm">
+            <LogOut size={18} /> Keluar Sesi
           </button>
         </div>
       </aside>
@@ -404,6 +462,7 @@ export default function ModernHQDashboard() {
               {activeTab === "Dashboard" && "Pantau pergerakan data pendaftaran NCC 13th."}
               {activeTab === "Peserta" && "Manajemen seluruh data peserta kompetisi."}
               {activeTab === "Verifikasi" && "Pusat verifikasi pembayaran dan dokumen."}
+              {activeTab === "Kegiatan" && "Kawal gerbang pendaftaran dan fail karya."}
               {activeTab === "Pengaturan" && "Konfigurasi sistem Markas Besar."}
             </p>
           </div>
@@ -942,14 +1001,332 @@ export default function ModernHQDashboard() {
           </div>
         )}
 
-        {/* 🎛️ KONTEN TAB: PENGATURAN */}
+        {/* ========================================================= */}
+        {/* 🌟 TAB PENGATURAN — PUSAT KENDALI PORTAL & GELOMBANG */}
+        {/* ========================================================= */}
         {activeTab === "Pengaturan" && (
-          <div className="bg-white/50 backdrop-blur-xl backdrop-saturate-150 p-12 rounded-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center flex flex-col items-center justify-center min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Settings size={64} className="text-slate-200 mb-4" />
-            <h2 className="text-xl font-bold text-slate-800">Konfigurasi Sistem</h2>
-            <p className="text-slate-500 mt-2">Atur periode pendaftaran, kategori lomba, dan akses admin.</p>
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            
+            {/* 1. SAKLAR UTAMA PORTAL */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-white/60">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${
+                    isPortalOpen 
+                      ? 'bg-emerald-100 text-emerald-600 shadow-lg shadow-emerald-100' 
+                      : 'bg-rose-100 text-rose-600 shadow-lg shadow-rose-100'
+                  }`}>
+                    <Power size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800">Gerbang Pendaftaran</h3>
+                    <p className="text-sm font-medium text-slate-500 mt-1">
+                      Status saat ini:{" "}
+                      <strong className={`${
+                        isPortalOpen ? 'text-emerald-500' : 'text-rose-500'
+                      }`}>
+                        {isPortalOpen ? '✔ TERBUKA UNTUK PUBLIK' : '✖ DITUTUP SEMENTARA'}
+                      </strong>
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Toggle Switch Modern */}
+                <button 
+                  onClick={() => {
+                    setIsPortalOpen(!isPortalOpen);
+                    showToast(
+                      isPortalOpen ? 'Portal pendaftaran DITUTUP.' : 'Portal pendaftaran DIBUKA kembali!', 
+                      isPortalOpen ? 'error' : 'success'
+                    );
+                  }}
+                  className={`relative w-20 h-10 rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${
+                    isPortalOpen ? 'bg-emerald-500' : 'bg-slate-300'
+                  }`}
+                >
+                  <div className={`absolute top-1 left-1 bg-white w-8 h-8 rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${
+                    isPortalOpen ? 'translate-x-10' : 'translate-x-0'
+                  }`}>
+                    {isPortalOpen 
+                      ? <CheckCircle2 size={16} className="text-emerald-500" /> 
+                      : <XCircle size={16} className="text-slate-400" />
+                    }
+                  </div>
+                </button>
+              </div>
+
+              {/* Peringatan saat ditutup */}
+              {!isPortalOpen && (
+                <div className="mt-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
+                  <AlertCircle size={18} className="text-rose-500 mt-0.5 shrink-0" />
+                  <p className="text-sm text-rose-700">
+                    <strong>Perhatian:</strong> Peserta baru tidak dapat mendaftar saat portal ditutup. 
+                    Peserta yang sudah mendaftar tetap bisa login dan melihat status mereka.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* 2. MANAJEMEN GELOMBANG */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-white/60">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div>
+                  <h3 className="text-xl font-black text-slate-800">Manajemen Gelombang</h3>
+                  <p className="text-sm text-slate-500 mt-1">Atur jadwal pendaftaran per gelombang.</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    const newId = waves.length + 1;
+                    setWaves([...waves, {
+                      id: newId,
+                      name: `Gelombang ${newId}`,
+                      status: 'Tutup',
+                      startDate: '',
+                      endDate: '',
+                    }]);
+                    showToast(`Gelombang ${newId} berhasil ditambahkan.`, 'success');
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2 shrink-0"
+                >
+                  + Tambah Gelombang
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {waves.map((wave) => (
+                  <div 
+                    key={wave.id} 
+                    className={`border-2 rounded-2xl p-6 transition-all duration-300 ${
+                      wave.status === 'Aktif' 
+                        ? 'border-blue-400 bg-blue-50/40 shadow-md shadow-blue-50' 
+                        : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <h4 className="font-bold text-lg text-slate-800">{wave.name}</h4>
+                      <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${
+                        wave.status === 'Aktif' 
+                          ? 'bg-emerald-100 text-emerald-600' 
+                          : 'bg-slate-200 text-slate-500'
+                      }`}>
+                        {wave.status === 'Aktif' ? '● Live' : '○ Tutup'}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tanggal Mulai</label>
+                        <input 
+                          type="date" 
+                          value={wave.startDate}
+                          onChange={(e) => setWaves(prev => prev.map(w => w.id === wave.id ? {...w, startDate: e.target.value} : w))}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tanggal Selesai</label>
+                        <input 
+                          type="date" 
+                          value={wave.endDate}
+                          onChange={(e) => setWaves(prev => prev.map(w => w.id === wave.id ? {...w, endDate: e.target.value} : w))}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-5 pt-4 border-t border-slate-100 flex gap-2">
+                      <button 
+                        onClick={() => toggleWaveStatus(wave.id)}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
+                          wave.status === 'Aktif'
+                            ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200'
+                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
+                        }`}
+                      >
+                        {wave.status === 'Aktif' ? <><XCircle size={13}/> Nonaktifkan</> : <><CheckCircle2 size={13}/> Aktifkan</>}
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setWaves(prev => prev.filter(w => w.id !== wave.id));
+                          showToast(`${wave.name} dihapus.`, 'error');
+                        }}
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all active:scale-95"
+                      >
+                        <Trash2 size={13}/>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. AKSI CEPAT ADMIN */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/60 shadow-sm">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                    <Shield size={18} className="text-blue-600" />
+                  </div>
+                  <h4 className="font-bold text-slate-800">Keamanan</h4>
+                </div>
+                <p className="text-xs text-slate-500 mb-4">Ubah kata sandi akun admin HQ.</p>
+                <button className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-600 transition-colors">Ubah Password</button>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/60 shadow-sm">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                    <Download size={18} className="text-emerald-600" />
+                  </div>
+                  <h4 className="font-bold text-slate-800">Ekspor Data</h4>
+                </div>
+                <p className="text-xs text-slate-500 mb-4">Unduh seluruh data peserta sebagai CSV.</p>
+                <button 
+                  onClick={() => {
+                    const csv = realEntries.map((e: any) => 
+                      `${e.full_name},${e.email},${e.competition_type},${e.school_name},${e.status}`
+                    ).join('\n');
+                    const blob = new Blob([`Nama,Email,Lomba,Sekolah,Status\n${csv}`], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'Data_Peserta_NCC13.csv';
+                    a.click();
+                    showToast('Data berhasil diekspor sebagai CSV!', 'success');
+                  }}
+                  className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 rounded-xl text-xs font-bold text-emerald-600 transition-colors"
+                >
+                  Unduh CSV
+                </button>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/60 shadow-sm">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+                    <Clock size={18} className="text-amber-600" />
+                  </div>
+                  <h4 className="font-bold text-slate-800">Zona Waktu</h4>
+                </div>
+                <p className="text-xs text-slate-500 mb-4">Sistem menggunakan zona waktu WIB (GMT+7).</p>
+                <div className="w-full py-2.5 bg-amber-50 rounded-xl text-xs font-bold text-amber-600 text-center">WIB (UTC+7)</div>
+              </div>
+            </div>
+            
           </div>
         )}
+        {/* ========================================================= */}
+        {/* 🌟 TAB KEGIATAN (PUSAT KAWALAN PENDAFTARAN & FAIL) */}
+        {/* ========================================================= */}
+        {activeTab === "Kegiatan" && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            
+            {/* 1. SUIS UTAMA PENDAFTARAN */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-white/60 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-bl-full -z-10"></div>
+              
+              <div className="flex items-center gap-5">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border shadow-lg ${isRegistrationOpen ? 'bg-emerald-100 text-emerald-600 border-emerald-200 shadow-emerald-100' : 'bg-rose-100 text-rose-600 border-rose-200 shadow-rose-100'}`}>
+                  <Power size={28} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-slate-800 tracking-tight">Gerbang Pendaftaran Utama</h3>
+                  <p className="text-sm font-medium text-slate-500 mt-1">
+                    Status semasa: <strong className={isRegistrationOpen ? 'text-emerald-500' : 'text-rose-500'}>
+                      {isRegistrationOpen ? 'TERBUKA KEPADA UMUM' : 'DITUTUP SEMENTARA'}
+                    </strong>
+                  </p>
+                </div>
+              </div>
+              
+              {/* Suis (Toggle) Gaya Moden */}
+              <button 
+                onClick={() => {
+                  setIsRegistrationOpen(!isRegistrationOpen);
+                  showToast(isRegistrationOpen ? 'Pendaftaran utama ditutup.' : 'Pendaftaran utama dibuka!', isRegistrationOpen ? 'error' : 'success');
+                }}
+                className={`relative w-20 h-10 rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${isRegistrationOpen ? 'bg-emerald-500' : 'bg-slate-300'}`}
+              >
+                <div className={`absolute top-1 left-1 bg-white w-8 h-8 rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${isRegistrationOpen ? 'translate-x-10' : 'translate-x-0'}`}>
+                  {isRegistrationOpen ? <FileCheck size={14} className="text-emerald-500" /> : <X size={14} className="text-slate-400" />}
+                </div>
+              </button>
+            </div>
+
+            {/* 2. KAWALAN PENGUMPULAN FAIL PER KATEGORI */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-white/60">
+              <div className="flex items-center gap-3 mb-8 pb-4 border-b border-slate-100">
+                <div className="p-2.5 bg-indigo-100 text-indigo-600 rounded-xl">
+                  <FolderOpen size={20} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800">Akses Pengumpulan Fail Karya</h3>
+                  <p className="text-xs text-slate-500 font-medium">Buka atau tutup portal penghantaran karya untuk setiap bidang lomba.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {submissionStatus.map((category) => (
+                  <div key={category.id} className={`flex items-center justify-between p-5 rounded-2xl border-2 transition-all duration-300 ${category.isOpen ? 'border-indigo-400 bg-indigo-50/40 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
+                    <div>
+                      <h4 className="font-bold text-slate-800">{category.name}</h4>
+                      <p className={`text-[10px] font-bold tracking-widest uppercase mt-1 ${category.isOpen ? 'text-indigo-600' : 'text-slate-400'}`}>
+                        {category.isOpen ? '● Portal Terbuka' : '○ Portal Ditutup'}
+                      </p>
+                    </div>
+                    
+                    <button 
+                      onClick={() => {
+                        toggleSubmission(category.id);
+                        showToast(`${category.name} ${!category.isOpen ? 'Portal Dibuka' : 'Portal Ditutup'}`, !category.isOpen ? 'success' : 'error');
+                      }}
+                      className={`relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${category.isOpen ? 'bg-indigo-500' : 'bg-slate-300'}`}
+                    >
+                      <div className={`absolute top-0.5 left-0.5 bg-white w-6 h-6 rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${category.isOpen ? 'translate-x-7' : 'translate-x-0'}`}>
+                        {category.isOpen ? <FileCheck size={10} className="text-indigo-600" /> : <X size={10} className="text-slate-400" />}
+                      </div>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. KAWALAN PENGUMPULAN FAIL PER TAHAP */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-white/60">
+              <div className="flex items-center gap-3 mb-8 pb-4 border-b border-slate-100">
+                <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800">Akses Pengumpulan Fail Per Tahap</h3>
+                  <p className="text-xs text-slate-500 font-medium">Atur pembukaan akses upload karya berdasarkan urutan tahap kompetisi (Tahap 1 - Tahap 3).</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {phaseStatus.map((phase) => (
+                  <div key={phase.id} className={`flex flex-col justify-between p-6 rounded-2xl border-2 transition-all duration-300 ${phase.isOpen ? 'border-blue-400 bg-blue-50/40 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
+                    <div className="mb-4">
+                      <h4 className="font-bold text-slate-800">{phase.name}</h4>
+                      <p className={`text-[10px] font-bold tracking-widest uppercase mt-1 ${phase.isOpen ? 'text-blue-600' : 'text-slate-400'}`}>
+                        {phase.isOpen ? '● Tahap Aktif' : '○ Tahap Terkunci'}
+                      </p>
+                    </div>
+                    
+                    <button 
+                      onClick={() => {
+                        togglePhase(phase.id);
+                        showToast(`${phase.name} ${!phase.isOpen ? 'Akses Dibuka' : 'Akses Ditutup'}`, !phase.isOpen ? 'success' : 'error');
+                      }}
+                      className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all active:scale-95 flex items-center justify-center gap-2 ${phase.isOpen ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'}`}
+                    >
+                      {phase.isOpen ? <><X size={14}/> Tutup Tahap</> : <><FileCheck size={14}/> Buka Tahap</>}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+          </div>
+        )}
+
         {/* ================= PANEL 1: SLIDE-OUT DETAIL PESERTA ================= */}
         {selectedParticipant && (
           <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/20 backdrop-blur-sm transition-all duration-300">

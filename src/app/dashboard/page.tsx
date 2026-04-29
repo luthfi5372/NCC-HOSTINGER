@@ -658,44 +658,44 @@ export default function UserDashboard() {
           
           <div className="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-sm w-full relative print:shadow-none print:w-[350px]">
 
-            {/* ====== AREA FOTO — wrapper dengan padding agar border-radius tidak terpotong ====== */}
-            <div className="p-2">
+            {/* ====== AREA FOTO — dimensi tetap, anti text-wrap ====== */}
+            <div className="p-3 flex justify-center">
               <div 
                 ref={idCardRef} 
-                className="rounded-2xl overflow-hidden"
-                style={{ width: '320px', backgroundColor: '#ffffff' }}
+                className="rounded-2xl overflow-hidden flex flex-col"
+                style={{ width: '320px', height: '460px', backgroundColor: '#1e3a8a' }}
               >
                 {/* Header biru */}
-                <div className="bg-gradient-to-br from-blue-600 to-indigo-800 p-8 text-center text-white">
-                  <h2 className="font-black text-3xl tracking-tight">NCC 13th</h2>
-                  <p className="text-blue-200 text-[10px] font-bold tracking-widest uppercase mt-1">Official Participant Card</p>
+                <div className="bg-gradient-to-br from-blue-600 to-indigo-800 p-7 text-center text-white">
+                  <h2 className="font-black text-2xl tracking-tight whitespace-nowrap">NCC 13th</h2>
+                  <p className="text-blue-200 text-[10px] font-bold tracking-widest uppercase mt-1 whitespace-nowrap">Official Participant Card</p>
                 </div>
 
                 {/* Body putih */}
-                <div className="p-6 pb-2 text-center bg-white">
-                  <div className="w-20 h-20 bg-blue-50 rounded-full mx-auto -mt-16 border-4 border-white flex items-center justify-center text-3xl font-black text-blue-600 mb-3 shadow-lg">
+                <div className="flex-1 p-5 text-center bg-white flex flex-col items-center">
+                  <div className="w-16 h-16 bg-blue-50 rounded-full mx-auto -mt-12 border-4 border-white flex items-center justify-center text-2xl font-black text-blue-600 mb-2 shadow-lg shrink-0">
                     {userEntry?.full_name?.charAt(0).toUpperCase() || "P"}
                   </div>
 
-                  <h3 className="font-black text-xl text-slate-800 uppercase mb-1">{userEntry?.full_name}</h3>
-                  <div className="inline-block px-3 py-1 bg-blue-50 text-blue-600 font-bold text-xs rounded-full mb-5 border border-blue-100">
+                  <h3 className="font-black text-lg text-slate-800 uppercase mb-1 whitespace-nowrap overflow-hidden text-ellipsis w-full px-2">{userEntry?.full_name}</h3>
+                  <div className="inline-block px-3 py-1 bg-blue-50 text-blue-600 font-bold text-[11px] rounded-full mb-4 border border-blue-100 whitespace-nowrap">
                     {userEntry?.competition_type}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-left bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100">
+                  <div className="w-full bg-slate-50 p-3 rounded-xl mb-3 border border-slate-100 text-left space-y-2">
                     <div>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">ID Tiket Resmi</p>
-                      <p className="text-sm font-black text-slate-700 font-mono">NCC-{userEntry?.id ? String(userEntry.id).substring(0,6).toUpperCase() : "XXXXXX"}</p>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap">ID Tiket Resmi</p>
+                      <p className="text-sm font-black text-slate-700 font-mono whitespace-nowrap">NCC-{userEntry?.id ? String(userEntry.id).substring(0,6).toUpperCase() : "XXXXXX"}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Asal Instansi</p>
-                      <p className="text-sm font-bold text-slate-700 truncate" title={userEntry?.school_name}>{userEntry?.school_name}</p>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap">Asal Instansi</p>
+                      <p className="text-xs font-bold text-slate-700 truncate" title={userEntry?.school_name}>{userEntry?.school_name}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Pita Dekorasi */}
-                <div className="h-2 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+                <div className="h-2 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 shrink-0"></div>
               </div>
             </div>
             {/* ====== BATAS AREA FOTO ====== */}
