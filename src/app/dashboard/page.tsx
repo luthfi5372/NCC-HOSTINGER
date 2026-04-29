@@ -401,9 +401,31 @@ export default function UserDashboard() {
           {/* Bagian Kanan Header (Status + Logout) */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-3 bg-white/90 backdrop-blur-md border border-white/80 px-4 py-2 rounded-2xl shadow-sm">
-              <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
-                {currentUser?.user_metadata?.full_name?.charAt(0)?.toUpperCase() || "P"}
-              </div>
+              {(() => {
+                let photoUrl = "";
+                if (userEntry?.notes) {
+                  try {
+                    const pObj = JSON.parse(userEntry.notes);
+                    photoUrl = pObj.profile_photo_url;
+                  } catch (e) {}
+                }
+                
+                if (photoUrl) {
+                  return (
+                    <img 
+                      src={photoUrl} 
+                      alt="Profile Avatar" 
+                      className="w-10 h-10 rounded-full object-cover border border-blue-200" 
+                    />
+                  );
+                }
+                
+                return (
+                  <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                    {currentUser?.user_metadata?.full_name?.charAt(0)?.toUpperCase() || "P"}
+                  </div>
+                );
+              })()}
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status Anda</p>
                 <div className="text-sm font-bold text-slate-700 flex items-center gap-1">

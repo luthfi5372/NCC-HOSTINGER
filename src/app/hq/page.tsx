@@ -720,9 +720,31 @@ export default function ModernHQDashboard() {
                         >
                           <td className="py-4 px-6 font-black text-blue-600">NCC-{entry.id}</td>
                           <td className="py-4 px-6 flex items-center gap-3">
-                             <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-blue-600 text-sm uppercase shrink-0">
-                               {(entry.full_name || entry.email || "U").charAt(0)}
-                             </div>
+                             {(() => {
+                               let photoUrl = "";
+                               if (entry.notes) {
+                                 try {
+                                   const pObj = JSON.parse(entry.notes);
+                                   photoUrl = pObj.profile_photo_url;
+                                 } catch (e) {}
+                               }
+                               
+                               if (photoUrl) {
+                                 return (
+                                   <img 
+                                     src={photoUrl} 
+                                     alt="Profile Avatar" 
+                                     className="w-10 h-10 rounded-full object-cover border border-blue-100 shrink-0" 
+                                   />
+                                 );
+                               }
+                               
+                               return (
+                                 <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-blue-600 text-sm uppercase shrink-0">
+                                   {(entry.full_name || entry.email || "U").charAt(0)}
+                                 </div>
+                               );
+                             })()}
                              <div>
                                <div className="font-bold text-slate-800">{entry.full_name || "Peserta Anonim"}</div>
                                <div className="text-[11px] text-slate-500 mt-0.5">
@@ -1456,9 +1478,31 @@ export default function ModernHQDashboard() {
                  <button onClick={() => setSelectedParticipant(null)} className="p-2 bg-white/50 hover:bg-slate-100 rounded-full border border-slate-200/50 transition-colors"><X size={20}/></button>
               </div>
               
-              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-4xl font-black shadow-lg mb-6 border-4 border-white">
-                {(selectedParticipant.full_name || "U").charAt(0)}
-              </div>
+               {(() => {
+                 let photoUrl = "";
+                 if (selectedParticipant.notes) {
+                   try {
+                     const pObj = JSON.parse(selectedParticipant.notes);
+                     photoUrl = pObj.profile_photo_url;
+                   } catch (e) {}
+                 }
+                 
+                 if (photoUrl) {
+                   return (
+                     <img 
+                       src={photoUrl} 
+                       alt="Profile Avatar" 
+                       className="w-24 h-24 rounded-full object-cover shadow-lg mb-6 border-4 border-white shrink-0" 
+                     />
+                   );
+                 }
+                 
+                 return (
+                   <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-4xl font-black shadow-lg mb-6 border-4 border-white shrink-0">
+                     {(selectedParticipant.full_name || "U").charAt(0)}
+                   </div>
+                 );
+               })()}
               <h3 className="text-2xl font-bold text-slate-800 mb-1">{selectedParticipant.full_name || "Nama tidak tersedia"}</h3>
               <p className="text-slate-500 font-medium mb-6">{selectedParticipant.competition_type || selectedParticipant.category || "Belum ada kategori"}</p>
 
