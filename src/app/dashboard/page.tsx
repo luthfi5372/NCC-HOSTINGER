@@ -76,6 +76,9 @@ export default function UserDashboard() {
     participant2_name: "",
     participant2_nisn: ""
   });
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [studentCard, setStudentCard] = useState<File | null>(null);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
   const handleSaveSubmissionUrl = async () => {
     if (!submissionUrl) {
@@ -84,19 +87,95 @@ export default function UserDashboard() {
     
     setIsSavingUrl(true);
     try {
+      let notesObj: any = {};
+      if (userEntry?.notes) {
+        try { notesObj = JSON.parse(userEntry.notes); } catch (e) {}
+      }
+      
+      notesObj.submission_url = submissionUrl;
+      const updatedNotes = JSON.stringify(notesObj);
+
       const { error } = await supabase
         .from('competition_entries')
-        .update({ submission_url: submissionUrl })
+        .update({ notes: updatedNotes })
         .eq('id', userEntry?.id);
 
       if (error) throw error;
       
       showToast("Link karya berhasil disimpan!", "success");
-      setUserEntry((prev: any) => ({ ...prev, submission_url: submissionUrl }));
+      setUserEntry((prev: any) => ({ ...prev, notes: updatedNotes }));
     } catch (err: any) {
       showToast(`Gagal menyimpan: ${err.message}`, "error");
     } finally {
       setIsSavingUrl(false);
+    }
+  };
+
+  const handleUploadProfileFiles = async () => {
+    if (!profilePhoto && !studentCard) {
+      return showToast("Pilih file foto formal atau kartu pelajar terlebih dahulu!", "error");
+    }
+
+    setIsUploadingFiles(true);
+    try {
+      let notesObj: any = {};
+      if (userEntry?.notes) {
+        try { notesObj = JSON.parse(userEntry.notes); } catch (e) {}
+      }
+
+      // Upload Foto Formal
+      if (profilePhoto) {
+        const fileExt = profilePhoto.name.split('.').pop();
+        const fileName = `${userEntry?.id}-formal-${Math.random()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('payment-proofs')
+          .upload(fileName, profilePhoto);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('payment-proofs')
+          .getPublicUrl(fileName);
+
+        notesObj.profile_photo_url = urlData.publicUrl;
+      }
+
+      // Upload Kartu Pelajar
+      if (studentCard) {
+        const fileExt = studentCard.name.split('.').pop();
+        const fileName = `${userEntry?.id}-card-${Math.random()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('payment-proofs')
+          .upload(fileName, studentCard);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('payment-proofs')
+          .getPublicUrl(fileName);
+
+        notesObj.student_card_url = urlData.publicUrl;
+      }
+
+      const updatedNotes = JSON.stringify(notesObj);
+
+      const { error: dbError } = await supabase
+        .from('competition_entries')
+        .update({ notes: updatedNotes })
+        .eq('id', userEntry?.id);
+
+      if (dbError) throw dbError;
+
+      showToast("Berkas foto profil berhasil diperbarui!", "success");
+      setUserEntry((prev: any) => ({ ...prev, notes: updatedNotes }));
+      setProfilePhoto(null);
+      setStudentCard(null);
+    } catch (err: any) {
+      showToast(`Gagal mengunggah berkas: ${err.message}`, "error");
+    } finally {
+      setIsUploadingFiles(false);
     }
   };
 
@@ -170,7 +249,13 @@ export default function UserDashboard() {
           
         if (entryData) {
           setUserEntry(entryData);
-          setSubmissionUrl(entryData.submission_url || "");
+          
+          let parsedNotes: any = {};
+          if (entryData.notes) {
+            try { parsedNotes = JSON.parse(entryData.notes); } catch (e) {}
+          }
+
+          setSubmissionUrl(parsedNotes.submission_url || "");
           setProfileForm({
             full_name: entryData.full_name || "",
             school_name: entryData.school_name || entryData.school || "",
@@ -464,6 +549,66 @@ export default function UserDashboard() {
                         </div>
                       </>
                     )}
+
+                    {/* --- 📁 BAGIAN UPLOAD BERKAS BARU --- */}
+                    <div className="pt-4 mt-2 border-t-2 border-dashed border-slate-100 space-y-3">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                          <ImageIcon size={12} className="text-indigo-500" /> Foto Formal Sekolah (Berwarna)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => setProfilePhoto(e.target.files?.[0] || null)}
+                            className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100"
+                          />
+                          {(() => {
+                            let notesObj: any = {};
+                            if (userEntry?.notes) {
+                              try { notesObj = JSON.parse(userEntry.notes); } catch (e) {}
+                            }
+                            return notesObj.profile_photo_url && (
+                              <a href={notesObj.profile_photo_url} target="_blank" rel="noreferrer" className="shrink-0 text-indigo-600 hover:underline font-bold text-[10px] bg-indigo-50 px-2 py-1 rounded-lg">Lihat</a>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                          <IdCard size={12} className="text-indigo-500" /> Scan Kartu Pelajar (Format Gambar)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => setStudentCard(e.target.files?.[0] || null)}
+                            className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100"
+                          />
+                          {(() => {
+                            let notesObj: any = {};
+                            if (userEntry?.notes) {
+                              try { notesObj = JSON.parse(userEntry.notes); } catch (e) {}
+                            }
+                            return notesObj.student_card_url && (
+                              <a href={notesObj.student_card_url} target="_blank" rel="noreferrer" className="shrink-0 text-indigo-600 hover:underline font-bold text-[10px] bg-indigo-50 px-2 py-1 rounded-lg">Lihat</a>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {(profilePhoto || studentCard) && (
+                        <button
+                          type="button"
+                          onClick={handleUploadProfileFiles}
+                          disabled={isUploadingFiles}
+                          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 rounded-xl transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-2 mt-2"
+                        >
+                          {isUploadingFiles ? "Mengunggah..." : "Simpan Berkas Baru"}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <form onSubmit={handleUpdateProfile} className="space-y-3 text-xs">

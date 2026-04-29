@@ -1480,6 +1480,53 @@ export default function ModernHQDashboard() {
                     {selectedParticipant.province || selectedParticipant.city || "Provinsi tidak dicantumkan"}
                   </p>
                 </div>
+
+                {(() => {
+                  let adminNotes: any = {};
+                  if (selectedParticipant.notes) {
+                    try { adminNotes = JSON.parse(selectedParticipant.notes); } catch (e) {}
+                  }
+                  
+                  return (adminNotes.profile_photo_url || adminNotes.student_card_url) && (
+                    <div className="p-4 bg-white/60 border border-slate-100 rounded-xl shadow-sm space-y-3">
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        📁 Berkas Pendukung Peserta
+                      </p>
+                      
+                      {adminNotes.profile_photo_url && (
+                        <div className="flex items-center justify-between py-2 border-b border-slate-100/60 text-sm">
+                          <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                            🖼️ Foto Formal
+                          </span>
+                          <a 
+                            href={adminNotes.profile_photo_url} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="text-xs font-bold text-indigo-600 hover:underline bg-indigo-50 px-2.5 py-1 rounded-lg"
+                          >
+                            Buka
+                          </a>
+                        </div>
+                      )}
+
+                      {adminNotes.student_card_url && (
+                        <div className="flex items-center justify-between py-2 text-sm">
+                          <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                            🪪 Kartu Pelajar
+                          </span>
+                          <a 
+                            href={adminNotes.student_card_url} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="text-xs font-bold text-indigo-600 hover:underline bg-indigo-50 px-2.5 py-1 rounded-lg"
+                          >
+                            Buka
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             </div>
           </div>
