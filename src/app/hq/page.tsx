@@ -84,6 +84,24 @@ export default function ModernHQDashboard() {
 
   const supabase = createClient();
 
+  // --- 📡 REAL-TIME PORTAL SYNC ENGINE ---
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const syncToDatabase = async () => {
+      const payload = { waves, submissionStatus, phaseStatus };
+      await supabase
+        .from('announcements')
+        .update({ content: JSON.stringify(payload) })
+        .eq('title', 'SYS_PORTAL_SETTINGS');
+    };
+    syncToDatabase();
+  }, [waves, submissionStatus, phaseStatus]);
+
   // --- 🚪 FUNGSI PINTU EVAKUASI ---
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -256,8 +274,28 @@ export default function ModernHQDashboard() {
       }
     };
 
+    const fetchPortalSettings = async () => {
+      try {
+        const { data: existing } = await supabase
+          .from('announcements')
+          .select('*')
+          .eq('title', 'SYS_PORTAL_SETTINGS')
+          .single();
+
+        if (existing) {
+          const parsed = JSON.parse(existing.content);
+          if (parsed.submissionStatus) setSubmissionStatus(parsed.submissionStatus);
+          if (parsed.waves) setWaves(parsed.waves);
+          if (parsed.phaseStatus) setPhaseStatus(parsed.phaseStatus);
+        }
+      } catch (err) {
+        console.error("Gagal menarik status portal:", err);
+      }
+    };
+
     // 1. Tarik data saat Markas Besar pertama kali dibuka
     fetchRealData();
+    fetchPortalSettings();
 
     // 2. 📡 AKTIFKAN SENSOR RADAR (Supabase WebSockets)
     const radarSubscription = supabase

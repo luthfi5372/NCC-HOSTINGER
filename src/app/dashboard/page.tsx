@@ -64,6 +64,7 @@ export default function UserDashboard() {
   });
   const [submissionUrl, setSubmissionUrl] = useState("");
   const [isSavingUrl, setIsSavingUrl] = useState(false);
+  const [isSubmissionOpen, setIsSubmissionOpen] = useState(false);
 
   const handleSaveSubmissionUrl = async () => {
     if (!submissionUrl) {
@@ -119,6 +120,38 @@ export default function UserDashboard() {
         if (entryData) {
           setUserEntry(entryData);
           setSubmissionUrl(entryData.submission_url || "");
+        }
+        
+        // --- 🔒 CHECK PORTAL AKSES GLOBAL ---
+        const { data: portalData } = await supabase
+          .from('announcements')
+          .select('*')
+          .eq('title', 'SYS_PORTAL_SETTINGS')
+          .single();
+        
+        if (portalData && portalData.content) {
+          try {
+            const parsed = JSON.parse(portalData.content);
+            const userCategory = entryData?.competition_type; 
+            
+            let matchingKeyPrefix = "";
+            if (userCategory === "Olimpiade MIPA") matchingKeyPrefix = "mipa";
+            else if (userCategory === "Speech Contest") matchingKeyPrefix = "speech";
+            else if (userCategory === "LKTI Nasional") matchingKeyPrefix = "lkti";
+            else if (userCategory === "MTQ") matchingKeyPrefix = "mtq";
+
+            if (matchingKeyPrefix && parsed.submissionStatus) {
+              const isGel1Open = parsed.submissionStatus.find((item: any) => item.id === `${matchingKeyPrefix}_g1`)?.isOpen;
+              const isGel2Open = parsed.submissionStatus.find((item: any) => item.id === `${matchingKeyPrefix}_g2`)?.isOpen;
+              setIsSubmissionOpen(!!(isGel1Open || isGel2Open));
+            } else {
+              setIsSubmissionOpen(true);
+            }
+          } catch (e) {
+            setIsSubmissionOpen(true);
+          }
+        } else {
+          setIsSubmissionOpen(true);
         }
         
         const userStatus = entryData?.payment_status === 'Verified' ? 'Verified' : 'Pending';
@@ -316,7 +349,7 @@ export default function UserDashboard() {
                 </button>
               </div>
             )}
-            {userEntry?.payment_status === 'Verified' && (
+            {userEntry?.payment_status === 'Verified' && isSubmissionOpen && (
               <div className="bg-white/90 backdrop-blur-md border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-6 mt-6">
                 <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <FolderOpen size={18} className="text-blue-500" />
