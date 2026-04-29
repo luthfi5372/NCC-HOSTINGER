@@ -41,10 +41,14 @@ export default function ModernHQDashboard() {
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
   
   const [submissionStatus, setSubmissionStatus] = useState([
-    { id: 'mipa', name: 'Olimpiade MIPA', isOpen: false },
-    { id: 'speech', name: 'Speech Contest', isOpen: false },
-    { id: 'lkti', name: 'LKTI Nasional', isOpen: true },
-    { id: 'mtq', name: 'MTQ', isOpen: false },
+    { id: 'mipa_g1', name: 'Olimpiade MIPA (Gel. I)', isOpen: false },
+    { id: 'mipa_g2', name: 'Olimpiade MIPA (Gel. II)', isOpen: false },
+    { id: 'speech_g1', name: 'Speech Contest (Gel. I)', isOpen: false },
+    { id: 'speech_g2', name: 'Speech Contest (Gel. II)', isOpen: false },
+    { id: 'lkti_g1', name: 'LKTI Nasional (Gel. I)', isOpen: true },
+    { id: 'lkti_g2', name: 'LKTI Nasional (Gel. II)', isOpen: false },
+    { id: 'mtq_g1', name: 'MTQ (Gel. I)', isOpen: false },
+    { id: 'mtq_g2', name: 'MTQ (Gel. II)', isOpen: false },
   ]);
 
   const toggleSubmission = (id: string) => {
