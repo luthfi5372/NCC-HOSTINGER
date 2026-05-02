@@ -318,6 +318,7 @@ export default function ModernHQDashboard() {
           const parsed = JSON.parse(existing.content);
           if (parsed.submissionStatus) setSubmissionStatus(parsed.submissionStatus);
           if (parsed.waves) setWaves(parsed.waves);
+          if (parsed.phaseStatus) setPhaseStatus(parsed.phaseStatus);
           if (parsed.dashboardAssets) setDashboardAssets(parsed.dashboardAssets);
         }
       } catch (err) {
@@ -527,7 +528,7 @@ export default function ModernHQDashboard() {
             { id: "Peserta", icon: <Users size={18} />, label: "Buku Peserta", count: realEntries.filter((e: any) => e.payment_status === 'Verified' || e.payment_status === 'success').length },
             { id: "Verifikasi", icon: <CheckCircle size={18} />, label: "Verifikasi Berkas", count: realEntries.filter((e: any) => e.payment_status === 'Pending').length },
             { id: "Pengumuman", icon: <Megaphone size={18} />, label: "Siaran Info" },
-            { id: "Media", icon: <ImageIcon size={18} />, label: "✨ Kelola Media" },
+            { id: "Media", icon: <ImageIcon size={18} />, label: "Kelola Media" },
             { id: "Kegiatan", icon: <CalendarDays size={18} />, label: "Kegiatan" },
             { id: "Pengaturan", icon: <Settings size={18} />, label: "Pengaturan" }
           ].map((item) => (
@@ -1362,7 +1363,19 @@ export default function ModernHQDashboard() {
                   <div key={asset.id} className="bg-white border border-slate-100 rounded-2xl p-4 flex flex-col items-center gap-4 group transition-all hover:border-purple-200">
                     <div className="relative w-full aspect-video bg-slate-50 rounded-xl overflow-hidden border border-dashed border-slate-200 flex items-center justify-center">
                       {dashboardAssets[asset.id] ? (
-                        <img src={dashboardAssets[asset.id]} alt={asset.label} className="w-full h-full object-cover" />
+                        <>
+                          <img src={dashboardAssets[asset.id]} alt={asset.label} className="w-full h-full object-cover" />
+                          <button 
+                            onClick={() => {
+                              setDashboardAssets((prev: any) => ({ ...prev, [asset.id]: "" }));
+                              showToast(`${asset.label} telah dihapus.`, "error");
+                            }}
+                            className="absolute top-2 right-2 p-1.5 bg-rose-500/80 hover:bg-rose-600 text-white rounded-lg backdrop-blur-sm transition-all"
+                            title="Hapus Gambar"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </>
                       ) : (
                         <div className="text-slate-300 flex flex-col items-center gap-1">
                           <ImageIcon size={32} />
