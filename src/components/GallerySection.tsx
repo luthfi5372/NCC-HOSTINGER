@@ -6,7 +6,7 @@ import { Camera, PlaySquare, Image as ImageIcon, Users, BookOpen, Search, Trophy
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { getSiteMedia, SiteMedia } from "@/lib/localAuth";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const filters = ["ALL", "ACADEMIC", "SPEECH", "ARTS", "GALLERY"];
@@ -72,23 +72,38 @@ const portfolioItems = [
 
 export default function GallerySection() {
   const [activeFilter, setActiveFilter] = useState("ALL");
-  const [adminMedia, setAdminMedia] = useState<SiteMedia[]>([]);
+  const [adminMedia, setAdminMedia] = useState<string[]>([]);
   const [hovered, setHovered] = useState<number | string | null>(null);
   const containerRef = useRef<HTMLElement>(null);
+  const supabase = createClient();
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const allMedia = getSiteMedia();
-      const galleryMedia = allMedia.filter(m => m.category === "gallery");
-      setAdminMedia(galleryMedia);
-    }
+    const fetchGallery = async () => {
+      try {
+        const { data } = await supabase
+          .from('announcements')
+          .select('*')
+          .eq('title', 'SYS_PORTAL_SETTINGS')
+          .single();
+        
+        if (data) {
+          const parsed = JSON.parse(data.content);
+          if (parsed.dashboardAssets?.gallery_images) {
+            setAdminMedia(parsed.dashboardAssets.gallery_images);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch gallery:", err);
+      }
+    };
+    fetchGallery();
   }, []);
 
-  const dynamicItems = adminMedia.map((m, index) => ({
-    id: `admin-${m.id}`,
+  const dynamicItems = adminMedia.map((url, index) => ({
+    id: `admin-${index}`,
     category: "GALLERY",
-    label: m.title,
-    src: m.url,
+    label: `Event Moment ${index + 1}`,
+    src: url,
     span: index % 3 === 0 ? "col-span-1 md:col-span-2 row-span-1" : "col-span-1 row-span-1",
     bg: "from-indigo-500/80 to-purple-600/80"
   }));

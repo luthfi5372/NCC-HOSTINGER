@@ -14,6 +14,7 @@ import IdCardModal from "@/components/dashboard/IdCardModal";
 
 export default function UserDashboard() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [portalSettings, setPortalSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userEntry, setUserEntry] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -105,13 +106,11 @@ export default function UserDashboard() {
             else if (userCategory === "LKTI Nasional") matchingKeyPrefix = "lkti";
             else if (userCategory === "MTQ") matchingKeyPrefix = "mtq";
 
-            if (matchingKeyPrefix && parsed.submissionStatus) {
-              const isGel1Open = parsed.submissionStatus.find((item: any) => item.id === `${matchingKeyPrefix}_g1`)?.isOpen;
-              const isGel2Open = parsed.submissionStatus.find((item: any) => item.id === `${matchingKeyPrefix}_g2`)?.isOpen;
               setIsSubmissionOpen(!!(isGel1Open || isGel2Open));
             } else {
               setIsSubmissionOpen(true);
             }
+            setPortalSettings(parsed);
           } catch (e) {
             setIsSubmissionOpen(true);
           }
@@ -224,6 +223,22 @@ export default function UserDashboard() {
         
         <DashboardHeader userEntry={userEntry} currentUser={currentUser} handleLogout={handleLogout} progress={progress} />
 
+        {/* 🖼️ DYNAMIC HERO BANNER */}
+        {portalSettings?.dashboardAssets?.hero_banner && (
+          <div className="mb-10 relative group h-[200px] md:h-[300px] w-full rounded-[40px] overflow-hidden shadow-2xl border border-white/20">
+            <img 
+              src={portalSettings.dashboardAssets.hero_banner} 
+              alt="Dashboard Banner" 
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+            <div className="absolute bottom-8 left-8 md:bottom-12 md:left-12">
+              <h2 className="text-white text-3xl md:text-5xl font-black tracking-tight drop-shadow-lg">NCC 13th Edition</h2>
+              <p className="text-white/90 font-medium mt-2 md:text-lg drop-shadow-md">Ajang Kreativitas Nasional Terbesar Tahun Ini</p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Kolom Kiri */}
@@ -236,6 +251,7 @@ export default function UserDashboard() {
             setShowIdCard={setShowIdCard}
             showToast={showToast}
             progress={progress}
+            portalSettings={portalSettings}
           />
 
           {/* Kolom Kanan */}

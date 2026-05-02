@@ -48,6 +48,11 @@ export default function AnnouncementBoard({ announcements, isLoading }: Announce
                 <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
                   {announcement?.content || "-"}
                 </p>
+                {announcement?.image_url && (
+                  <div className="mt-4 rounded-xl overflow-hidden border border-slate-100 shadow-sm max-w-lg">
+                    <img src={announcement.image_url} alt="Announcement" className="w-full h-auto object-cover" />
+                  </div>
+                )}
               </div>
             );
           })}
