@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShineBorder } from "@/components/ui/ShineBorder";
-import { registerUser, getSystemSettings } from "@/lib/localAuth";
+import { registerLocalUser } from "@/app/actions/auth";
+import { getSystemSettings } from "@/lib/localAuth";
 import {
   Mail, Lock, Eye, EyeOff, Loader2, Trophy,
   User, Building2, ArrowRight, CheckCircle2, BookOpen, Mic, Medal, AlertCircle, X
@@ -45,11 +46,17 @@ export default function RegisterPage() {
     setError(null);
     await new Promise((r) => setTimeout(r, 700));
 
-    const result = registerUser({ fullName, school, email, password });
+    const formData = new FormData();
+    formData.append("username", email.split('@')[0]);
+    formData.append("fullName", fullName);
+    formData.append("email", email);
+    formData.append("password", password);
+
+    const result = await registerLocalUser(formData);
+    
     if (result.success) {
-      document.cookie = "ncc_hint=1; path=/; max-age=604800; samesite=lax";
       setSuccess(true);
-      setTimeout(() => router.push("/dashboard"), 1200);
+      setTimeout(() => router.push("/login"), 1500);
     } else {
       setError(result.error ?? "Terjadi kesalahan.");
       setLoading(false);

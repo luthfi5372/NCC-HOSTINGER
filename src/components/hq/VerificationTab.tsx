@@ -12,7 +12,7 @@ interface VerificationTabProps {
   setCategoryFilter: (filter: string) => void;
   isProcessing: string | null;
   setViewImage: (url: string) => void;
-  updatePaymentStatus: (id: string, status: string) => void;
+  updatePaymentStatus: (id: string, status: string, reason?: string) => void;
 }
 
 export default function VerificationTab({
@@ -139,7 +139,10 @@ export default function VerificationTab({
                           {isProcessing === row.id ? "..." : "Terima"}
                         </button>
                         <button 
-                          onClick={() => updatePaymentStatus(row.id, 'Wait')}
+                          onClick={() => {
+                            const reason = prompt("Masukkan alasan penolakan (misal: Bukti TF buram, dll):");
+                            if (reason) updatePaymentStatus(row.id, 'Rejected', reason);
+                          }}
                           disabled={isProcessing === row.id}
                           className="px-4 py-2 bg-rose-500 hover:bg-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg shadow-rose-100 transition-all active:scale-95 disabled:opacity-50"
                         >

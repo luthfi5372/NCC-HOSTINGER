@@ -8,7 +8,8 @@ import {
   Zap, 
   LogOut,
   ChevronRight,
-  Headphones
+  Headphones,
+  Sparkles
 } from "lucide-react";
 
 interface SidebarProps {

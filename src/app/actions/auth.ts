@@ -92,8 +92,8 @@ export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
 
   if (isAdminBypass) {
     const cookieStore = await cookies();
-    cookieStore.set("ncc_hint", "1", { path: "/", maxAge: 604800, samesite: "lax" });
-    cookieStore.set("ncc_admin_hint", "1", { path: "/", maxAge: 604800, samesite: "lax" });
+    cookieStore.set("ncc_hint", "1", { path: "/", maxAge: 604800, sameSite: "lax" });
+    cookieStore.set("ncc_admin_hint", "1", { path: "/", maxAge: 604800, sameSite: "lax" });
     return { success: true, isAdmin: true };
   }
 

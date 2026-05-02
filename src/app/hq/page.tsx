@@ -176,24 +176,44 @@ export default function ModernHQDashboard() {
   };
 
   // --- MESIN EKSEKUTOR STATUS ---
-  const handleUpdateStatus = async (id: string | number, newStatus: string) => {
+  const handleUpdateStatus = async (id: string | number, newStatus: string, reason?: string) => {
     setConfirmModal({
       show: true,
       title: "Konfirmasi Perubahan Status",
-      message: `Apakah Anda yakin ingin mengubah status pendaftar ini menjadi ${newStatus}?`,
+      message: newStatus === 'Rejected' 
+        ? `Apakah Anda yakin ingin MENOLAK pendaftar ini dengan alasan: "${reason}"?` 
+        : `Apakah Anda yakin ingin menerima pendaftar ini menjadi ${newStatus}?`,
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, show: false }));
         try {
+          const updateData: any = { payment_status: newStatus };
+          
+          if (newStatus === 'Rejected' && reason) {
+             const entry = realEntries.find(e => e.id === id);
+             let notesObj: any = {};
+             if (entry?.notes) try { notesObj = JSON.parse(entry.notes); } catch (e) {}
+             notesObj.rejection_reason = reason;
+             updateData.notes = JSON.stringify(notesObj);
+          } else if (newStatus === 'Verified') {
+             const entry = realEntries.find(e => e.id === id);
+             let notesObj: any = {};
+             if (entry?.notes) try { notesObj = JSON.parse(entry.notes); } catch (e) {}
+             if (notesObj.rejection_reason) {
+                 delete notesObj.rejection_reason;
+                 updateData.notes = JSON.stringify(notesObj);
+             }
+          }
+
           const { error } = await supabase
             .from('competition_entries')
-            .update({ payment_status: newStatus })
+            .update(updateData)
             .eq('id', id);
 
           if (error) throw error;
 
           setRealEntries(prevEntries => 
             prevEntries.map(entry => 
-              entry.id === id ? { ...entry, payment_status: newStatus } : entry
+              entry.id === id ? { ...entry, ...updateData } : entry
             )
           );
 
@@ -903,7 +923,10 @@ export default function ModernHQDashboard() {
 
                     {/* Tombol Tolak */}
                     <button
-                      onClick={() => handleUpdateStatus(entry.id, 'Rejected')}
+                      onClick={() => {
+                        const reason = prompt("Masukkan alasan penolakan (misal: Bukti TF buram, dll):");
+                        if (reason) handleUpdateStatus(entry.id, 'Rejected', reason);
+                      }}
                       className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-rose-400 to-red-500 text-white rounded-xl font-bold text-xs transition-all shadow-sm hover:shadow-rose-200/60 hover:scale-105 active:scale-95"
                     >
                       <AlertCircle size={14} /> Tolak

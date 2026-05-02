@@ -155,7 +155,7 @@ const fragmentShader = `
 `;
 
 /* ─── FLUID MESH COMPONENT ─── */
-function FluidMesh() {
+function FluidMesh({ paused }: { paused?: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const { size } = useThree();
   const { mousePosNormalized, params, matrixMode } = useFluid();
@@ -180,7 +180,7 @@ function FluidMesh() {
   }, [size, uniforms]);
 
   useFrame((state) => {
-    if (!meshRef.current) return;
+    if (!meshRef.current || paused) return;
     const material = meshRef.current.material as THREE.ShaderMaterial;
     material.uniforms.uTime.value = state.clock.elapsedTime;
     material.uniforms.uMouse.value.lerp(
@@ -209,10 +209,10 @@ function FluidMesh() {
 }
 
 /* ─── EXPORTED COMPONENT ─── */
-export default function FluidBackground() {
+export default function FluidBackground({ paused }: { paused?: boolean }) {
   return (
     <div
-      className="fixed inset-0 z-0"
+      className={`fixed inset-0 z-0 transition-opacity duration-1000 ${paused ? 'opacity-40' : 'opacity-100'}`}
       style={{ pointerEvents: "none" }}
     >
       <Canvas
@@ -227,7 +227,7 @@ export default function FluidBackground() {
         camera={{ position: [0, 0, 1] }}
         style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
       >
-        <FluidMesh />
+        <FluidMesh paused={paused} />
       </Canvas>
     </div>
   );

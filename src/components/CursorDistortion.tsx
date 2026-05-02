@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useFluid } from "@/contexts/FluidContext";
 
-export default function CursorDistortion() {
+export default function CursorDistortion({ paused }: { paused?: boolean }) {
   const cursorRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const dotPos = useRef({ x: 0, y: 0 });
@@ -25,6 +25,10 @@ export default function CursorDistortion() {
     let raf: number;
 
     const animate = () => {
+      if (paused) {
+        raf = requestAnimationFrame(animate);
+        return;
+      }
       // Dot is snappy and tracks almost instantly
       dotPos.current.x += (target.current.x - dotPos.current.x) * 0.35;
       dotPos.current.y += (target.current.y - dotPos.current.y) * 0.35;
@@ -46,6 +50,8 @@ export default function CursorDistortion() {
     raf = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(raf);
   }, []);
+
+  if (paused) return null;
 
   return (
     <>

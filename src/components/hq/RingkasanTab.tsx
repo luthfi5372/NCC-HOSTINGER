@@ -10,16 +10,20 @@ import {
   YAxis, 
   Tooltip, 
   Legend,
-  CartesianGrid
+  CartesianGrid,
+  LineChart,
+  Line,
+  BarChart,
+  Bar
 } from "recharts";
-import { Activity, PieChart as PieIcon, TrendingUp, Zap } from "lucide-react";
+import { Activity, PieChart as PieIcon, TrendingUp, Zap, Loader2, Check, X } from "lucide-react";
 
 interface RingkasanTabProps {
   participants: any[];
   categoryData: any[];
   dailyTrendData: any[];
   isLoading: boolean;
-  updatePaymentStatus: (id: string, status: string) => void;
+  updatePaymentStatus: (id: string, status: string, reason?: string) => void;
   isProcessing: string | null;
 }
 
@@ -77,7 +81,7 @@ export default function RingkasanTab({
                 stroke="#2563EB" 
                 strokeWidth={3} 
                 dot={{ r: 4, fill: '#2563EB', strokeWidth: 2, stroke: '#fff' }} 
-                activeDot={{ r: 7, shadow: '0 0 10px rgba(37,99,235,0.4)' }}
+                activeDot={{ r: 7 }}
                 animationDuration={1500}
               />
             </LineChart>
@@ -175,9 +179,10 @@ export default function RingkasanTab({
                     <div className="flex flex-col gap-2">
                        <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black flex items-center w-max gap-1.5 uppercase tracking-wider
                         ${entry.payment_status === 'Verified' ? 'bg-emerald-50 text-emerald-600' : 
-                          entry.payment_status === 'Pending' ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-600'}
+                          entry.payment_status === 'Pending' ? 'bg-amber-50 text-amber-600' : 
+                          entry.payment_status === 'Rejected' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-600'}
                       `}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${entry.payment_status === 'Verified' ? 'bg-emerald-500' : entry.payment_status === 'Pending' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-slate-500'}`}></div>
+                        <div className={`w-1.5 h-1.5 rounded-full ${entry.payment_status === 'Verified' ? 'bg-emerald-500' : entry.payment_status === 'Pending' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : entry.payment_status === 'Rejected' ? 'bg-rose-500' : 'bg-slate-500'}`}></div>
                         {entry.payment_status || "Pending"}
                       </span>
                       
@@ -206,7 +211,10 @@ export default function RingkasanTab({
                                 {isProcessing === entry.id ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} strokeWidth={3} />}
                              </button>
                              <button 
-                                onClick={() => updatePaymentStatus(entry.id, 'Rejected')}
+                                onClick={() => {
+                                   const reason = prompt("Masukkan alasan penolakan (misal: Bukti TF buram, dll):");
+                                   if (reason) updatePaymentStatus(entry.id, 'Rejected', reason);
+                                }}
                                 disabled={!!isProcessing}
                                 className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all shadow-sm active:scale-90 disabled:opacity-50"
                                 title="Tolak Pembayaran"

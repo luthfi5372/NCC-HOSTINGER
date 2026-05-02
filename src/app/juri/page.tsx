@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { fetchJuryEntries, fetchEntryScores } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 const CATEGORIES = [
   "SEMUA",
@@ -34,6 +35,7 @@ export default function JuryDashboard() {
   const [selectedCategory, setSelectedCategory] = useState("SEMUA");
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const router = useRouter();
 
   useEffect(() => {
     loadData();

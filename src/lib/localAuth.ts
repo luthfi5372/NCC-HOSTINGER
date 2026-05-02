@@ -134,6 +134,7 @@ export function loginUser(email: string, password: string): AuthResult {
     const session: LocalSession = {
       id: "admin-admin1@ncc.id",
       email: "admin1@ncc.id",
+      username: "admin1",
       fullName: "NCC System Monitor 1",
       role: "admin",
     };
