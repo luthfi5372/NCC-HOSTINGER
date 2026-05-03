@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
   Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight,
-  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, FileText, ImageIcon, Camera
+  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -190,7 +190,7 @@ export default function ModernHQDashboard() {
   const executeDelete = async () => {
     // Pastikan kita memiliki ID otentikasi (userId)
     if (!deleteModal.userId) {
-      return showToast("⚠️ Gagal: ID KTP Digital (User ID) tidak ditemukan!", "error");
+      return showToast("Gagal: ID KTP Digital (User ID) tidak ditemukan!", "error");
     }
     
     try {
@@ -321,10 +321,7 @@ export default function ModernHQDashboard() {
     }
   };
 
-  // --- MESIN PENGUMPUL DATA & RADAR REAL-TIME ---
-  useEffect(() => {
-    // Fungsi penarik data utama
-    // --- KONTROL PROGRES TAHAP PESERTA ---
+  // --- KONTROL PROGRES TAHAP PESERTA ---
   const handleUpdateStage = async (id: any, newStage: number) => {
     try {
       const { error } = await supabase
@@ -351,6 +348,9 @@ export default function ModernHQDashboard() {
     }
   };
 
+  // --- MESIN PENGUMPUL DATA & RADAR REAL-TIME ---
+  useEffect(() => {
+    // Fungsi penarik data utama
   const fetchRealData = async () => {
       try {
         const { data, error } = await supabase
@@ -541,7 +541,7 @@ export default function ModernHQDashboard() {
       <div className="absolute bottom-[-5%] right-[-2%] w-64 h-64 bg-indigo-400/10 rounded-full blur-2xl pointer-events-none"></div>
       
       {/* ========================================================= */}
-      {/* 🌟 SIDEBAR NAVIGASI (LIQUID GLASS) */}
+        {/* SIDEBAR NAVIGASI (LIQUID GLASS) */}
       {/* ========================================================= */}
       <aside className="w-72 bg-white/70 backdrop-blur-2xl border-r border-white/60 flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-500">
         <div className="p-8">
@@ -861,9 +861,9 @@ export default function ModernHQDashboard() {
                           <td className="py-4 px-6">
                             {(() => {
                               const stage = entry.current_stage || 1;
-                              if (stage === 1) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200">TAHAP 1</span>;
-                              if (stage === 2) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-200 animate-pulse">TAHAP 2</span>;
-                              if (stage === 3) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-200 shadow-sm shadow-amber-100">🏆 FINAL</span>;
+                              if (stage === 1) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-1"><ClipboardCheck size={10} /> TAHAP 1</span>;
+                              if (stage === 2) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-200 animate-pulse flex items-center gap-1"><Medal size={10} /> TAHAP 2</span>;
+                              if (stage === 3) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-200 shadow-sm shadow-amber-100 flex items-center gap-1"><Trophy size={10} /> FINAL</span>;
                               return <span className="text-xs text-slate-400">-</span>;
                             })()}
                           </td>
@@ -877,7 +877,9 @@ export default function ModernHQDashboard() {
                           </td>
                           <td className="py-4 px-6">
                             <div className="font-medium text-slate-800">{dateStr}</div>
-                            <div className="text-[11px] text-slate-500 mt-0.5">⏰ Pukul {timeStr}</div>
+                            <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+                              <Clock size={11} className="text-slate-400" /> Pukul {timeStr}
+                            </div>
                           </td>
                           <td className="py-4 px-6">
                             <span className="px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center w-max gap-1.5 border bg-green-500/10 text-green-700 border-green-500/20 shadow-sm">
@@ -1198,11 +1200,10 @@ export default function ModernHQDashboard() {
                     <h3 className="text-xl font-black text-slate-800">Gerbang Pendaftaran</h3>
                     <p className="text-sm font-medium text-slate-500 mt-1">
                       Status saat ini:{" "}
-                      <strong className={`${
-                        isPortalOpen ? 'text-emerald-500' : 'text-rose-500'
-                      }`}>
-                        {isPortalOpen ? '✔ TERBUKA UNTUK PUBLIK' : '✖ DITUTUP SEMENTARA'}
-                      </strong>
+                      <div className={`mt-2 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest inline-flex items-center gap-1.5 ${isPortalOpen ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
+                        {isPortalOpen ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                        {isPortalOpen ? 'TERBUKA UNTUK PUBLIK' : 'DITUTUP SEMENTARA'}
+                      </div>
                     </p>
                   </div>
                 </div>
@@ -1280,12 +1281,9 @@ export default function ModernHQDashboard() {
                   >
                     <div className="flex justify-between items-start mb-4">
                       <h4 className="font-bold text-lg text-slate-800">{wave.name}</h4>
-                      <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${
-                        wave.status === 'Aktif' 
-                          ? 'bg-emerald-100 text-emerald-600' 
-                          : 'bg-slate-200 text-slate-500'
-                      }`}>
-                        {wave.status === 'Aktif' ? '● Live' : '○ Tutup'}
+                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1 ${wave.status === 'Aktif' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-slate-100 text-slate-400'}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${wave.status === 'Aktif' ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`}></div>
+                        {wave.status === 'Aktif' ? 'Live' : 'Tutup'}
                       </span>
                     </div>
                     
@@ -1443,9 +1441,12 @@ export default function ModernHQDashboard() {
                     <div>
                       <h4 className="font-bold text-slate-800">{wave.name}</h4>
                       <p className="text-[10px] text-slate-400 font-medium mt-0.5">{wave.startDate} s/d {wave.endDate}</p>
-                      <p className={`text-[10px] font-bold tracking-widest uppercase mt-2 ${wave.status === 'Aktif' ? 'text-blue-600' : 'text-slate-400'}`}>
-                        {wave.status === 'Aktif' ? '● Sedang Berjalan' : '○ Ditutup'}
-                      </p>
+                      <div className="flex items-center gap-1.5 px-3 py-1 mt-2 bg-slate-50 border border-slate-100 rounded-lg w-fit">
+                        <div className={`w-1.5 h-1.5 rounded-full ${wave.status === 'Aktif' ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}></div>
+                        <span className={`text-[10px] font-black ${wave.status === 'Aktif' ? 'text-green-600' : 'text-slate-500'}`}>
+                          {wave.status === 'Aktif' ? 'Sedang Berjalan' : 'Ditutup'}
+                        </span>
+                      </div>
                     </div>
                     
                     <button 
@@ -1851,20 +1852,23 @@ export default function ModernHQDashboard() {
                       <div className="grid grid-cols-3 gap-2">
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 1); }}
-                          className={`py-2 rounded-xl text-[9px] font-black transition-all border ${ (selectedParticipant.current_stage || 1) === 1 ? 'bg-white border-slate-200 text-slate-400 shadow-inner' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300' }`}
+                          className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ (selectedParticipant.current_stage || 1) === 1 ? 'bg-white border-slate-200 text-slate-300 shadow-inner' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300' }`}
                         >
+                          <Clock size={12} />
                           SET T1
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 2); }}
-                          className={`py-2 rounded-xl text-[9px] font-black transition-all border ${ (selectedParticipant.current_stage || 1) === 2 ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white border-slate-100 text-blue-500 hover:border-blue-200' }`}
+                          className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ (selectedParticipant.current_stage || 1) === 2 ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white border-slate-100 text-blue-600 hover:border-blue-200' }`}
                         >
+                          <Medal size={12} />
                           LOLOS T2
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 3); }}
-                          className={`py-2 rounded-xl text-[9px] font-black transition-all border ${ (selectedParticipant.current_stage || 1) === 3 ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-200' : 'bg-white border-slate-100 text-amber-600 hover:border-amber-200' }`}
+                          className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ (selectedParticipant.current_stage || 1) === 3 ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-200' : 'bg-white border-slate-100 text-amber-600 hover:border-amber-200' }`}
                         >
+                          <Trophy size={12} />
                           FINAL
                         </button>
                       </div>
@@ -1879,43 +1883,43 @@ export default function ModernHQDashboard() {
                   }
                   
                   return (adminNotes.profile_photo_url || adminNotes.student_card_url) && (
-                    <div className="p-4 bg-white/60 border border-slate-100 rounded-xl shadow-sm space-y-3">
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                        📁 Berkas Pendukung Peserta
-                      </p>
-                      
-                      {adminNotes.profile_photo_url && (
-                        <div className="flex items-center justify-between py-2 border-b border-slate-100/60 text-sm">
-                          <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
-                            🖼️ Foto Formal
-                          </span>
-                          <a 
-                            href={adminNotes.profile_photo_url} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="text-xs font-bold text-indigo-600 hover:underline bg-indigo-50 px-2.5 py-1 rounded-lg"
-                          >
-                            Buka
-                          </a>
-                        </div>
-                      )}
-
-                      {adminNotes.student_card_url && (
-                        <div className="flex items-center justify-between py-2 text-sm">
-                          <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
-                            🪪 Kartu Pelajar
-                          </span>
-                          <a 
-                            href={adminNotes.student_card_url} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="text-xs font-bold text-indigo-600 hover:underline bg-indigo-50 px-2.5 py-1 rounded-lg"
-                          >
-                            Buka
-                          </a>
-                        </div>
-                      )}
-                    </div>
+                      <div className="p-4 bg-white/60 border border-slate-100 rounded-xl shadow-sm space-y-3">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                          <FolderOpen size={12} className="text-indigo-500" /> Berkas Pendukung Peserta
+                        </p>
+                        
+                        {adminNotes.profile_photo_url && (
+                          <div className="flex items-center justify-between py-2 border-b border-slate-100/60 text-sm">
+                            <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                              <ImageIcon size={13} className="text-blue-500" /> Foto Formal
+                            </span>
+                            <a 
+                              href={adminNotes.profile_photo_url} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="text-xs font-bold text-indigo-600 hover:underline bg-indigo-50 px-2.5 py-1 rounded-lg"
+                            >
+                              Buka
+                            </a>
+                          </div>
+                        )}
+  
+                        {adminNotes.student_card_url && (
+                          <div className="flex items-center justify-between py-2 text-sm">
+                            <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                              <IdCard size={13} className="text-amber-500" /> Kartu Pelajar
+                            </span>
+                            <a 
+                              href={adminNotes.student_card_url} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="text-xs font-bold text-indigo-600 hover:underline bg-indigo-50 px-2.5 py-1 rounded-lg"
+                            >
+                              Buka
+                            </a>
+                          </div>
+                        )}
+                      </div>
                   )
                 })()}
               </div>

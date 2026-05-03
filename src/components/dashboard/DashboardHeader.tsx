@@ -12,7 +12,7 @@ export default function DashboardHeader({ userEntry, currentUser, handleLogout, 
   return (
     <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
       <div>
-        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Halo, Peserta NCC! 👋</h1>
+        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Halo, Peserta NCC!</h1>
         <p className="text-slate-500 font-medium mt-1">Selamat datang di Dasbor Resmi National Creativity Competition 13th.</p>
       </div>
       
