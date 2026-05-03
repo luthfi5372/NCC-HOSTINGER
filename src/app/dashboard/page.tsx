@@ -35,6 +35,7 @@ export default function UserDashboard() {
   // Actually, I should just move this state INSIDE the modal or keep it here if it's not a big deal since modal covers screen.
   // But moving it here is easiest for now to pass into handleSubmitEntry.
   const [formData, setFormData] = useState({
+    full_name: "",
     school_name: "",
     nisn: "",
     province: "",
@@ -76,6 +77,7 @@ export default function UserDashboard() {
           return;
         }
         setCurrentUser(user);
+        setFormData(prev => ({ ...prev, full_name: user.user_metadata?.full_name || "" }));
 
         const { data: entries, error: entryError } = await supabase
           .from('competition_entries')

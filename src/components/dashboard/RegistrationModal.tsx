@@ -66,6 +66,15 @@ export default function RegistrationModal({
                 <option value="MTQ">MTQ</option>
               </select>
             </div>
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5 px-1">
+                {isTeamEvent ? "Nama Ketua Tim (Anggota 1)" : "Nama Lengkap"}
+              </label>
+              <input required type="text" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-blue-500 outline-none" 
+                placeholder="Nama Lengkap" 
+                value={formData.full_name}
+                onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
+            </div>
           </div>
 
           <div className="space-y-4">
