@@ -4,25 +4,66 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ShieldCheck, Rocket } from "lucide-react";
 
-export default function WelcomeOverlay() {
+interface WelcomeOverlayProps {
+  userEntry: any;
+}
+
+export default function WelcomeOverlay({ userEntry }: WelcomeOverlayProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Periksa apakah user sudah melihat welcome screen di sesi ini
     const hasSeenWelcome = sessionStorage.getItem("ncc_welcome_seen");
     
     if (!hasSeenWelcome) {
       setIsVisible(true);
-      // Simpan status agar tidak muncul lagi di sesi yang sama
       sessionStorage.setItem("ncc_welcome_seen", "true");
       
-      // Auto-hide setelah 4 detik
       const timer = setTimeout(() => {
         setIsVisible(false);
-      }, 4500);
+      }, 5500); // Sedikit lebih lama untuk membaca ucapan selamat
       return () => clearTimeout(timer);
     }
   }, []);
+
+  // Deteksi Tahap dari notes
+  let stage = 1;
+  if (userEntry?.notes) {
+    try {
+      const notes = JSON.parse(userEntry.notes);
+      if (notes.current_stage) stage = notes.current_stage;
+    } catch (e) {}
+  }
+
+  const getContent = () => {
+    switch(stage) {
+      case 2:
+        return {
+          icon: <Sparkles size={48} className="text-white" />,
+          title: "Selamat! Anda Lolos T2",
+          desc: "Perjuanganmu membuahkan hasil. Selamat bertanding di Tahap Semi Final NCC 13th!",
+          color: "from-blue-600 to-cyan-500",
+          shadow: "shadow-cyan-500/20"
+        };
+      case 3:
+        return {
+          icon: <Rocket size={48} className="text-white" />,
+          title: "🏆 MENUJU FINAL!",
+          desc: "Luar biasa! Kamu terpilih sebagai Finalis Utama. Siapkan performa terbaikmu di Grand Final!",
+          color: "from-amber-500 to-orange-600",
+          shadow: "shadow-orange-500/20"
+        };
+      default:
+        return {
+          icon: <ShieldCheck size={48} className="text-white" />,
+          title: "Misi Dimulai!",
+          desc: "Selamat datang di NCC 13th Command Center. Siapkan karya terbaikmu dan jadilah juara masa depan!",
+          color: "from-blue-600 to-indigo-700",
+          shadow: "shadow-blue-500/20"
+        };
+    }
+  };
+
+  const content = getContent();
 
   return (
     <AnimatePresence>
@@ -40,26 +81,25 @@ export default function WelcomeOverlay() {
             transition={{ type: "spring", damping: 20, stiffness: 100 }}
             className="relative max-w-lg w-full bg-white/10 border border-white/20 rounded-[3rem] p-12 text-center shadow-2xl overflow-hidden"
           >
-            {/* Animasi Cahaya di Belakang */}
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/20 to-indigo-500/20 pointer-events-none"></div>
+            <div className={`absolute top-0 left-0 w-full h-full bg-gradient-to-br ${content.color} opacity-10 pointer-events-none`}></div>
             
             <div className="relative z-10">
               <motion.div
                 initial={{ rotate: -20, scale: 0 }}
                 animate={{ rotate: 0, scale: 1 }}
                 transition={{ delay: 0.3, type: "spring" }}
-                className="w-24 h-24 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-500/20 border border-white/20"
+                className={`w-24 h-24 bg-gradient-to-br ${content.color} rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl ${content.shadow} border border-white/20`}
               >
-                <ShieldCheck size={48} className="text-white" />
+                {content.icon}
               </motion.div>
 
               <motion.h2 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="text-4xl font-black text-white mb-4 tracking-tight"
+                className="text-4xl font-black text-white mb-4 tracking-tight uppercase"
               >
-                Misi Dimulai!
+                {content.title}
               </motion.h2>
               
               <motion.p
@@ -68,7 +108,7 @@ export default function WelcomeOverlay() {
                 transition={{ delay: 0.7 }}
                 className="text-blue-100 text-lg font-medium leading-relaxed"
               >
-                Selamat datang di <span className="text-white font-bold">NCC 13th Command Center</span>. Siapkan karya terbaikmu dan jadilah juara masa depan!
+                {content.desc}
               </motion.p>
 
               <motion.div
@@ -79,25 +119,12 @@ export default function WelcomeOverlay() {
               >
                 <button
                   onClick={() => setIsVisible(false)}
-                  className="px-8 py-4 bg-white text-blue-900 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-50 transition-all shadow-lg active:scale-95 flex items-center gap-2 mx-auto"
+                  className="px-8 py-4 bg-white text-slate-900 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-50 transition-all shadow-lg active:scale-95 flex items-center gap-2 mx-auto"
                 >
-                  <Rocket size={18} />
                   Masuk Markas Besar
                 </button>
               </motion.div>
             </div>
-
-            {/* Partikel Sparkle Dekoratif */}
-            <motion.div
-              animate={{ 
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.6, 0.3]
-              }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="absolute top-10 right-10 text-white/40"
-            >
-              <Sparkles size={24} />
-            </motion.div>
           </motion.div>
         </motion.div>
       )}
