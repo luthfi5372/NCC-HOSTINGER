@@ -47,6 +47,22 @@ export default function StatusCards({
     participant2_nisn: userEntry?.participant2_nisn || ""
   });
 
+  // 🔄 Sync form state when userEntry changes (important for real-time updates)
+  useEffect(() => {
+    if (userEntry) {
+      setProfileForm({
+        full_name: userEntry.full_name || "",
+        school_name: userEntry.school_name || userEntry.school || "",
+        phone: userEntry.phone || "",
+        nisn: userEntry.nisn || "",
+        province: userEntry.province || "",
+        team_name: userEntry.team_name || "",
+        participant2_name: userEntry.participant2_name || "",
+        participant2_nisn: userEntry.participant2_nisn || ""
+      });
+    }
+  }, [userEntry]);
+
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [studentCard, setStudentCard] = useState<File | null>(null);
 

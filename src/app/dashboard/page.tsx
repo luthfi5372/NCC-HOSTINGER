@@ -86,7 +86,21 @@ export default function UserDashboard() {
           .order('created_at', { ascending: false });
            
         if (entries && entries.length > 0) {
-          setUserEntry(entries[0]); // Ambil yang paling baru jika ada banyak
+          const entry = entries[0];
+          setUserEntry(entry); // Ambil yang paling baru jika ada banyak
+          
+          // Sinkronkan form data dengan data yang sudah ada di database
+          setFormData({
+            full_name: entry.full_name || user.user_metadata?.full_name || "",
+            school_name: entry.school_name || entry.school || "",
+            nisn: entry.nisn || "",
+            province: entry.province || "",
+            competition_type: entry.competition_type || "Olimpiade MIPA",
+            mentor_name: entry.mentor_name || "",
+            team_name: entry.team_name || "",
+            participant2_name: entry.participant2_name || "",
+            participant2_nisn: entry.participant2_nisn || ""
+          });
         } else if (entryError) {
           console.error("Entry fetch error:", entryError);
         }
