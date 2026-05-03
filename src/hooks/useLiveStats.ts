@@ -40,7 +40,7 @@ export function useLiveStats() {
       // 1. Fetch from Supabase (Only verified participants)
       const { data: supabaseEntries, error } = await supabase
         .from("competition_entries")
-        .select("category, city, payment_status");
+        .select("category, city, province, payment_status");
 
       if (error) console.warn("Supabase stats fetch error:", error);
 
@@ -54,8 +54,17 @@ export function useLiveStats() {
 
       allEntries.forEach(entry => {
         if ((breakdown as any)[entry.category] !== undefined) (breakdown as any)[entry.category]++;
-        const prov = entry.city?.toUpperCase();
+        
+        // Normalisasi Nama Provinsi agar sinkron dengan ID Map
+        let prov = (entry.province || entry.city)?.toUpperCase()?.trim();
+        
         if (prov) {
+          // Fallback mapping untuk variasi nama
+          if (prov === "DAERAH ISTIMEWA YOGYAKARTA") prov = "DI YOGYAKARTA";
+          if (prov === "KEPULAUAN BANGKA BELITUNG") prov = "BANGKA BELITUNG";
+          if (prov === "PROVINSI BANTEN") prov = "PROBANTEN";
+          if (prov === "BANTEN") prov = "PROBANTEN";
+          
           activeProvinces.add(prov);
           detailedStats[prov] = (detailedStats[prov] || 0) + 1;
           const region = PROVINCE_TO_REGION[prov] || "Jawa";
