@@ -12,35 +12,38 @@ interface WelcomeOverlayProps {
 export default function WelcomeOverlay({ userEntry, currentUser }: WelcomeOverlayProps) {
   const [isVisible, setIsVisible] = useState(false);
 
-  useEffect(() => {
-    if (!currentUser?.id) return;
-
-    // Gunakan kunci unik per User ID agar saat ganti akun animasi tetap muncul
-    const welcomeKey = `ncc_welcome_seen_${currentUser.id}`;
-    const hasSeenWelcome = sessionStorage.getItem(welcomeKey);
-    
-    if (!hasSeenWelcome) {
-      setIsVisible(true);
-      sessionStorage.setItem(welcomeKey, "true");
-      
-      const timer = setTimeout(() => {
-        setIsVisible(false);
-      }, 5500); // Sedikit lebih lama untuk membaca ucapan selamat
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  // Deteksi Tahap dari notes
+  // Deteksi Tahap dari notes (Pindahkan ke atas agar bisa dibaca oleh useEffect)
   let stage = 1;
   if (userEntry?.notes) {
     try {
       const notes = JSON.parse(userEntry.notes);
       if (notes.current_stage) stage = notes.current_stage;
-    } catch (e) {}
+    } catch (e) { }
   }
 
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    // Kunci unik per User ID yang menyimpan Tahap TERAKHIR yang dilihat
+    const stageKey = `ncc_last_stage_seen_${currentUser.id}`;
+    const lastSeenStage = sessionStorage.getItem(stageKey);
+    
+    // Trigger animasi jika:
+    // 1. Belum pernah lihat sama sekali (null)
+    // 2. Tahap sekarang berbeda dengan yang terakhir dicatat (berarti ada update dari Admin)
+    if (lastSeenStage === null || parseInt(lastSeenStage) !== stage) {
+      setIsVisible(true);
+      sessionStorage.setItem(stageKey, stage.toString());
+      
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+      }, 5500);
+      return () => clearTimeout(timer);
+    }
+  }, [stage, currentUser?.id]); 
+
   const getContent = () => {
-    switch(stage) {
+    switch (stage) {
       case 2:
         return {
           icon: <Sparkles size={48} className="text-white" />,
@@ -87,7 +90,7 @@ export default function WelcomeOverlay({ userEntry, currentUser }: WelcomeOverla
             className="relative max-w-lg w-full bg-white/10 border border-white/20 rounded-[3rem] p-12 text-center shadow-2xl overflow-hidden"
           >
             <div className={`absolute top-0 left-0 w-full h-full bg-gradient-to-br ${content.color} opacity-10 pointer-events-none`}></div>
-            
+
             <div className="relative z-10">
               <motion.div
                 initial={{ rotate: -20, scale: 0 }}
@@ -98,7 +101,7 @@ export default function WelcomeOverlay({ userEntry, currentUser }: WelcomeOverla
                 {content.icon}
               </motion.div>
 
-              <motion.h2 
+              <motion.h2
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
@@ -106,7 +109,7 @@ export default function WelcomeOverlay({ userEntry, currentUser }: WelcomeOverla
               >
                 {content.title}
               </motion.h2>
-              
+
               <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
