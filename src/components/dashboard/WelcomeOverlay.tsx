@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ShieldCheck, Rocket } from "lucide-react";
+import { Sparkles, ShieldCheck, Rocket, Trophy, Medal } from "lucide-react";
 
 interface WelcomeOverlayProps {
   userEntry: any;
@@ -46,7 +46,7 @@ export default function WelcomeOverlay({ userEntry, currentUser }: WelcomeOverla
     switch (stage) {
       case 2:
         return {
-          icon: <Sparkles size={48} className="text-white" />,
+          icon: <Medal size={48} className="text-white" />,
           title: "Selamat! Anda Lolos T2",
           desc: "Perjuanganmu membuahkan hasil. Selamat bertanding di Tahap Semi Final NCC 13th!",
           color: "from-blue-600 to-cyan-500",
@@ -54,8 +54,8 @@ export default function WelcomeOverlay({ userEntry, currentUser }: WelcomeOverla
         };
       case 3:
         return {
-          icon: <Rocket size={48} className="text-white" />,
-          title: "🏆 MENUJU FINAL!",
+          icon: <Trophy size={48} className="text-white" />,
+          title: "MENUJU FINAL!",
           desc: "Luar biasa! Kamu terpilih sebagai Finalis Utama. Siapkan performa terbaikmu di Grand Final!",
           color: "from-amber-500 to-orange-600",
           shadow: "shadow-orange-500/20"
