@@ -324,21 +324,28 @@ export default function ModernHQDashboard() {
   // --- KONTROL PROGRES TAHAP PESERTA ---
   const handleUpdateStage = async (id: any, newStage: number) => {
     try {
+      const entry = realEntries.find(e => e.id === id);
+      let notesObj: any = {};
+      if (entry?.notes) try { notesObj = JSON.parse(entry.notes); } catch (e) {}
+      
+      notesObj.current_stage = newStage;
+      const updatedNotes = JSON.stringify(notesObj);
+
       const { error } = await supabase
         .from('competition_entries')
-        .update({ current_stage: newStage })
+        .update({ notes: updatedNotes })
         .eq('id', id);
 
       if (error) throw error;
 
       // Update state lokal
       setRealEntries(prev => prev.map(entry => 
-        entry.id === id ? { ...entry, current_stage: newStage } : entry
+        entry.id === id ? { ...entry, notes: updatedNotes } : entry
       ));
       
       // Update selected participant if open
       if (selectedParticipant && selectedParticipant.id === id) {
-        setSelectedParticipant((prev: any) => ({ ...prev, current_stage: newStage }));
+        setSelectedParticipant((prev: any) => ({ ...prev, notes: updatedNotes }));
       }
 
       showToast(`Peserta berhasil dipindahkan ke Tahap ${newStage === 3 ? 'Final' : newStage}`, "success");
@@ -860,7 +867,14 @@ export default function ModernHQDashboard() {
                           </td>
                           <td className="py-4 px-6">
                             {(() => {
-                              const stage = entry.current_stage || 1;
+                              let stage = 1;
+                              if (entry.notes) {
+                                try {
+                                  const n = JSON.parse(entry.notes);
+                                  if (n.current_stage) stage = n.current_stage;
+                                } catch (e) {}
+                              }
+
                               if (stage === 1) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-1"><ClipboardCheck size={10} /> TAHAP 1</span>;
                               if (stage === 2) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-200 animate-pulse flex items-center gap-1"><Medal size={10} /> TAHAP 2</span>;
                               if (stage === 3) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-200 shadow-sm shadow-amber-100 flex items-center gap-1"><Trophy size={10} /> FINAL</span>;
@@ -1841,7 +1855,14 @@ export default function ModernHQDashboard() {
                       <div className="flex items-center justify-between px-2">
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Status:</span>
                         {(() => {
-                          const stage = selectedParticipant.current_stage || 1;
+                          let stage = 1;
+                          if (selectedParticipant.notes) {
+                            try {
+                              const n = JSON.parse(selectedParticipant.notes);
+                              if (n.current_stage) stage = n.current_stage;
+                            } catch (e) {}
+                          }
+
                           if (stage === 1) return <span className="text-[10px] font-black text-slate-400 uppercase">Penyisihan (1)</span>;
                           if (stage === 2) return <span className="text-[10px] font-black text-blue-600 uppercase">Semi Final (2)</span>;
                           if (stage === 3) return <span className="text-[10px] font-black text-amber-600 uppercase">Final (3)</span>;
@@ -1852,21 +1873,33 @@ export default function ModernHQDashboard() {
                       <div className="grid grid-cols-3 gap-2">
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 1); }}
-                          className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ (selectedParticipant.current_stage || 1) === 1 ? 'bg-white border-slate-200 text-slate-300 shadow-inner' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300' }`}
+                          className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ (() => {
+                            let s = 1;
+                            if (selectedParticipant.notes) { try { s = JSON.parse(selectedParticipant.notes).current_stage || 1; } catch (e) {} }
+                            return s === 1;
+                          })() ? 'bg-white border-slate-200 text-slate-300 shadow-inner' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300' }`}
                         >
                           <Clock size={12} />
                           SET T1
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 2); }}
-                          className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ (selectedParticipant.current_stage || 1) === 2 ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white border-slate-100 text-blue-600 hover:border-blue-200' }`}
+                          className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ (() => {
+                            let s = 1;
+                            if (selectedParticipant.notes) { try { s = JSON.parse(selectedParticipant.notes).current_stage || 1; } catch (e) {} }
+                            return s === 2;
+                          })() ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white border-slate-100 text-blue-600 hover:border-blue-200' }`}
                         >
                           <Medal size={12} />
                           LOLOS T2
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 3); }}
-                          className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ (selectedParticipant.current_stage || 1) === 3 ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-200' : 'bg-white border-slate-100 text-amber-600 hover:border-amber-200' }`}
+                          className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ (() => {
+                            let s = 1;
+                            if (selectedParticipant.notes) { try { s = JSON.parse(selectedParticipant.notes).current_stage || 1; } catch (e) {} }
+                            return s === 3;
+                          })() ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-200' : 'bg-white border-slate-100 text-amber-600 hover:border-amber-200' }`}
                         >
                           <Trophy size={12} />
                           FINAL
