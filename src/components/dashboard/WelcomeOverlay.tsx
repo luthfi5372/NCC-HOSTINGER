@@ -6,17 +6,22 @@ import { Sparkles, ShieldCheck, Rocket } from "lucide-react";
 
 interface WelcomeOverlayProps {
   userEntry: any;
+  currentUser: any;
 }
 
-export default function WelcomeOverlay({ userEntry }: WelcomeOverlayProps) {
+export default function WelcomeOverlay({ userEntry, currentUser }: WelcomeOverlayProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const hasSeenWelcome = sessionStorage.getItem("ncc_welcome_seen");
+    if (!currentUser?.id) return;
+
+    // Gunakan kunci unik per User ID agar saat ganti akun animasi tetap muncul
+    const welcomeKey = `ncc_welcome_seen_${currentUser.id}`;
+    const hasSeenWelcome = sessionStorage.getItem(welcomeKey);
     
     if (!hasSeenWelcome) {
       setIsVisible(true);
-      sessionStorage.setItem("ncc_welcome_seen", "true");
+      sessionStorage.setItem(welcomeKey, "true");
       
       const timer = setTimeout(() => {
         setIsVisible(false);
