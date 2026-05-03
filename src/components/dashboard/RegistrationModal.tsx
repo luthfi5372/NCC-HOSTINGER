@@ -151,14 +151,14 @@ export default function RegistrationModal({
                   onChange={(e) => setFormData({...formData, team_name: e.target.value})} required={isTeamEvent} />
               </div>
               <div className="md:col-span-1">
-                <label className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block mb-1 px-1">Anggota 2</label>
+                <label className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block mb-1 px-1">Nama Anggota Tim</label>
                 <input type="text" className="w-full p-3.5 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:border-blue-500 outline-none" 
                   placeholder="Nama Lengkap" 
                   value={formData.participant2_name}
                   onChange={(e) => setFormData({...formData, participant2_name: e.target.value})} required={isTeamEvent} />
               </div>
               <div className="md:col-span-1">
-                <label className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block mb-1 px-1">NISN Anggota 2</label>
+                <label className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block mb-1 px-1">NISN Anggota Tim</label>
                 <input type="number" className="w-full p-3.5 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:border-blue-500 outline-none" 
                   placeholder="NISN" 
                   value={formData.participant2_nisn}
