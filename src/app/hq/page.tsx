@@ -324,7 +324,34 @@ export default function ModernHQDashboard() {
   // --- MESIN PENGUMPUL DATA & RADAR REAL-TIME ---
   useEffect(() => {
     // Fungsi penarik data utama
-    const fetchRealData = async () => {
+    // --- KONTROL PROGRES TAHAP PESERTA ---
+  const handleUpdateStage = async (id: any, newStage: number) => {
+    try {
+      const { error } = await supabase
+        .from('competition_entries')
+        .update({ current_stage: newStage })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update state lokal
+      setRealEntries(prev => prev.map(entry => 
+        entry.id === id ? { ...entry, current_stage: newStage } : entry
+      ));
+      
+      // Update selected participant if open
+      if (selectedParticipant && selectedParticipant.id === id) {
+        setSelectedParticipant((prev: any) => ({ ...prev, current_stage: newStage }));
+      }
+
+      showToast(`Peserta berhasil dipindahkan ke Tahap ${newStage === 3 ? 'Final' : newStage}`, "success");
+    } catch (err) {
+      console.error("Gagal update tahap:", err);
+      showToast("Gagal memperbarui tahap peserta", "error");
+    }
+  };
+
+  const fetchRealData = async () => {
       try {
         const { data, error } = await supabase
           .from('competition_entries')
@@ -744,6 +771,7 @@ export default function ModernHQDashboard() {
                     <th className="py-4 px-6">ID TIKET</th>
                     <th className="py-4 px-6">PROFIL PESERTA</th>
                     <th className="py-4 px-6">ASAL SEKOLAH</th>
+                    <th className="py-4 px-6">PROGRES</th>
                     <th className="py-4 px-6">KATEGORI & PEMBINA</th>
                     <th className="py-4 px-6">WAKTU DAFTAR</th>
                     <th className="py-4 px-6">STATUS</th>
@@ -829,6 +857,15 @@ export default function ModernHQDashboard() {
                             <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                                <MapPin size={11} className="shrink-0" /> {entry.province || entry.city || "Provinsi belum diisi"}
                             </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            {(() => {
+                              const stage = entry.current_stage || 1;
+                              if (stage === 1) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200">TAHAP 1</span>;
+                              if (stage === 2) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-200 animate-pulse">TAHAP 2</span>;
+                              if (stage === 3) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-200 shadow-sm shadow-amber-100">🏆 FINAL</span>;
+                              return <span className="text-xs text-slate-400">-</span>;
+                            })()}
                           </td>
                           <td className="py-4 px-6">
                             <span className="bg-slate-100/80 text-slate-700 px-2.5 py-1 rounded-md text-[11px] font-bold border border-slate-200/60">
@@ -1787,6 +1824,52 @@ export default function ModernHQDashboard() {
                     <MapPin size={13} className="text-slate-400 shrink-0" />
                     {selectedParticipant.province || selectedParticipant.city || "Provinsi tidak dicantumkan"}
                   </p>
+                </div>
+
+                {/* SECTION BARU: KONTROL TAHAP KOMPETISI */}
+                <div className="mt-4 pt-4 border-t border-slate-200/50">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg">
+                      <Target size={14} />
+                    </div>
+                    <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Kontrol Tahap Kompetisi</h4>
+                  </div>
+                  
+                  <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-100">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between px-2">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Status:</span>
+                        {(() => {
+                          const stage = selectedParticipant.current_stage || 1;
+                          if (stage === 1) return <span className="text-[10px] font-black text-slate-400 uppercase">Penyisihan (1)</span>;
+                          if (stage === 2) return <span className="text-[10px] font-black text-blue-600 uppercase">Semi Final (2)</span>;
+                          if (stage === 3) return <span className="text-[10px] font-black text-amber-600 uppercase">Final (3)</span>;
+                          return null;
+                        })()}
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-2">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 1); }}
+                          className={`py-2 rounded-xl text-[9px] font-black transition-all border ${ (selectedParticipant.current_stage || 1) === 1 ? 'bg-white border-slate-200 text-slate-400 shadow-inner' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300' }`}
+                        >
+                          SET T1
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 2); }}
+                          className={`py-2 rounded-xl text-[9px] font-black transition-all border ${ (selectedParticipant.current_stage || 1) === 2 ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white border-slate-100 text-blue-500 hover:border-blue-200' }`}
+                        >
+                          LOLOS T2
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 3); }}
+                          className={`py-2 rounded-xl text-[9px] font-black transition-all border ${ (selectedParticipant.current_stage || 1) === 3 ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-200' : 'bg-white border-slate-100 text-amber-600 hover:border-amber-200' }`}
+                        >
+                          FINAL
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {(() => {
