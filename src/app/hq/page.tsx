@@ -41,14 +41,14 @@ export default function ModernHQDashboard() {
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
   
   const [submissionStatus, setSubmissionStatus] = useState([
-    { id: 'mipa_g1', name: 'Olimpiade MIPA (Gel. I)', isOpen: false },
-    { id: 'mipa_g2', name: 'Olimpiade MIPA (Gel. II)', isOpen: false },
-    { id: 'speech_g1', name: 'Speech Contest (Gel. I)', isOpen: false },
-    { id: 'speech_g2', name: 'Speech Contest (Gel. II)', isOpen: false },
-    { id: 'lkti_g1', name: 'LKTI Nasional (Gel. I)', isOpen: true },
-    { id: 'lkti_g2', name: 'LKTI Nasional (Gel. II)', isOpen: false },
-    { id: 'mtq_g1', name: 'MTQ (Gel. I)', isOpen: false },
-    { id: 'mtq_g2', name: 'MTQ (Gel. II)', isOpen: false },
+    { id: 'mipa_g1', name: 'Olimpiade MIPA (Gel. I)', isOpen: false, openAt: "", closeAt: "" },
+    { id: 'mipa_g2', name: 'Olimpiade MIPA (Gel. II)', isOpen: false, openAt: "", closeAt: "" },
+    { id: 'speech_g1', name: 'Speech Contest (Gel. I)', isOpen: false, openAt: "", closeAt: "" },
+    { id: 'speech_g2', name: 'Speech Contest (Gel. II)', isOpen: false, openAt: "", closeAt: "" },
+    { id: 'lkti_g1', name: 'LKTI Nasional (Gel. I)', isOpen: true, openAt: "", closeAt: "" },
+    { id: 'lkti_g2', name: 'LKTI Nasional (Gel. II)', isOpen: false, openAt: "", closeAt: "" },
+    { id: 'mtq_g1', name: 'MTQ (Gel. I)', isOpen: false, openAt: "", closeAt: "" },
+    { id: 'mtq_g2', name: 'MTQ (Gel. II)', isOpen: false, openAt: "", closeAt: "" },
   ]);
 
   const toggleSubmission = (id: string) => {
@@ -56,6 +56,53 @@ export default function ModernHQDashboard() {
       item.id === id ? { ...item, isOpen: !item.isOpen } : item
     ));
   };
+
+  const updateSchedule = (id: string, type: 'openAt' | 'closeAt', value: string) => {
+    setSubmissionStatus(prev => prev.map(item => 
+      item.id === id ? { ...item, [type]: value } : item
+    ));
+  };
+
+  // --- ⏰ LOGIKA PENJADWALAN OTOMATIS REAL-TIME ---
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      let hasChanged = false;
+      
+      const newStatus = submissionStatus.map(item => {
+        let nextStatus = { ...item };
+        let itemChanged = false;
+
+        // Cek Jadwal Buka
+        if (item.openAt && !item.isOpen) {
+          const openDate = new Date(item.openAt);
+          if (now >= openDate) {
+            nextStatus.isOpen = true;
+            itemChanged = true;
+          }
+        }
+
+        // Cek Jadwal Tutup
+        if (item.closeAt && item.isOpen) {
+          const closeDate = new Date(item.closeAt);
+          if (now >= closeDate) {
+            nextStatus.isOpen = false;
+            itemChanged = true;
+          }
+        }
+
+        if (itemChanged) hasChanged = true;
+        return nextStatus;
+      });
+
+      if (hasChanged) {
+        setSubmissionStatus(newStatus);
+        showToast("Otomasi: Status portal telah diperbarui berdasarkan jadwal.", "success");
+      }
+    }, 10000); // Cek setiap 10 detik
+
+    return () => clearInterval(timer);
+  }, [submissionStatus]);
 
   const [phaseStatus, setPhaseStatus] = useState([
     { id: 'tahap1', name: 'Tahap 1: Penyisihan', isOpen: true },
@@ -1492,25 +1539,52 @@ export default function ModernHQDashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {submissionStatus.filter(c => c.id.endsWith('_g1')).map((category) => (
-                  <div key={category.id} className={`flex items-center justify-between p-5 rounded-2xl border-2 transition-all duration-300 ${category.isOpen ? 'border-indigo-400 bg-indigo-50/40 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
-                    <div>
-                      <h4 className="font-bold text-slate-800">{category.name}</h4>
-                      <p className={`text-[10px] font-bold tracking-widest uppercase mt-1 ${category.isOpen ? 'text-indigo-600' : 'text-slate-400'}`}>
-                        {category.isOpen ? '● Portal Terbuka' : '○ Portal Ditutup'}
-                      </p>
-                    </div>
-                    
-                    <button 
-                      onClick={() => {
-                        toggleSubmission(category.id);
-                        showToast(`${category.name} ${!category.isOpen ? 'Portal Dibuka' : 'Portal Ditutup'}`, !category.isOpen ? 'success' : 'error');
-                      }}
-                      className={`relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${category.isOpen ? 'bg-indigo-500' : 'bg-slate-300'}`}
-                    >
-                      <div className={`absolute top-0.5 left-0.5 bg-white w-6 h-6 rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${category.isOpen ? 'translate-x-7' : 'translate-x-0'}`}>
-                        {category.isOpen ? <FileCheck size={10} className="text-indigo-600" /> : <X size={10} className="text-slate-400" />}
+                  <div key={category.id} className={`flex flex-col p-5 rounded-2xl border-2 transition-all duration-300 ${category.isOpen ? 'border-indigo-400 bg-indigo-50/40 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="font-bold text-slate-800">{category.name}</h4>
+                        <p className={`text-[10px] font-bold tracking-widest uppercase mt-1 ${category.isOpen ? 'text-indigo-600' : 'text-slate-400'}`}>
+                          {category.isOpen ? '● Portal Terbuka' : '○ Portal Ditutup'}
+                        </p>
                       </div>
-                    </button>
+                      
+                      <button 
+                        onClick={() => {
+                          toggleSubmission(category.id);
+                          showToast(`${category.name} ${!category.isOpen ? 'Portal Dibuka' : 'Portal Ditutup'}`, !category.isOpen ? 'success' : 'error');
+                        }}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${category.isOpen ? 'bg-indigo-500' : 'bg-slate-300'}`}
+                      >
+                        <div className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${category.isOpen ? 'translate-x-6' : 'translate-x-0'}`}>
+                          {category.isOpen ? <FileCheck size={8} className="text-indigo-600" /> : <X size={8} className="text-slate-400" />}
+                        </div>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200/50">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                          <Calendar size={10} /> Auto-Open
+                        </label>
+                        <input 
+                          type="datetime-local" 
+                          className="w-full text-[10px] p-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-400 font-medium text-slate-600"
+                          value={category.openAt || ""}
+                          onChange={(e) => updateSchedule(category.id, 'openAt', e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                          <Clock size={10} /> Auto-Close
+                        </label>
+                        <input 
+                          type="datetime-local" 
+                          className="w-full text-[10px] p-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-400 font-medium text-slate-600"
+                          value={category.closeAt || ""}
+                          onChange={(e) => updateSchedule(category.id, 'closeAt', e.target.value)}
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1530,25 +1604,52 @@ export default function ModernHQDashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {submissionStatus.filter(c => c.id.endsWith('_g2')).map((category) => (
-                  <div key={category.id} className={`flex items-center justify-between p-5 rounded-2xl border-2 transition-all duration-300 ${category.isOpen ? 'border-violet-400 bg-violet-50/40 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
-                    <div>
-                      <h4 className="font-bold text-slate-800">{category.name}</h4>
-                      <p className={`text-[10px] font-bold tracking-widest uppercase mt-1 ${category.isOpen ? 'text-violet-600' : 'text-slate-400'}`}>
-                        {category.isOpen ? '● Portal Terbuka' : '○ Portal Ditutup'}
-                      </p>
-                    </div>
-                    
-                    <button 
-                      onClick={() => {
-                        toggleSubmission(category.id);
-                        showToast(`${category.name} ${!category.isOpen ? 'Portal Dibuka' : 'Portal Ditutup'}`, !category.isOpen ? 'success' : 'error');
-                      }}
-                      className={`relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${category.isOpen ? 'bg-violet-500' : 'bg-slate-300'}`}
-                    >
-                      <div className={`absolute top-0.5 left-0.5 bg-white w-6 h-6 rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${category.isOpen ? 'translate-x-7' : 'translate-x-0'}`}>
-                        {category.isOpen ? <FileCheck size={10} className="text-violet-600" /> : <X size={10} className="text-slate-400" />}
+                  <div key={category.id} className={`flex flex-col p-5 rounded-2xl border-2 transition-all duration-300 ${category.isOpen ? 'border-violet-400 bg-violet-50/40 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="font-bold text-slate-800">{category.name}</h4>
+                        <p className={`text-[10px] font-bold tracking-widest uppercase mt-1 ${category.isOpen ? 'text-violet-600' : 'text-slate-400'}`}>
+                          {category.isOpen ? '● Portal Terbuka' : '○ Portal Ditutup'}
+                        </p>
                       </div>
-                    </button>
+                      
+                      <button 
+                        onClick={() => {
+                          toggleSubmission(category.id);
+                          showToast(`${category.name} ${!category.isOpen ? 'Portal Dibuka' : 'Portal Ditutup'}`, !category.isOpen ? 'success' : 'error');
+                        }}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${category.isOpen ? 'bg-violet-500' : 'bg-slate-300'}`}
+                      >
+                        <div className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${category.isOpen ? 'translate-x-6' : 'translate-x-0'}`}>
+                          {category.isOpen ? <FileCheck size={8} className="text-violet-600" /> : <X size={8} className="text-slate-400" />}
+                        </div>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200/50">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                          <Calendar size={10} /> Auto-Open
+                        </label>
+                        <input 
+                          type="datetime-local" 
+                          className="w-full text-[10px] p-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-violet-400 font-medium text-slate-600"
+                          value={category.openAt || ""}
+                          onChange={(e) => updateSchedule(category.id, 'openAt', e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                          <Clock size={10} /> Auto-Close
+                        </label>
+                        <input 
+                          type="datetime-local" 
+                          className="w-full text-[10px] p-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-violet-400 font-medium text-slate-600"
+                          value={category.closeAt || ""}
+                          onChange={(e) => updateSchedule(category.id, 'closeAt', e.target.value)}
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
