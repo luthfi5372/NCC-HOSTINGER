@@ -215,7 +215,7 @@ export default function TimelineWidget({ userCategory }: TimelineProps) {
                       {wave.label}
                     </span>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-5">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-5">
                       {wave.items.map((item, iIdx) => (
                         <div key={iIdx} className={`bg-white border border-slate-100 ${styles.cardBorder} hover:shadow-xl ${styles.cardShadow} p-5 rounded-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between min-w-0 relative z-10 ${styles.opacity || ''}`}>
                           <div className="flex items-start gap-3 mb-4">
