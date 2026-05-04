@@ -1593,7 +1593,6 @@ export default function ModernHQDashboard() {
                     ))}
                 </div>
               </div>
-            </div>
           )}
         {/* ========================================================= */}
         {/* 🌟 TAB KEGIATAN (PUSAT KAWALAN PENDAFTARAN & FAIL) */}
