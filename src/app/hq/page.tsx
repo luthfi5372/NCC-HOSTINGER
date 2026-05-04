@@ -1643,7 +1643,7 @@ export default function ModernHQDashboard() {
                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
                  <div className="flex items-center gap-6">
                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30">
-                     <Pin size={32} />
+                     <MapPin size={32} />
                    </div>
                    <div>
                      <h3 className="text-2xl font-black tracking-tight">Technical Meeting – Semua Lomba</h3>
