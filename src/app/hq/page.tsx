@@ -41,14 +41,14 @@ export default function ModernHQDashboard() {
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
   
   const [submissionStatus, setSubmissionStatus] = useState([
-    { id: 'mipa_g1', name: 'Olimpiade MIPA (Gel. I)', isOpen: false, openAt: "", closeAt: "", mode: "Manual" },
-    { id: 'mipa_g2', name: 'Olimpiade MIPA (Gel. II)', isOpen: false, openAt: "", closeAt: "", mode: "Manual" },
-    { id: 'speech_g1', name: 'Speech Contest (Gel. I)', isOpen: false, openAt: "", closeAt: "", mode: "Manual" },
-    { id: 'speech_g2', name: 'Speech Contest (Gel. II)', isOpen: false, openAt: "", closeAt: "", mode: "Manual" },
-    { id: 'lkti_g1', name: 'LKTI Nasional (Gel. I)', isOpen: true, openAt: "", closeAt: "", mode: "Manual" },
-    { id: 'lkti_g2', name: 'LKTI Nasional (Gel. II)', isOpen: false, openAt: "", closeAt: "", mode: "Manual" },
-    { id: 'mtq_g1', name: 'MTQ (Gel. I)', isOpen: false, openAt: "", closeAt: "", mode: "Manual" },
-    { id: 'mtq_g2', name: 'MTQ (Gel. II)', isOpen: false, openAt: "", closeAt: "", mode: "Manual" },
+    { id: 'mipa_g1', name: 'Olimpiade MIPA (Gel. I)', isOpen: false, openAt: "", closeAt: "", mode: "" },
+    { id: 'mipa_g2', name: 'Olimpiade MIPA (Gel. II)', isOpen: false, openAt: "", closeAt: "", mode: "" },
+    { id: 'speech_g1', name: 'Speech Contest (Gel. I)', isOpen: false, openAt: "", closeAt: "", mode: "" },
+    { id: 'speech_g2', name: 'Speech Contest (Gel. II)', isOpen: false, openAt: "", closeAt: "", mode: "" },
+    { id: 'lkti_g1', name: 'LKTI Nasional (Gel. I)', isOpen: true, openAt: "", closeAt: "", mode: "" },
+    { id: 'lkti_g2', name: 'LKTI Nasional (Gel. II)', isOpen: false, openAt: "", closeAt: "", mode: "" },
+    { id: 'mtq_g1', name: 'MTQ (Gel. I)', isOpen: false, openAt: "", closeAt: "", mode: "" },
+    { id: 'mtq_g2', name: 'MTQ (Gel. II)', isOpen: false, openAt: "", closeAt: "", mode: "" },
   ]);
 
   const toggleSubmission = (id: string) => {
@@ -1550,33 +1550,40 @@ export default function ModernHQDashboard() {
                           <p className={`text-[10px] font-bold tracking-widest uppercase ${category.isOpen ? 'text-indigo-600' : 'text-slate-400'}`}>
                             {category.isOpen ? '● Portal Terbuka' : '○ Portal Ditutup'}
                           </p>
-                          <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase ${category.mode === 'Auto' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
-                            {category.mode}
-                          </span>
+                          {category.mode ? (
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase ${category.mode === 'Auto' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                              {category.mode}
+                            </span>
+                          ) : (
+                            <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase bg-amber-100 text-amber-600 animate-pulse">
+                              Pilih Mode Control
+                            </span>
+                          )}
                         </div>
                       </div>
                       
                       <div className="flex flex-col items-end gap-2">
-                        <div className="flex bg-slate-100 p-0.5 rounded-lg">
+                        <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                           <button 
                             onClick={() => updateSchedule(category.id, 'mode', 'Manual')}
-                            className={`text-[8px] px-2 py-1 rounded-md font-bold transition-all ${category.mode === 'Manual' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}
+                            className={`text-[8px] px-2 py-1 rounded-md font-bold transition-all ${category.mode === 'Manual' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                           >
                             MANUAL
                           </button>
                           <button 
                             onClick={() => updateSchedule(category.id, 'mode', 'Auto')}
-                            className={`text-[8px] px-2 py-1 rounded-md font-bold transition-all ${category.mode === 'Auto' ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400'}`}
+                            className={`text-[8px] px-2 py-1 rounded-md font-bold transition-all ${category.mode === 'Auto' ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                           >
                             AUTO
                           </button>
                         </div>
                         <button 
+                          disabled={!category.mode}
                           onClick={() => {
                             toggleSubmission(category.id);
                             showToast(`${category.name} ${!category.isOpen ? 'Portal Dibuka' : 'Portal Ditutup'}`, !category.isOpen ? 'success' : 'error');
                           }}
-                          className={`relative w-10 h-5 rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${category.isOpen ? 'bg-indigo-500' : 'bg-slate-300'}`}
+                          className={`relative w-10 h-5 rounded-full transition-all duration-300 focus:outline-none shadow-inner shrink-0 ${!category.mode ? 'opacity-20 cursor-not-allowed' : category.isOpen ? 'bg-indigo-500' : 'bg-slate-300'}`}
                         >
                           <div className={`absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${category.isOpen ? 'translate-x-5' : 'translate-x-0'}`}>
                             {category.isOpen ? <FileCheck size={8} className="text-indigo-600" /> : <X size={8} className="text-slate-400" />}
@@ -1585,7 +1592,7 @@ export default function ModernHQDashboard() {
                       </div>
                     </div>
 
-                    <div className={`grid grid-cols-2 gap-3 pt-3 border-t border-slate-200/50 transition-opacity ${category.mode === 'Manual' ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
+                    <div className={`grid grid-cols-2 gap-3 pt-3 border-t border-slate-200/50 transition-opacity ${(!category.mode || category.mode === 'Manual') ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
                       <div className="space-y-1">
                         <label className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
                           <Calendar size={10} /> Auto-Open
@@ -1636,33 +1643,40 @@ export default function ModernHQDashboard() {
                           <p className={`text-[10px] font-bold tracking-widest uppercase ${category.isOpen ? 'text-violet-600' : 'text-slate-400'}`}>
                             {category.isOpen ? '● Portal Terbuka' : '○ Portal Ditutup'}
                           </p>
-                          <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase ${category.mode === 'Auto' ? 'bg-violet-100 text-violet-600' : 'bg-slate-100 text-slate-500'}`}>
-                            {category.mode}
-                          </span>
+                          {category.mode ? (
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase ${category.mode === 'Auto' ? 'bg-violet-100 text-violet-600' : 'bg-slate-100 text-slate-500'}`}>
+                              {category.mode}
+                            </span>
+                          ) : (
+                            <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase bg-amber-100 text-amber-600 animate-pulse">
+                              Pilih Mode Control
+                            </span>
+                          )}
                         </div>
                       </div>
                       
                       <div className="flex flex-col items-end gap-2">
-                        <div className="flex bg-slate-100 p-0.5 rounded-lg">
+                        <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                           <button 
                             onClick={() => updateSchedule(category.id, 'mode', 'Manual')}
-                            className={`text-[8px] px-2 py-1 rounded-md font-bold transition-all ${category.mode === 'Manual' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}
+                            className={`text-[8px] px-2 py-1 rounded-md font-bold transition-all ${category.mode === 'Manual' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                           >
                             MANUAL
                           </button>
                           <button 
                             onClick={() => updateSchedule(category.id, 'mode', 'Auto')}
-                            className={`text-[8px] px-2 py-1 rounded-md font-bold transition-all ${category.mode === 'Auto' ? 'bg-violet-500 text-white shadow-sm' : 'text-slate-400'}`}
+                            className={`text-[8px] px-2 py-1 rounded-md font-bold transition-all ${category.mode === 'Auto' ? 'bg-violet-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                           >
                             AUTO
                           </button>
                         </div>
                         <button 
+                          disabled={!category.mode}
                           onClick={() => {
                             toggleSubmission(category.id);
                             showToast(`${category.name} ${!category.isOpen ? 'Portal Dibuka' : 'Portal Ditutup'}`, !category.isOpen ? 'success' : 'error');
                           }}
-                          className={`relative w-10 h-5 rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${category.isOpen ? 'bg-violet-500' : 'bg-slate-300'}`}
+                          className={`relative w-10 h-5 rounded-full transition-all duration-300 focus:outline-none shadow-inner shrink-0 ${!category.mode ? 'opacity-20 cursor-not-allowed' : category.isOpen ? 'bg-violet-500' : 'bg-slate-300'}`}
                         >
                           <div className={`absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${category.isOpen ? 'translate-x-5' : 'translate-x-0'}`}>
                             {category.isOpen ? <FileCheck size={8} className="text-violet-600" /> : <X size={8} className="text-slate-400" />}
@@ -1671,7 +1685,7 @@ export default function ModernHQDashboard() {
                       </div>
                     </div>
 
-                    <div className={`grid grid-cols-2 gap-3 pt-3 border-t border-slate-200/50 transition-opacity ${category.mode === 'Manual' ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
+                    <div className={`grid grid-cols-2 gap-3 pt-3 border-t border-slate-200/50 transition-opacity ${(!category.mode || category.mode === 'Manual') ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
                       <div className="space-y-1">
                         <label className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
                           <Calendar size={10} /> Auto-Open
