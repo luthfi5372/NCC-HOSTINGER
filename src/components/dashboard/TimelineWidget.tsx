@@ -215,18 +215,20 @@ export default function TimelineWidget({ userCategory }: TimelineProps) {
                       {wave.label}
                     </span>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-5">
                       {wave.items.map((item, iIdx) => (
-                        <div key={iIdx} className={`bg-white border border-slate-100 ${styles.cardBorder} hover:shadow-lg ${styles.cardShadow} p-4 rounded-2xl transition-all duration-300 transform hover:-translate-y-0.5 ${styles.opacity || ''}`}>
-                          <div className="flex items-center gap-2.5 mb-2">
-                             <div className={`p-1.5 rounded-lg ${styles.bg} ${styles.text}`}>
-                               <item.icon size={14} />
+                        <div key={iIdx} className={`bg-white border border-slate-100 ${styles.cardBorder} hover:shadow-xl ${styles.cardShadow} p-5 rounded-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between min-w-0 relative z-10 ${styles.opacity || ''}`}>
+                          <div className="flex items-start gap-3 mb-4">
+                             <div className={`p-2 rounded-xl ${styles.bg} ${styles.text} shrink-0`}>
+                               <item.icon size={16} />
                              </div>
-                             <p className="text-xs font-bold text-slate-700">{item.label}</p>
+                             <p className="text-xs font-bold text-slate-700 leading-relaxed break-words">{item.label}</p>
                           </div>
-                          <p className={`text-[11px] ${styles.accent} font-bold bg-white border ${styles.border} px-2.5 py-1 rounded-lg w-max`}>
-                            {item.date}
-                          </p>
+                          <div className="mt-auto">
+                            <p className={`text-[10px] ${styles.accent} font-black bg-white border ${styles.border} px-3 py-1.5 rounded-lg inline-block break-all sm:break-normal`}>
+                              {item.date}
+                            </p>
+                          </div>
                         </div>
                       ))}
                     </div>
