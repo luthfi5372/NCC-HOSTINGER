@@ -1508,45 +1508,86 @@ export default function ModernHQDashboard() {
                   <p className="text-slate-500 font-medium">Atur semua tanggal perlombaan secara terpusat dan real-time.</p>
                 </div>
                 <button 
-                  onClick={() => {/* Simpan ke DB */}}
-                  className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:scale-105 transition-all"
+                  onClick={saveTimeline}
+                  disabled={isSavingTimeline}
+                  className={`flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:scale-105 transition-all ${isSavingTimeline ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <Save size={18} /> Simpan Semua Perubahan
+                  {isSavingTimeline ? <Clock className="animate-spin" size={18} /> : <Save size={18} />} 
+                  {isSavingTimeline ? 'Menyimpan...' : 'Simpan Semua Perubahan'}
                 </button>
               </div>
 
               <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 border border-white/60 shadow-sm">
+                {/* 🏷️ Filter Kategori */}
                 <div className="flex flex-wrap gap-4 mb-8">
-                  {['LKTI', 'MIPA', 'Speech', 'MTQ'].map(cat => (
-                    <button key={cat} className="px-5 py-2.5 bg-slate-100 rounded-xl font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all">
-                      {cat}
+                  {['All', 'LKTI', 'MIPA', 'Speech', 'MTQ'].map(cat => (
+                    <button 
+                      key={cat} 
+                      onClick={() => setFilterCategory(cat)}
+                      className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${
+                        filterCategory === cat 
+                          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' 
+                          : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'
+                      }`}
+                    >
+                      {cat === 'All' ? 'Semua Mapel' : cat}
                     </button>
                   ))}
                 </div>
 
                 <div className="overflow-hidden border border-slate-100 rounded-2xl">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-50/50 border-b border-slate-100">
                       <tr>
-                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Gelombang</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Kategori & Gelombang</th>
                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nama Kegiatan</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Teks Tanggal (Real-time)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-1/3">Teks Tanggal (Real-time)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {/* Mapping Data Jadwal */}
-                      <tr>
-                        <td className="px-6 py-4 font-bold text-indigo-600 text-sm">Gelombang I</td>
-                        <td className="px-6 py-4 font-bold text-slate-700 text-sm">Pendaftaran & Abstrak</td>
-                        <td className="px-6 py-4">
-                          <input 
-                            type="text" 
-                            defaultValue="16 Juli – 3 September"
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                          />
-                        </td>
-                      </tr>
-                      {/* Dummy lainnya... */}
+                      {timelineData
+                        .filter(cat => filterCategory === 'All' || cat.category.toLowerCase().includes(filterCategory.toLowerCase()))
+                        .map((cat) => (
+                          <React.Fragment key={cat.category}>
+                            {cat.waves.map((wave: any, wIdx: number) => (
+                              <React.Fragment key={`${cat.category}-${wave.label}`}>
+                                {wave.items.map((item: any, iIdx: number) => (
+                                  <tr key={`${cat.category}-${wave.label}-${item.label}`} className="hover:bg-slate-50/50 transition-colors group">
+                                    <td className="px-6 py-4">
+                                      <div className="flex flex-col">
+                                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-tighter">{cat.category}</span>
+                                        <span className="text-sm font-black text-slate-700">{wave.label}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
+                                        <span className="text-sm font-bold text-slate-600">{item.label}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <input 
+                                        type="text" 
+                                        value={item.date}
+                                        onChange={(e) => updateTimelineItem(cat.category, wave.label, item.label, e.target.value)}
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                                        placeholder="Contoh: 16 Juli – 3 September"
+                                      />
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                      <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="p-2 text-emerald-500 bg-emerald-50 rounded-lg" title="Data Terhubung">
+                                          <ShieldCheck size={14} />
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </React.Fragment>
+                            ))}
+                          </React.Fragment>
+                        ))}
                     </tbody>
                   </table>
                 </div>
