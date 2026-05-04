@@ -73,7 +73,6 @@ export default function ModernHQDashboard() {
     }
   ]);
   const [isSavingTimeline, setIsSavingTimeline] = useState(false);
-  const [filterCategory, setFilterCategory] = useState("LKTI Nasional");
 
   useEffect(() => {
     const fetchTimeline = async () => {
@@ -95,29 +94,6 @@ export default function ModernHQDashboard() {
     setIsSavingTimeline(false);
   };
 
-  const updateTimelineItem = (catName: string, waveLabel: string, itemLabel: string, newDate: string) => {
-    const updatedData = timelineData.map(cat => {
-      if (cat.category === catName) {
-        return {
-          ...cat,
-          waves: cat.waves.map((wave: any) => {
-            if (wave.label === waveLabel) {
-              return {
-                ...wave,
-                items: wave.items.map((item: any) => {
-                  if (item.label === itemLabel) return { ...item, date: newDate };
-                  return item;
-                })
-              };
-            }
-            return wave;
-          })
-        };
-      }
-      return cat;
-    });
-    setTimelineData(updatedData);
-  };
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
   const [timeFilter, setTimeFilter] = useState("All"); // Opsi: 'Today', '7Days', '1Month', 'All'
@@ -1577,90 +1553,6 @@ export default function ModernHQDashboard() {
               </div>
             </div>
           )}
-
-          {/* 7. TAB: KELOLA MEDIA */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/60 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-                    <Shield size={18} className="text-blue-600" />
-                  </div>
-                  <h4 className="font-bold text-slate-800">Keamanan</h4>
-                </div>
-                <p className="text-xs text-slate-500 mb-4">Ubah kata sandi akun admin HQ.</p>
-                <button className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-600 transition-colors">Ubah Password</button>
-              </div>
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/60 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
-                    <Download size={18} className="text-emerald-600" />
-                  </div>
-                  <h4 className="font-bold text-slate-800">Ekspor Data</h4>
-                </div>
-                <p className="text-xs text-slate-500 mb-4">Unduh seluruh data peserta sebagai CSV.</p>
-                <button 
-                  onClick={() => {
-                    const csv = realEntries.map((e: any) => 
-                      `${e.full_name},${e.email},${e.competition_type},${e.school_name},${e.status}`
-                    ).join('\n');
-                    const blob = new Blob([`Nama,Email,Lomba,Sekolah,Status\n${csv}`], { type: 'text/csv' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'Data_Peserta_NCC13.csv';
-                    a.click();
-                    showToast('Data berhasil diekspor sebagai CSV!', 'success');
-                  }}
-                  className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 rounded-xl text-xs font-bold text-emerald-600 transition-colors"
-                >
-                  Unduh CSV
-                </button>
-              </div>
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/60 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
-                    <Clock size={18} className="text-amber-600" />
-                  </div>
-                  <h4 className="font-bold text-slate-800">Zona Waktu</h4>
-                </div>
-                <p className="text-xs text-slate-500 mb-4">Sistem menggunakan zona waktu WIB (GMT+7).</p>
-                <div className="w-full py-2.5 bg-amber-50 rounded-xl text-xs font-bold text-amber-600 text-center">WIB (UTC+7)</div>
-              </div>
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">
-                            <Edit3 size={16} />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Bagian Umum (TM) */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2.5rem] p-10 text-white shadow-xl shadow-blue-100 relative overflow-hidden">
-               <div className="absolute top-[-20%] right-[-5%] w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                 <div className="flex items-center gap-6">
-                   <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30">
-                     <MapPin size={32} />
-                   </div>
-                   <div>
-                     <h3 className="text-2xl font-black tracking-tight">Technical Meeting – Semua Lomba</h3>
-                     <p className="text-blue-100 font-medium mt-1">Acara wajib bagi seluruh peserta dari semua cabang lomba.</p>
-                   </div>
-                 </div>
-                 <div className="w-full md:w-64">
-                   <input 
-                    type="text" 
-                    defaultValue="18 November"
-                    className="w-full bg-white/20 border border-white/30 rounded-2xl px-6 py-4 text-center font-black text-white placeholder:text-white/50 outline-none focus:bg-white/30 transition-all"
-                   />
-                 </div>
-               </div>
-            </div>
-          </div>
-        )}
         {/* ========================================================= */}
         {/* 🌟 TAB KEGIATAN (PUSAT KAWALAN PENDAFTARAN & FAIL) */}
         {/* ========================================================= */}
