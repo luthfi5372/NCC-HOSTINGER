@@ -397,8 +397,7 @@ export default function ModernHQDashboard() {
         const { error: updateError } = await supabase
           .from('announcements')
           .update({ 
-            content: JSON.stringify(cleanData),
-            updated_at: new Date().toISOString()
+            content: JSON.stringify(cleanData)
           })
           .eq('id', existing.id);
         if (updateError) throw updateError;
