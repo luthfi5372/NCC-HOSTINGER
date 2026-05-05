@@ -330,6 +330,19 @@ export default function ModernHQDashboard() {
     syncToDatabase();
   }, [waves, submissionStatus, phaseStatus, dashboardAssets, isRegistrationOpen]);
 
+  // --- 📡 REAL-TIME TIMELINE AUTO-SYNC ---
+  useEffect(() => {
+    if (isFirstRender.current) return;
+    
+    const syncTimeline = async () => {
+       await supabase
+        .from('announcements')
+        .update({ content: JSON.stringify(timelineData) })
+        .eq('title', 'SYSTEM_TIMELINE_CONFIG');
+    };
+    syncTimeline();
+  }, [timelineData]);
+
   // --- 🚪 FUNGSI PINTU EVAKUASI ---
   const handleLogout = async () => {
     await supabase.auth.signOut();

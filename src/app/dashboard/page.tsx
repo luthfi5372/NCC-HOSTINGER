@@ -169,7 +169,50 @@ export default function UserDashboard() {
       }
     };
     fetchData();
-  }, []);
+
+    // --- 📡 REAL-TIME SUBSCRIPTION ENGINE ---
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'announcements'
+        },
+        (payload) => {
+          const updated = payload.new as any;
+          if (updated.title === 'SYSTEM_TIMELINE_CONFIG') {
+            try {
+              setGlobalTimeline(JSON.parse(updated.content));
+            } catch (e) {}
+          }
+          if (updated.title === 'SYS_PORTAL_SETTINGS') {
+            try {
+              const parsed = JSON.parse(updated.content);
+              // Update status pendaftaran secara real-time
+              const userCategory = userEntry?.competition_type; 
+              let matchingKeyPrefix = "";
+              if (userCategory === "Olimpiade MIPA") matchingKeyPrefix = "mipa";
+              else if (userCategory === "Speech Contest") matchingKeyPrefix = "speech";
+              else if (userCategory === "LKTI Nasional") matchingKeyPrefix = "lkti";
+              else if (userCategory === "MTQ") matchingKeyPrefix = "mtq";
+
+              if (matchingKeyPrefix && parsed.submissionStatus) {
+                const isGel1Open = parsed.submissionStatus.find((item: any) => item.id === `${matchingKeyPrefix}_g1`)?.isOpen;
+                const isGel2Open = parsed.submissionStatus.find((item: any) => item.id === `${matchingKeyPrefix}_g2`)?.isOpen;
+                setIsSubmissionOpen(!!(isGel1Open || isGel2Open));
+              }
+            } catch (e) {}
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userEntry]); // Re-subscribe if userEntry (category) changes
 
   const handleSubmitEntry = async (localFormData: any, localFile: File | null) => {
     if (!localFile) return showToast("Mohon unggah bukti transfer terlebih dahulu!", "error");
