@@ -135,7 +135,7 @@ export default function ModernHQDashboard() {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return dateStr;
     const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-    return `${date.getDate()} ${months[date.getMonth()]}`;
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
   // --- MEMORI KENDALI PORTAL & GELOMBANG ---
