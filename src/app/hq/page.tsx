@@ -385,35 +385,19 @@ export default function ModernHQDashboard() {
         }))
       }));
 
-      // 🔄 Cari data yang sudah ada
-      const { data: existing } = await supabase
-        .from('announcements')
-        .select('id')
-        .eq('title', 'SYSTEM_TIMELINE_CONFIG')
-        .single();
+      // 🚀 Gunakan API Route agar RevalidatePath (Hapus Cache) bekerja!
+      const response = await fetch('/api/admin/sync-timeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cleanData })
+      });
 
-      if (existing) {
-        // Update jika ada
-        const { error: updateError } = await supabase
-          .from('announcements')
-          .update({ 
-            content: JSON.stringify(cleanData)
-          })
-          .eq('id', existing.id);
-        if (updateError) throw updateError;
-      } else {
-        // Insert jika belum ada
-        const { error: insertError } = await supabase
-          .from('announcements')
-          .insert([{ 
-            title: 'SYSTEM_TIMELINE_CONFIG', 
-            content: JSON.stringify(cleanData),
-            target_audience: 'All'
-          }]);
-        if (insertError) throw insertError;
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Gagal sinkronisasi ke server');
       }
 
-      showToast("Sinkronisasi Berhasil!", "success");
+      showToast("Sinkronisasi Berhasil! Cache telah dibersihkan.", "success");
     } catch (err: any) {
       console.error("Save error:", err);
       showToast(`Gagal Sinkron: ${err.message}`, "error");
