@@ -3,8 +3,72 @@ import {
   Trophy, Brain, Zap, MonitorPlay, Star, Video 
 } from "lucide-react";
 
-// ⚠️ DATA DEFAULT DIKOSONGKAN AGAR DIPAKSA MENGAMBIL DARI DATABASE (ADMIN HQ)
-const TIMELINE_DATA: any[] = [];
+const TIMELINE_DATA = [
+  {
+    category: "LKTI Nasional",
+    color: "blue",
+    waves: [
+      { label: "Gelombang I", items: [
+        { label: "Pendaftaran & Abstrak", start: "", end: "" },
+        { label: "Pengumuman Tahap I", start: "", end: "" },
+        { label: "Pengumpulan Fullpaper", start: "", end: "" },
+        { label: "Pengumuman Tahap II", start: "", end: "" }
+      ]},
+      { label: "Gelombang II", items: [
+        { label: "Pendaftaran & Abstrak", start: "", end: "" },
+        { label: "Pengumuman Tahap I", start: "", end: "" },
+        { label: "Pengumpulan Fullpaper", start: "", end: "" },
+        { label: "Pengumuman Tahap II", start: "", end: "" }
+      ]}
+    ]
+  },
+  {
+    category: "Olimpiade MIPA",
+    color: "amber",
+    waves: [
+      { label: "Gelombang I", items: [
+        { label: "Pendaftaran", start: "", end: "" },
+        { label: "Seleksi 1", start: "", end: "" },
+        { label: "Seleksi 2", start: "", end: "" },
+        { label: "Pengumuman Tahap I", start: "", end: "" }
+      ]},
+      { label: "Gelombang II", items: [
+        { label: "Pendaftaran", start: "", end: "" },
+        { label: "Simulasi", start: "", end: "" },
+        { label: "Seleksi", start: "", end: "" },
+        { label: "Pengumuman", start: "", end: "" }
+      ]}
+    ]
+  },
+  {
+    category: "Speech Contest",
+    color: "purple",
+    waves: [
+      { label: "Gelombang I", items: [
+        { label: "Pendaftaran & Naskah", start: "", end: "" },
+        { label: "Pengumuman", start: "", end: "" }
+      ]},
+      { label: "Gelombang II", items: [
+        { label: "Pendaftaran & Naskah", start: "", end: "" },
+        { label: "Pengumuman", start: "", end: "" }
+      ]}
+    ]
+  },
+  {
+    category: "MTQ",
+    color: "emerald",
+    waves: [
+      { label: "Gelombang I", items: [
+        { label: "Pendaftaran & Video", start: "", end: "" },
+        { label: "Pengumuman", start: "", end: "" }
+      ]},
+      { label: "Gelombang II", items: [
+        { label: "Pendaftaran", start: "", end: "" },
+        { label: "Pengumuman", start: "", end: "" }
+      ]}
+    ]
+  }
+];
 
 interface TimelineProps {
   userCategory?: string;
