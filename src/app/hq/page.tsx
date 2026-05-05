@@ -1,4 +1,5 @@
 "use client";
+// Trigger: Refresh Vercel Build (Ensuring Clean Code)
 
 import React, { useState, useEffect, useRef } from "react";
 import * as htmlToImage from 'html-to-image';
