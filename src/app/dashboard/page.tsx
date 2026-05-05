@@ -17,6 +17,7 @@ export default function UserDashboard() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userEntry, setUserEntry] = useState<any>(null);
+  const [globalTimeline, setGlobalTimeline] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const router = useRouter();
 
@@ -144,7 +145,22 @@ export default function UserDashboard() {
           .or(`target_audience.eq.All,target_audience.eq.${userStatus},target_user_ids.cs.{${user.id}}`)
           .order('created_at', { ascending: false });
 
-        setAnnouncements((announcementsData || []).filter((item: any) => item.title !== 'SYS_PORTAL_SETTINGS'));
+        setAnnouncements((announcementsData || []).filter((item: any) => item.title !== 'SYS_PORTAL_SETTINGS' && item.title !== 'SYSTEM_TIMELINE_CONFIG'));
+        
+        // 3. Tarik Konfigurasi Jadwal Global
+        const { data: timelineConfig } = await supabase
+          .from('announcements')
+          .select('content')
+          .eq('title', 'SYSTEM_TIMELINE_CONFIG')
+          .single();
+        
+        if (timelineConfig && timelineConfig.content) {
+          try {
+            setGlobalTimeline(JSON.parse(timelineConfig.content));
+          } catch (e) {
+            console.error("Gagal parse timeline:", e);
+          }
+        }
         
       } catch (error) {
         console.error("Gagal menarik data:", error);
@@ -263,6 +279,7 @@ export default function UserDashboard() {
               userCategory={userEntry?.competition_type} 
               userStatus={userEntry?.payment_status}
               notes={userEntry?.notes}
+              globalTimeline={globalTimeline}
             />
           </div>
         </div>

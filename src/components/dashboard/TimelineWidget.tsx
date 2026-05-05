@@ -106,9 +106,10 @@ interface TimelineProps {
   userCategory?: string;
   userStatus?: string;
   notes?: string;
+  globalTimeline?: any[];
 }
 
-export default function TimelineWidget({ userCategory, userStatus, notes }: TimelineProps) {
+export default function TimelineWidget({ userCategory, userStatus, notes, globalTimeline }: TimelineProps) {
   // Mapping antara kategori di database dengan kategori di TIMELINE_DATA
   const categoryMap: Record<string, string> = {
     "LKTI Nasional": "LKTI – Lomba Karya Tulis Ilmiah",
@@ -117,11 +118,51 @@ export default function TimelineWidget({ userCategory, userStatus, notes }: Time
     "MTQ": "MTQ"
   };
 
-  // Tentukan apakah kita harus memfilter data
-  const targetCategoryName = userCategory ? categoryMap[userCategory] : null;
-  const filteredData = targetCategoryName 
-    ? TIMELINE_DATA.filter(item => item.category === targetCategoryName)
+  // Icon Mapper berdasarkan label item
+  const getIcon = (label: string) => {
+    const l = label.toLowerCase();
+    if (l.includes('pendaftaran') || l.includes('naskah') || l.includes('video')) return FileText;
+    if (l.includes('pengumuman')) return Megaphone;
+    if (l.includes('fullpaper') || l.includes('unggah') || l.includes('karya')) return Upload;
+    if (l.includes('seleksi') || l.includes('simulasi')) return Brain;
+    if (l.includes('final') || l.includes('juara')) return Trophy;
+    return Zap;
+  };
+
+  // Color Mapper berdasarkan kategori
+  const getCategoryColor = (cat: string) => {
+    if (cat.includes('LKTI')) return 'blue';
+    if (cat.includes('MIPA')) return 'amber';
+    if (cat.includes('Speech')) return 'purple';
+    if (cat.includes('MTQ')) return 'green';
+    return 'blue';
+  };
+
+  // Gunakan globalTimeline jika ada, jika tidak fallback ke TIMELINE_DATA
+  const baseData = globalTimeline && globalTimeline.length > 0 
+    ? globalTimeline.map(cat => ({
+        category: cat.category,
+        color: getCategoryColor(cat.category),
+        waves: cat.waves.map((wave: any) => ({
+          label: wave.label,
+          active: true, // Untuk user, kita buat active secara default jika masuk di jadwal
+          items: wave.items.map((item: any) => ({
+            icon: getIcon(item.label),
+            label: item.label,
+            date: item.date
+          }))
+        }))
+      }))
     : TIMELINE_DATA;
+
+  // Tentukan apakah kita harus memfilter data berdasarkan kategori user
+  const targetCategoryName = userCategory ? categoryMap[userCategory] : null;
+  
+  // Jika user sudah terdaftar di kategori tertentu, hanya tampilkan kategori tersebut
+  // Jika belum, tampilkan semua (untuk info)
+  const filteredData = targetCategoryName 
+    ? baseData.filter(item => item.category === targetCategoryName || item.category === userCategory)
+    : baseData;
 
   const isFiltered = !!targetCategoryName && filteredData.length > 0;
 
