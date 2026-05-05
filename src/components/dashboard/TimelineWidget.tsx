@@ -116,7 +116,10 @@ export default function TimelineWidget({ userCategory, userStatus, notes, global
           items: wave.items.map((item: any) => ({
             icon: getIcon(item.label),
             label: item.label,
-            date: item.date
+            // Dukungan format ganda: start/end atau date lama
+            start: item.start || "",
+            end: item.end || "",
+            date: item.date || ""
           }))
         }))
       }))
@@ -131,8 +134,16 @@ export default function TimelineWidget({ userCategory, userStatus, notes, global
     ? baseData.filter(item => {
         const cat = item.category.toLowerCase();
         const target = targetCategoryName.toLowerCase();
-        const userCat = userCategory?.toLowerCase();
-        return cat === target || cat === userCat || cat.includes(userCat || "");
+        const userCat = userCategory?.toLowerCase() || "";
+        
+        // Pencocokan super fleksibel: Cek kesamaan persis ATAU cek apakah mengandung kata kunci utama
+        const keywords = ["lkti", "mipa", "speech", "mtq"];
+        const matchedKeyword = keywords.find(k => userCat.includes(k));
+        
+        return cat === target || 
+               cat === userCat || 
+               cat.includes(userCat) || 
+               (matchedKeyword && cat.includes(matchedKeyword));
       })
     : baseData;
 
@@ -227,6 +238,15 @@ export default function TimelineWidget({ userCategory, userStatus, notes, global
       }
     };
     return maps[color] || maps.blue;
+  };
+
+  // --- FUNGSI FORMAT TANGGAL INDONESIA ---
+  const formatIndoDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
   return (
