@@ -76,7 +76,8 @@ export default function ModernHQDashboard() {
 
   useEffect(() => {
     const fetchTimeline = async () => {
-      const { data } = await supabase.from('announcements').select('*').eq('type', 'SYSTEM_TIMELINE').single();
+      // Menggunakan title sebagai pengenal unik karena kolom type tidak ada di schema
+      const { data } = await supabase.from('announcements').select('*').eq('title', 'SYSTEM_TIMELINE_CONFIG').single();
       if (data) setTimelineData(JSON.parse(data.content));
     };
     fetchTimeline();
@@ -85,12 +86,12 @@ export default function ModernHQDashboard() {
   const saveTimeline = async () => {
     setIsSavingTimeline(true);
     try {
+      // Menggunakan upsert dengan title sebagai target konflik (karena title unik di tabel ini)
       const { error } = await supabase.from('announcements').upsert({ 
-        type: 'SYSTEM_TIMELINE', 
+        title: 'SYSTEM_TIMELINE_CONFIG', 
         content: JSON.stringify(timelineData),
-        title: 'Master Schedule Config',
         updated_at: new Date()
-      }, { onConflict: 'type' });
+      }, { onConflict: 'title' });
       
       if (!error) {
         showToast('Konfigurasi Jadwal Berhasil Disimpan!', 'success');
