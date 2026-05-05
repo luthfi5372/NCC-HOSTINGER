@@ -92,9 +92,33 @@ export default function ModernHQDashboard() {
 
   useEffect(() => {
     const fetchTimeline = async () => {
-      // Menggunakan title sebagai pengenal unik karena kolom type tidak ada di schema
-      const { data } = await supabase.from('announcements').select('*').eq('title', 'SYSTEM_TIMELINE_CONFIG').single();
-      if (data) setTimelineData(JSON.parse(data.content));
+      const { data: timelineConfig } = await supabase.from('announcements').select('*').eq('title', 'SYSTEM_TIMELINE_CONFIG').single();
+      if (timelineConfig && timelineConfig.content) {
+        try {
+          const rawData = JSON.parse(timelineConfig.content);
+          // Migrasi Data Otomatis: Ubah format 'date' lama ke 'start/end' baru
+          const migratedData = rawData.map((cat: any) => ({
+            ...cat,
+            waves: cat.waves.map((wave: any) => ({
+              ...wave,
+              items: wave.items.map((item: any) => {
+                if (item.date && !item.start) {
+                  const isRange = item.date.includes(" – ");
+                  return {
+                    ...item,
+                    start: parseIndoDate(isRange ? item.date.split(" – ")[0] : item.date),
+                    end: isRange ? parseIndoDate(item.date.split(" – ")[1]) : ""
+                  };
+                }
+                return item;
+              })
+            }))
+          }));
+          setTimelineData(migratedData);
+        } catch (e) {
+          console.error("Gagal migrasi data:", e);
+        }
+      }
     };
     fetchTimeline();
   }, []);
