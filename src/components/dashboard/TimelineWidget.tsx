@@ -266,7 +266,7 @@ export default function TimelineWidget({ userCategory, userStatus, notes, global
             </div>
             
             <div className="relative pl-6 border-l-2 border-dashed border-slate-200/80 space-y-10 ml-[5px]">
-              {category.waves.map((wave, wIdx) => {
+              {category.waves.map((wave: any, wIdx: number) => {
                 const styles = getColorClasses(category.color, wave.active);
                 return (
                   <div key={wIdx} className="relative">
@@ -276,7 +276,7 @@ export default function TimelineWidget({ userCategory, userStatus, notes, global
                     </span>
                     
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-5">
-                      {wave.items.map((item, iIdx) => {
+                      {wave.items.map((item: any, iIdx: number) => {
                         const isItemActive = getItemActiveState(item.label);
                         const itemStyles = getColorClasses(category.color, isItemActive);
                         return (

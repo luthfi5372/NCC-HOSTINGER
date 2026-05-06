@@ -88,8 +88,9 @@ export default function UserDashboard() {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
            
-        if (entries && entries.length > 0) {
-          const entry = entries[0];
+        const entry = entries && entries.length > 0 ? entries[0] : null;
+
+        if (entry) {
           setUserEntry(entry); // Ambil yang paling baru jika ada banyak
           
           // Sinkronkan form data dengan data yang sudah ada di database
@@ -117,7 +118,7 @@ export default function UserDashboard() {
         if (portalData && portalData.content) {
           try {
             const parsed = JSON.parse(portalData.content);
-            const userCategory = entryData?.competition_type; 
+            const userCategory = entry?.competition_type; 
             
             let matchingKeyPrefix = "";
             if (userCategory === "Olimpiade MIPA") matchingKeyPrefix = "mipa";
@@ -139,7 +140,7 @@ export default function UserDashboard() {
           setIsSubmissionOpen(true);
         }
         
-        const userStatus = entryData?.payment_status === 'Verified' ? 'Verified' : 'Pending';
+        const userStatus = entry?.payment_status === 'Verified' ? 'Verified' : 'Pending';
 
         const { data: announcementsData } = await supabase
           .from('announcements')

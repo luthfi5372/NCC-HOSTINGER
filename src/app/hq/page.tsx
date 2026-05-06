@@ -90,35 +90,43 @@ export default function ModernHQDashboard() {
     }
   ]);
   const [isSavingTimeline, setIsSavingTimeline] = useState(false);
+  const [isTimelineLoaded, setIsTimelineLoaded] = useState(false);
+  const [isPortalLoaded, setIsPortalLoaded] = useState(false);
 
   useEffect(() => {
     const fetchTimeline = async () => {
-      const { data: timelineConfig } = await supabase.from('announcements').select('*').eq('title', 'SYSTEM_TIMELINE_CONFIG').single();
-      if (timelineConfig && timelineConfig.content) {
-        try {
-          const rawData = JSON.parse(timelineConfig.content);
-          // Migrasi Data Otomatis: Ubah format 'date' lama ke 'start/end' baru
-          const migratedData = rawData.map((cat: any) => ({
-            ...cat,
-            waves: cat.waves.map((wave: any) => ({
-              ...wave,
-              items: wave.items.map((item: any) => {
-                if (item.date && !item.start) {
-                  const isRange = item.date.includes(" – ");
-                  return {
-                    ...item,
-                    start: parseIndoDate(isRange ? item.date.split(" – ")[0] : item.date),
-                    end: isRange ? parseIndoDate(item.date.split(" – ")[1]) : ""
-                  };
-                }
-                return item;
-              })
-            }))
-          }));
-          setTimelineData(migratedData);
-        } catch (e) {
-          console.error("Gagal migrasi data:", e);
+      try {
+        const { data: timelineConfig } = await supabase.from('announcements').select('*').eq('title', 'SYSTEM_TIMELINE_CONFIG').single();
+        if (timelineConfig && timelineConfig.content) {
+          try {
+            const rawData = JSON.parse(timelineConfig.content);
+            // Migrasi Data Otomatis: Ubah format 'date' lama ke 'start/end' baru
+            const migratedData = rawData.map((cat: any) => ({
+              ...cat,
+              waves: cat.waves.map((wave: any) => ({
+                ...wave,
+                items: wave.items.map((item: any) => {
+                  if (item.date && !item.start) {
+                    const isRange = item.date.includes(" – ");
+                    return {
+                      ...item,
+                      start: parseIndoDate(isRange ? item.date.split(" – ")[0] : item.date),
+                      end: isRange ? parseIndoDate(item.date.split(" – ")[1]) : ""
+                    };
+                  }
+                  return item;
+                })
+              }))
+            }));
+            setTimelineData(migratedData);
+          } catch (e) {
+            console.error("Gagal migrasi data:", e);
+          }
         }
+      } catch (err) {
+        console.error("Gagal fetch timeline:", err);
+      } finally {
+        setIsTimelineLoaded(true);
       }
     };
     fetchTimeline();
@@ -341,12 +349,8 @@ export default function ModernHQDashboard() {
   const supabase = createClient();
 
   // --- 📡 REAL-TIME PORTAL SYNC ENGINE ---
-  const isFirstRender = useRef(true);
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    if (!isPortalLoaded) return;
 
     const syncToDatabase = async () => {
       const payload = { waves, submissionStatus, phaseStatus, dashboardAssets, isRegistrationOpen };
@@ -356,19 +360,17 @@ export default function ModernHQDashboard() {
         .eq('title', 'SYS_PORTAL_SETTINGS');
     };
     syncToDatabase();
-  }, [waves, submissionStatus, phaseStatus, dashboardAssets, isRegistrationOpen]);
+  }, [waves, submissionStatus, phaseStatus, dashboardAssets, isRegistrationOpen, isPortalLoaded]);
 
   // --- 📡 REAL-TIME TIMELINE AUTO-SYNC ---
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    if (!isTimelineLoaded) return;
+
     const timer = setTimeout(() => {
       saveTimeline();
     }, 1000);
     return () => clearTimeout(timer);
-  }, [timelineData]);
+  }, [timelineData, isTimelineLoaded]);
 
   const saveTimeline = async () => {
     setIsSavingTimeline(true);
@@ -658,6 +660,8 @@ export default function ModernHQDashboard() {
         }
       } catch (err) {
         console.error("Gagal menarik status portal:", err);
+      } finally {
+        setIsPortalLoaded(true);
       }
     };
 
