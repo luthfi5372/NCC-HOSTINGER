@@ -1,5 +1,5 @@
 "use client";
-// Trigger: Refresh Vercel Build (Ensuring Clean Code)
+export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, useRef } from "react";
 import * as htmlToImage from 'html-to-image';
