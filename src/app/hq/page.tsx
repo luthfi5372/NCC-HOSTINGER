@@ -1720,8 +1720,15 @@ export default function ModernHQDashboard() {
                                         <div className="flex items-center gap-2">
                                           <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
                                           <span className="text-[10px] font-black text-indigo-600 bg-white px-2 py-0.5 rounded-md border border-indigo-100 shadow-sm">
-                                            {item.start ? formatIndoDate(item.start) : "Belum Set"}
-                                            {item.end ? ` – ${formatIndoDate(item.end)}` : ""}
+                                            {item.start && item.end ? (
+                                              `${formatIndoDate(item.start)} – ${formatIndoDate(item.end)}`
+                                            ) : item.start ? (
+                                              formatIndoDate(item.start)
+                                            ) : item.end ? (
+                                              `s.d. ${formatIndoDate(item.end)}`
+                                            ) : (
+                                              "Belum Set"
+                                            )}
                                           </span>
                                         </div>
                                       </div>

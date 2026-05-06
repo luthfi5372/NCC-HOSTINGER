@@ -289,10 +289,15 @@ export default function TimelineWidget({ userCategory, userStatus, notes, global
                             </div>
                               <div className="mt-auto">
                                 <p className={`text-[10px] ${itemStyles.accent} font-black bg-white border ${itemStyles.border} px-3 py-1.5 rounded-lg inline-block break-all sm:break-normal`}>
-                                  {item.start ? (
+                                  {item.start && item.end ? (
                                     <>
-                                      {formatIndoDate(item.start)}
-                                      {item.end ? ` – ${formatIndoDate(item.end)}` : ""}
+                                      {formatIndoDate(item.start)} – {formatIndoDate(item.end)}
+                                    </>
+                                  ) : item.start ? (
+                                    formatIndoDate(item.start)
+                                  ) : item.end ? (
+                                    <>
+                                      s.d. {formatIndoDate(item.end)}
                                     </>
                                   ) : (
                                     item.date || "Belum Ditentukan"
