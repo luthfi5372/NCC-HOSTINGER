@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, memo } from "react";
 import * as htmlToImage from 'html-to-image';
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client"; 
@@ -15,6 +15,238 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar
 } from "recharts";
+
+// --- ⚡ COMPONENT SINKRONISASI & OPTIMASI KINERJA TINGGI ---
+
+interface ParticipantRowProps {
+  entry: any;
+  onRowClick: (entry: any) => void;
+  onIdCardClick: (entry: any) => void;
+  onDeleteClick: (entry: any) => void;
+}
+
+const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick }: ParticipantRowProps) => {
+  const dateObj = entry.created_at ? new Date(entry.created_at) : new Date();
+  const dateStr = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  const timeStr = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+  let photoUrl = "";
+  if (entry.notes) {
+    try {
+      const pObj = JSON.parse(entry.notes);
+      photoUrl = pObj.profile_photo_url;
+    } catch (e) {}
+  }
+
+  let stage = 1;
+  if (entry.notes) {
+    try {
+      const n = JSON.parse(entry.notes);
+      if (n.current_stage) stage = n.current_stage;
+    } catch (e) {}
+  }
+
+  return (
+    <tr 
+      onClick={() => onRowClick(entry)}
+      className="hover:bg-blue-50/50 transition-colors cursor-pointer"
+    >
+      <td className="py-4 px-6 font-black text-blue-600">NCC-{entry.id}</td>
+      <td className="py-4 px-6 flex items-center gap-3">
+         {photoUrl ? (
+           <img 
+             src={photoUrl} 
+             alt="Profile Avatar" 
+             className="w-10 h-10 rounded-full object-cover border border-blue-100 shrink-0" 
+           />
+         ) : (
+           <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-blue-600 text-sm uppercase shrink-0">
+             {(entry.full_name || entry.email || "U").charAt(0)}
+           </div>
+         )}
+         <div>
+           <div className="font-bold text-slate-800">{entry.full_name || "Peserta Anonim"}</div>
+           <div className="text-[11px] text-slate-500 mt-0.5">
+             {entry.email || "Email tidak ada"} <span className="mx-1 text-slate-300">|</span> NISN: <span className="font-medium text-slate-600">{entry.nisn || "-"}</span>
+           </div>
+         </div>
+      </td>
+      <td className="py-4 px-6">
+        <div className="font-bold text-slate-700">{entry.school_name || entry.school || "Belum Diisi"}</div>
+        <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+           <MapPin size={11} className="shrink-0" /> {entry.province || entry.city || "Provinsi belum diisi"}
+        </div>
+      </td>
+      <td className="py-4 px-6">
+        {stage === 1 && <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-1"><ClipboardCheck size={10} /> TAHAP 1</span>}
+        {stage === 2 && <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-200 animate-pulse flex items-center gap-1"><Medal size={10} /> TAHAP 2</span>}
+        {stage === 3 && <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-200 shadow-sm shadow-amber-100 flex items-center gap-1"><Trophy size={10} /> FINAL</span>}
+      </td>
+      <td className="py-4 px-6">
+        <span className="bg-slate-100/80 text-slate-700 px-2.5 py-1 rounded-md text-[11px] font-bold border border-slate-200/60">
+          {entry.competition_type || entry.category || "Belum Pilih"}
+        </span>
+        <div className="text-[11px] text-slate-500 mt-1.5">
+          Pembina: <span className="font-medium text-slate-700">{entry.mentor_name || "-"}</span>
+        </div>
+      </td>
+      <td className="py-4 px-6">
+        <div className="font-medium text-slate-800">{dateStr}</div>
+        <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+          <Clock size={11} className="text-slate-400" /> Pukul {timeStr}
+        </div>
+      </td>
+      <td className="py-4 px-6">
+        <span className="px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center w-max gap-1.5 border bg-green-500/10 text-green-700 border-green-500/20 shadow-sm">
+          <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+          Active
+        </span>
+      </td>
+      <td className="py-4 px-6 text-center">
+        <div className="flex items-center justify-center gap-2">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onIdCardClick(entry);
+            }}
+            className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all shadow-sm border border-blue-100"
+            title="Cetak ID Card"
+          >
+            <IdCard size={18} />
+          </button>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteClick(entry);
+            }}
+            title="Hapus Data Peserta Permanen"
+            className="text-red-500 hover:text-red-700 p-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}, (prevProps, nextProps) => {
+  return prevProps.entry.id === nextProps.entry.id && 
+         prevProps.entry.notes === nextProps.entry.notes &&
+         prevProps.entry.payment_status === nextProps.entry.payment_status &&
+         prevProps.entry.full_name === nextProps.entry.full_name &&
+         prevProps.entry.nisn === nextProps.entry.nisn &&
+         prevProps.entry.school_name === nextProps.entry.school_name &&
+         prevProps.entry.school === nextProps.entry.school &&
+         prevProps.entry.province === nextProps.entry.province &&
+         prevProps.entry.city === nextProps.entry.city &&
+         prevProps.entry.competition_type === nextProps.entry.competition_type &&
+         prevProps.entry.category === nextProps.entry.category &&
+         prevProps.entry.mentor_name === nextProps.entry.mentor_name &&
+         prevProps.entry.email === nextProps.entry.email;
+});
+
+interface VerificationCardProps {
+  entry: any;
+  onUpdateStatus: (id: any, status: string, reason?: string) => void;
+  onDeleteClick: (entry: any) => void;
+}
+
+const VerificationCard = memo(({ entry, onUpdateStatus, onDeleteClick }: VerificationCardProps) => {
+  return (
+    <div
+      className="group bg-white/80 backdrop-blur-md border border-slate-100 hover:border-blue-200 rounded-3xl p-5 md:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.10)] transition-all duration-300 ease-out hover:-translate-y-1 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
+    >
+      {/* Identitas Pendaftar */}
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 rounded-2xl flex items-center justify-center font-black text-xl shrink-0 border border-white shadow-sm">
+          {(entry.full_name || entry.email || "U").charAt(0).toUpperCase()}
+        </div>
+        <div className="min-w-0">
+          <h4 className="font-bold text-slate-800 text-base leading-tight truncate">{entry.full_name || "Peserta Anonim"}</h4>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">NCC-{String(entry.id).substring(0,6).toUpperCase()}</span>
+            <span className="text-xs text-slate-500 truncate max-w-[180px]">{entry.email}</span>
+          </div>
+          {entry.school_name && (
+            <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+              <School size={11} className="shrink-0" /> {entry.school_name}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Badge Cabang Lomba */}
+      <div className="shrink-0">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl text-xs font-bold">
+          {entry.competition_type || entry.category || "General"}
+        </span>
+        {entry.team_name && (
+          <p className="text-[10px] font-bold text-slate-400 mt-1.5 uppercase tracking-wider">
+            Tim: <span className="text-slate-600">{entry.team_name}</span>
+          </p>
+        )}
+      </div>
+
+      {/* Smart Action Group */}
+      <div className="flex items-center gap-2 shrink-0 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+        {/* Lihat Bukti TF */}
+        {entry.payment_proof_url ? (
+          <a
+            href={entry.payment_proof_url}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-white text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-300 hover:bg-blue-50 rounded-xl font-bold text-xs transition-all shadow-sm hover:shadow-md"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7"/><circle cx="12" cy="12" r="3"/></svg>
+            Bukti TF
+          </a>
+        ) : (
+          <span className="px-3.5 py-2.5 text-slate-300 text-xs font-bold">Tidak ada</span>
+        )}
+
+        {/* Tombol Terima */}
+        <button
+          onClick={() => onUpdateStatus(entry.id, 'Verified')}
+          className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-400 to-green-500 text-white rounded-xl font-bold text-xs transition-all shadow-sm hover:shadow-emerald-200/60 hover:scale-105 active:scale-95"
+        >
+          <CheckCircle2 size={14} /> Terima
+        </button>
+
+        {/* Tombol Tolak */}
+        <button
+          onClick={() => {
+            const reason = prompt("Masukkan alasan penolakan (misal: Bukti TF buram, dll):");
+            if (reason) onUpdateStatus(entry.id, 'Rejected', reason);
+          }}
+          className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-rose-400 to-red-500 text-white rounded-xl font-bold text-xs transition-all shadow-sm hover:shadow-rose-200/60 hover:scale-105 active:scale-95"
+        >
+          <AlertCircle size={14} /> Tolak
+        </button>
+
+        {/* Divider */}
+        <div className="w-px h-8 bg-slate-200 mx-0.5"></div>
+
+        {/* Tombol Hapus (minimalis) */}
+        <button
+          onClick={() => onDeleteClick(entry)}
+          title="Hapus Data Peserta Permanen"
+          className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  return prevProps.entry.id === nextProps.entry.id && 
+         prevProps.entry.notes === nextProps.entry.notes &&
+         prevProps.entry.payment_status === nextProps.entry.payment_status &&
+         prevProps.entry.full_name === nextProps.entry.full_name &&
+         prevProps.entry.school_name === nextProps.entry.school_name &&
+         prevProps.entry.competition_type === nextProps.entry.competition_type &&
+         prevProps.entry.payment_proof_url === nextProps.entry.payment_proof_url &&
+         prevProps.entry.email === nextProps.entry.email &&
+         prevProps.entry.team_name === nextProps.entry.team_name;
+});
 
 export default function ModernHQDashboard() {
   const router = useRouter();
@@ -1081,123 +1313,16 @@ export default function ModernHQDashboard() {
                                `ncc-${e.id}`.toLowerCase().includes(query);
                       })
                       .filter(e => filterCategory === "All" || (e.competition_type || e.category) === filterCategory)
-                      .map((entry: any, idx: number) => {
-                      
-                      const dateObj = entry.created_at ? new Date(entry.created_at) : new Date();
-                      const dateStr = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-                      const timeStr = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-
-                      return (
-                        <tr 
-                          key={idx} 
-                          onClick={() => setSelectedParticipant(entry)}
-                          className="hover:bg-blue-50/50 transition-colors cursor-pointer"
-                        >
-                          <td className="py-4 px-6 font-black text-blue-600">NCC-{entry.id}</td>
-                          <td className="py-4 px-6 flex items-center gap-3">
-                             {(() => {
-                               let photoUrl = "";
-                               if (entry.notes) {
-                                 try {
-                                   const pObj = JSON.parse(entry.notes);
-                                   photoUrl = pObj.profile_photo_url;
-                                 } catch (e) {}
-                               }
-                               
-                               if (photoUrl) {
-                                 return (
-                                   <img 
-                                     src={photoUrl} 
-                                     alt="Profile Avatar" 
-                                     className="w-10 h-10 rounded-full object-cover border border-blue-100 shrink-0" 
-                                   />
-                                 );
-                               }
-                               
-                               return (
-                                 <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-blue-600 text-sm uppercase shrink-0">
-                                   {(entry.full_name || entry.email || "U").charAt(0)}
-                                 </div>
-                               );
-                             })()}
-                             <div>
-                               <div className="font-bold text-slate-800">{entry.full_name || "Peserta Anonim"}</div>
-                               <div className="text-[11px] text-slate-500 mt-0.5">
-                                 {entry.email || "Email tidak ada"} <span className="mx-1 text-slate-300">|</span> NISN: <span className="font-medium text-slate-600">{entry.nisn || "-"}</span>
-                               </div>
-                             </div>
-                          </td>
-                          <td className="py-4 px-6">
-                            <div className="font-bold text-slate-700">{entry.school_name || entry.school || "Belum Diisi"}</div>
-                            <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                               <MapPin size={11} className="shrink-0" /> {entry.province || entry.city || "Provinsi belum diisi"}
-                            </div>
-                          </td>
-                          <td className="py-4 px-6">
-                            {(() => {
-                              let stage = 1;
-                              if (entry.notes) {
-                                try {
-                                  const n = JSON.parse(entry.notes);
-                                  if (n.current_stage) stage = n.current_stage;
-                                } catch (e) {}
-                              }
-
-                              if (stage === 1) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-1"><ClipboardCheck size={10} /> TAHAP 1</span>;
-                              if (stage === 2) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-200 animate-pulse flex items-center gap-1"><Medal size={10} /> TAHAP 2</span>;
-                              if (stage === 3) return <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-200 shadow-sm shadow-amber-100 flex items-center gap-1"><Trophy size={10} /> FINAL</span>;
-                              return <span className="text-xs text-slate-400">-</span>;
-                            })()}
-                          </td>
-                          <td className="py-4 px-6">
-                            <span className="bg-slate-100/80 text-slate-700 px-2.5 py-1 rounded-md text-[11px] font-bold border border-slate-200/60">
-                              {entry.competition_type || entry.category || "Belum Pilih"}
-                            </span>
-                            <div className="text-[11px] text-slate-500 mt-1.5">
-                              Pembina: <span className="font-medium text-slate-700">{entry.mentor_name || "-"}</span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-6">
-                            <div className="font-medium text-slate-800">{dateStr}</div>
-                            <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
-                              <Clock size={11} className="text-slate-400" /> Pukul {timeStr}
-                            </div>
-                          </td>
-                          <td className="py-4 px-6">
-                            <span className="px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center w-max gap-1.5 border bg-green-500/10 text-green-700 border-green-500/20 shadow-sm">
-                              <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                              Active
-                            </span>
-                          </td>
-                          {/* KOLOM AKSI BARU */}
-                          <td className="py-4 px-6 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedIdCard(entry);
-                                }}
-                                className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all shadow-sm border border-blue-100"
-                                title="Cetak ID Card"
-                              >
-                                <IdCard size={18} />
-                              </button>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteModal({ show: true, id: entry.id, userId: entry.user_id, name: entry.full_name });
-                                }}
-                                title="Hapus Data Peserta Permanen"
-                                className="text-red-500 hover:text-red-700 p-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
+                      .map((entry: any) => (
+                        <ParticipantRow 
+                          key={entry.id} 
+                          entry={entry}
+                          onRowClick={setSelectedParticipant}
+                          onIdCardClick={setSelectedIdCard}
+                          onDeleteClick={(e) => setDeleteModal({ show: true, id: e.id, userId: e.user_id, name: e.full_name })}
+                        />
+                      ))
+                    )}
                 </tbody>
               </table>
             </div>
@@ -1234,91 +1359,13 @@ export default function ModernHQDashboard() {
               realEntries
                 .filter(e => !e.payment_status || e.payment_status === 'Pending')
                 .map((entry: any) => (
-                <div
-                  key={entry.id}
-                  className="group bg-white/80 backdrop-blur-md border border-slate-100 hover:border-blue-200 rounded-3xl p-5 md:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.10)] transition-all duration-300 ease-out hover:-translate-y-1 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
-                >
-                  {/* Identitas Pendaftar */}
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 rounded-2xl flex items-center justify-center font-black text-xl shrink-0 border border-white shadow-sm">
-                      {(entry.full_name || entry.email || "U").charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-slate-800 text-base leading-tight truncate">{entry.full_name || "Peserta Anonim"}</h4>
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">NCC-{String(entry.id).substring(0,6).toUpperCase()}</span>
-                        <span className="text-xs text-slate-500 truncate max-w-[180px]">{entry.email}</span>
-                      </div>
-                      {entry.school_name && (
-                        <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                          <School size={11} className="shrink-0" /> {entry.school_name}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Badge Cabang Lomba */}
-                  <div className="shrink-0">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl text-xs font-bold">
-                      {entry.competition_type || entry.category || "General"}
-                    </span>
-                    {entry.team_name && (
-                      <p className="text-[10px] font-bold text-slate-400 mt-1.5 uppercase tracking-wider">
-                        Tim: <span className="text-slate-600">{entry.team_name}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Smart Action Group */}
-                  <div className="flex items-center gap-2 shrink-0 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-                    {/* Lihat Bukti TF */}
-                    {entry.payment_proof_url ? (
-                      <a
-                        href={entry.payment_proof_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1.5 px-3.5 py-2.5 bg-white text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-300 hover:bg-blue-50 rounded-xl font-bold text-xs transition-all shadow-sm hover:shadow-md"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                        Bukti TF
-                      </a>
-                    ) : (
-                      <span className="px-3.5 py-2.5 text-slate-300 text-xs font-bold">Tidak ada</span>
-                    )}
-
-                    {/* Tombol Terima */}
-                    <button
-                      onClick={() => handleUpdateStatus(entry.id, 'Verified')}
-                      className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-400 to-green-500 text-white rounded-xl font-bold text-xs transition-all shadow-sm hover:shadow-emerald-200/60 hover:scale-105 active:scale-95"
-                    >
-                      <CheckCircle2 size={14} /> Terima
-                    </button>
-
-                    {/* Tombol Tolak */}
-                    <button
-                      onClick={() => {
-                        const reason = prompt("Masukkan alasan penolakan (misal: Bukti TF buram, dll):");
-                        if (reason) handleUpdateStatus(entry.id, 'Rejected', reason);
-                      }}
-                      className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-rose-400 to-red-500 text-white rounded-xl font-bold text-xs transition-all shadow-sm hover:shadow-rose-200/60 hover:scale-105 active:scale-95"
-                    >
-                      <AlertCircle size={14} /> Tolak
-                    </button>
-
-                    {/* Divider */}
-                    <div className="w-px h-8 bg-slate-200 mx-0.5"></div>
-
-                    {/* Tombol Hapus (minimalis) */}
-                    <button
-                      onClick={() => setDeleteModal({ show: true, id: entry.id, userId: entry.user_id, name: entry.full_name })}
-                      title="Hapus Data Peserta Permanen"
-                      className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))
+                  <VerificationCard 
+                    key={entry.id} 
+                    entry={entry}
+                    onUpdateStatus={handleUpdateStatus}
+                    onDeleteClick={(e) => setDeleteModal({ show: true, id: e.id, userId: e.user_id, name: e.full_name })}
+                  />
+                ))
             )}
           </div>
         )}
@@ -2266,11 +2313,11 @@ export default function ModernHQDashboard() {
 
         {/* ================= PANEL 1: SLIDE-OUT DETAIL PESERTA ================= */}
         {selectedParticipant && (
-          <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/20 backdrop-blur-sm transition-all duration-300">
+          <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 transition-all duration-300">
             {/* Area kosong untuk klik tutup */}
             <div className="flex-1" onClick={() => setSelectedParticipant(null)}></div>
             
-            <div className="w-full max-w-md bg-white/80 backdrop-blur-2xl h-full shadow-2xl border-l border-white/60 p-8 flex flex-col overflow-y-auto animate-in slide-in-from-right duration-300">
+            <div className="w-full max-w-md bg-white border-l border-slate-200/80 h-full shadow-[-10px_0_30px_rgba(0,0,0,0.04)] p-8 flex flex-col overflow-y-auto animate-in slide-in-from-right duration-300">
               <div className="flex justify-between items-center mb-8 pb-4 border-b border-slate-200/50">
                  <h2 className="text-xl font-bold text-slate-800">Detail Administrasi</h2>
                  <button onClick={() => setSelectedParticipant(null)} className="p-2 bg-white/50 hover:bg-slate-100 rounded-full border border-slate-200/50 transition-colors"><X size={20}/></button>
