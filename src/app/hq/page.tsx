@@ -548,6 +548,92 @@ export default function ModernHQDashboard() {
 
   const [isUploadingAsset, setIsUploadingAsset] = useState<string | null>(null);
 
+  // --- 🎯 STATE MANAGEMENT MANAJEMEN LLMS (CBT EXAM) ---
+  const [llmsActiveSubTab, setLlmsActiveSubTab] = useState<'overview' | 'soal' | 'sesi' | 'nilai'>('overview');
+  const [llmsQuestions, setLlmsQuestions] = useState<any[]>([
+    {
+      id: 1,
+      question: "Jika x dan y adalah bilangan bulat positif yang memenuhi x^2 - y^2 = 2023, maka jumlah semua nilai x yang mungkin adalah...",
+      options: ["122", "144", "152", "176"],
+      correct: "B",
+      difficulty: "Hard",
+      category: "Olimpiade MIPA"
+    },
+    {
+      id: 2,
+      question: "Berapakah sisa pembagian 3^2026 jika dibagi oleh 7?",
+      options: ["1", "2", "3", "4"],
+      correct: "B",
+      difficulty: "Medium",
+      category: "Olimpiade MIPA"
+    },
+    {
+      id: 3,
+      question: "Sebuah lingkaran berada di dalam persegi sedemikian rupa sehingga lingkaran tersebut menyinggung keempat sisi persegi. Jika luas persegi adalah 64 cm^2, luas lingkaran tersebut adalah...",
+      options: ["16π cm^2", "8π cm^2", "32π cm^2", "4π cm^2"],
+      correct: "A",
+      difficulty: "Medium",
+      category: "Olimpiade MIPA"
+    },
+    {
+      id: 4,
+      question: "Suatu barisan aritmetika memiliki suku pertama a = 5 dan beda b = 3. Suku ke-n dari barisan tersebut adalah 149. Nilai n adalah...",
+      options: ["47", "48", "49", "50"],
+      correct: "C",
+      difficulty: "Easy",
+      category: "Olimpiade MIPA"
+    },
+    {
+      id: 5,
+      question: "Himpunan penyelesaian dari pertidaksamaan |2x - 5| < 7 adalah...",
+      options: ["-1 < x < 6", "-2 < x < 6", "-1 < x < 5", "-2 < x < 5"],
+      correct: "A",
+      difficulty: "Easy",
+      category: "Olimpiade MIPA"
+    }
+  ]);
+  const [llmsSessions, setLlmsSessions] = useState<any[]>([
+    {
+      id: 1,
+      title: "Babak Penyisihan Olimpiade MIPA (Gel. I)",
+      token: "NCC13MIPA",
+      duration: "90 Menit",
+      status: "Aktif",
+      wave: "Gelombang I"
+    },
+    {
+      id: 2,
+      title: "Tryout Nasional Matematika",
+      token: "TRYOUTNCC",
+      duration: "120 Menit",
+      status: "Nonaktif",
+      wave: "Umum"
+    }
+  ]);
+  const [llmsLeaderboard, setLlmsLeaderboard] = useState<any[]>([
+    { rank: 1, ticket: "NCC-27", name: "3345d5de", category: "Olimpiade MIPA", score: 92, accuracy: "92%", time: "74m 12s", status: "Lolos" },
+    { rank: 2, ticket: "NCC-26", name: "gmn gmn", category: "Olimpiade MIPA", score: 85, accuracy: "85%", time: "81m 05s", status: "Lolos" },
+    { rank: 3, ticket: "NCC-24", name: "padoaioihd", category: "Olimpiade MIPA", score: 78, accuracy: "78%", time: "88m 45s", status: "Lolos" },
+    { rank: 4, ticket: "NCC-23", name: "luthfi", category: "Olimpiade MIPA", score: 72, accuracy: "72%", time: "68m 30s", status: "Lolos" },
+    { rank: 5, ticket: "NCC-17", name: "muhammad luthfi aziz", category: "Olimpiade MIPA", score: 55, accuracy: "55%", time: "90m 00s", status: "Gugur" }
+  ]);
+
+  const [newQuestion, setNewQuestion] = useState({
+    question: "",
+    options: ["", "", "", ""],
+    correct: "A",
+    difficulty: "Medium",
+    category: "Olimpiade MIPA"
+  });
+
+  const [newSession, setNewSession] = useState({
+    title: "",
+    token: "",
+    duration: "90 Menit",
+    status: "Nonaktif",
+    wave: "Gelombang I"
+  });
+
   const handleAssetUpload = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1071,6 +1157,7 @@ export default function ModernHQDashboard() {
             { id: "Kegiatan", icon: <CalendarDays size={18} />, label: "Kegiatan" },
             { id: "Schedule", icon: <Calendar size={18} />, label: "Schedule Lomba" },
             { id: "Media", icon: <ImageIcon size={18} />, label: "Kelola Media" },
+            { id: "LLMS", icon: <GraduationCap size={18} />, label: "Manajemen LLMS", badge: "New" },
             { id: "Pengaturan", icon: <Settings size={18} />, label: "Pengaturan" }
           ].map((item) => (
             <button
@@ -1084,6 +1171,11 @@ export default function ModernHQDashboard() {
             >
               <div className="flex items-center gap-3">
                 {item.icon} {item.label}
+                {item.badge && (
+                  <span className="text-[9px] font-black tracking-wider uppercase px-1.5 py-0.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-md shadow-sm ml-1.5">
+                    {item.badge}
+                  </span>
+                )}
               </div>
               {item.count !== undefined && item.count > 0 && (
                 <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === item.id ? "bg-white/20 text-white" : "bg-red-100 text-red-600 animate-pulse"}`}>
@@ -2311,7 +2403,499 @@ export default function ModernHQDashboard() {
         )}
 
 
-        {/* ================= PANEL 1: SLIDE-OUT DETAIL PESERTA ================= */}
+        {activeTab === "LLMS" && (
+          <div className="space-y-6">
+            
+            {/* 👑 PREMIUM HEADER AREA */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white rounded-3xl p-6 border border-slate-200">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+                  <GraduationCap size={28} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-800 tracking-tight">Manajemen LLMS</h2>
+                  <p className="text-sm text-slate-500">Pusat kendali ujian daring, bank soal olimpiade, dan penilaian realtime.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full text-xs font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping"></span>
+                  Server CBT: Online
+                </span>
+              </div>
+            </div>
+
+            {/* 🎛️ GLASSMORPHIC SUB-TAB NAVIGATION */}
+            <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50 max-w-lg">
+              {[
+                { id: "overview", label: "Overview", icon: <LayoutDashboard size={14} /> },
+                { id: "soal", label: "Bank Soal", icon: <FileText size={14} /> },
+                { id: "sesi", label: "Sesi & Waktu", icon: <Clock size={14} /> },
+                { id: "nilai", label: "Penilaian", icon: <Trophy size={14} /> }
+              ].map((subTab) => (
+                <button
+                  key={subTab.id}
+                  onClick={() => setLlmsActiveSubTab(subTab.id as any)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                    llmsActiveSubTab === subTab.id
+                      ? "bg-white text-indigo-600 shadow-sm border border-slate-200"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  {subTab.icon} {subTab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 1. 📊 TAB OVERVIEW */}
+            {llmsActiveSubTab === "overview" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                    <p className="text-xs font-black uppercase text-slate-400 tracking-wider">Peserta Ujian Live</p>
+                    <div className="flex items-baseline gap-2 mt-2">
+                      <span className="text-3xl font-black text-slate-800">14</span>
+                      <span className="text-xs font-bold text-emerald-500 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Live
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-2">Sedang mengerjakan soal MIPA</p>
+                  </div>
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                    <p className="text-xs font-black uppercase text-slate-400 tracking-wider">Total Soal</p>
+                    <div className="flex items-baseline gap-2 mt-2">
+                      <span className="text-3xl font-black text-slate-800">{llmsQuestions.length}</span>
+                      <span className="text-xs font-bold text-indigo-500">Soal Aktif</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-2">Bank soal terintegrasi</p>
+                  </div>
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                    <p className="text-xs font-black uppercase text-slate-400 tracking-wider">Rata-Rata Skor</p>
+                    <div className="flex items-baseline gap-2 mt-2">
+                      <span className="text-3xl font-black text-slate-800">76.4</span>
+                      <span className="text-xs font-bold text-blue-500">Poin</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-2">Dari total 100 poin</p>
+                  </div>
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                    <p className="text-xs font-black uppercase text-slate-400 tracking-wider">Tingkat Kelulusan</p>
+                    <div className="flex items-baseline gap-2 mt-2">
+                      <span className="text-3xl font-black text-slate-800">80%</span>
+                      <span className="text-xs font-bold text-purple-500">Passing Grade 70</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-2">Sesuai standar olimpiade</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Monitor Sesi Ujian */}
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 lg:col-span-2">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                      <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Monitor Sesi Ujian Berjalan
+                      </h3>
+                      <span className="text-xs font-mono font-bold text-slate-400">Token: NCC13MIPA</span>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-bold text-slate-700">Babak Penyisihan Olimpiade MIPA (Gel. I)</span>
+                          <span className="text-xs text-slate-500">Durasi: 90 Menit</span>
+                        </div>
+                        <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden mt-3">
+                          <div className="bg-indigo-600 h-full w-[65%] rounded-full animate-pulse"></div>
+                        </div>
+                        <div className="flex justify-between text-[11px] text-slate-400 mt-2">
+                          <span>Waktu Mulai: 08:00 WIB</span>
+                          <span>Waktu Selesai: 09:30 WIB</span>
+                        </div>
+                      </div>
+
+                      {/* Live Activity Log */}
+                      <div className="space-y-3">
+                        <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Aktivitas Peserta Terkini</h4>
+                        {[
+                          { time: "08:44:12", text: "NCC-27 (3345d5de) baru saja menyelesaikan soal ke-5." },
+                          { time: "08:43:05", text: "NCC-26 (gmn gmn) baru saja mengumpulkan jawaban nomor 10." },
+                          { time: "08:41:55", text: "NCC-24 (padoaioihd) login ke sistem ujian." },
+                          { time: "08:40:02", text: "NCC-23 (luthfi) memulai sesi ujian MIPA." }
+                        ].map((act, i) => (
+                          <div key={i} className="flex gap-3 text-xs p-3 bg-slate-50/50 rounded-xl border border-slate-100/50">
+                            <span className="font-mono font-bold text-indigo-500 shrink-0">{act.time}</span>
+                            <span className="text-slate-600">{act.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Statistik Tingkat Kesulitan */}
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200">
+                    <h3 className="font-bold text-slate-800 text-lg mb-6 pb-4 border-b border-slate-100">
+                      Distribusi Tingkat Kesulitan Soal
+                    </h3>
+                    <div className="space-y-6">
+                      {[
+                        { label: "Sangat Sulit (Hard)", pct: "20%", count: "1 Soal", color: "bg-rose-500" },
+                        { label: "Sedang (Medium)", pct: "40%", count: "2 Soal", color: "bg-amber-500" },
+                        { label: "Mudah (Easy)", pct: "40%", count: "2 Soal", color: "bg-emerald-500" }
+                      ].map((item, i) => (
+                        <div key={i} className="space-y-2">
+                          <div className="flex justify-between text-xs font-bold text-slate-700">
+                            <span>{item.label}</span>
+                            <span className="text-slate-400">{item.count} ({item.pct})</span>
+                          </div>
+                          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                            <div className={`${item.color} h-full`} style={{ width: item.pct }}></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 2. 📝 TAB BANK SOAL */}
+            {llmsActiveSubTab === "soal" && (
+              <div className="space-y-6">
+                
+                {/* FORM TAMBAH SOAL */}
+                <div className="bg-white rounded-3xl p-6 border border-slate-200">
+                  <h3 className="font-bold text-slate-800 text-lg mb-4">Tambah Soal Baru</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Pertanyaan / Soal</label>
+                      <textarea
+                        value={newQuestion.question}
+                        onChange={(e) => setNewQuestion({ ...newQuestion, question: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 h-20 resize-none"
+                        placeholder="Contoh: Jika f(x) = 2x + 3, maka nilai f(5) adalah..."
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {newQuestion.options.map((opt, idx) => (
+                        <div key={idx} className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Pilihan {String.fromCharCode(65 + idx)}</label>
+                          <input
+                            type="text"
+                            value={opt}
+                            onChange={(e) => {
+                              const opts = [...newQuestion.options];
+                              opts[idx] = e.target.value;
+                              setNewQuestion({ ...newQuestion, options: opts });
+                            }}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                            placeholder={`Pilihan ${String.fromCharCode(65 + idx)}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Kunci Jawaban</label>
+                        <select
+                          value={newQuestion.correct}
+                          onChange={(e) => setNewQuestion({ ...newQuestion, correct: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none"
+                        >
+                          {["A", "B", "C", "D"].map(opt => <option key={opt} value={opt}>Pilihan {opt}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Tingkat Kesulitan</label>
+                        <select
+                          value={newQuestion.difficulty}
+                          onChange={(e) => setNewQuestion({ ...newQuestion, difficulty: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none"
+                        >
+                          {["Easy", "Medium", "Hard"].map(diff => <option key={diff} value={diff}>{diff}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Cabang Lomba</label>
+                        <input
+                          type="text"
+                          value={newQuestion.category}
+                          onChange={(e) => setNewQuestion({ ...newQuestion, category: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none"
+                          placeholder="Contoh: Olimpiade MIPA"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                      <button
+                        onClick={() => {
+                          if (!newQuestion.question || newQuestion.options.some(o => !o)) {
+                            return showToast("Mohon isi semua pertanyaan dan pilihan jawaban!", "error");
+                          }
+                          setLlmsQuestions([...llmsQuestions, { ...newQuestion, id: Date.now() }]);
+                          setNewQuestion({
+                            question: "",
+                            options: ["", "", "", ""],
+                            correct: "A",
+                            difficulty: "Medium",
+                            category: "Olimpiade MIPA"
+                          });
+                          showToast("Soal ujian baru berhasil ditambahkan!", "success");
+                        }}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2"
+                      >
+                        <FileText size={16} /> Simpan ke Bank Soal
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* LIST OF QUESTIONS */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-bold text-slate-800 text-lg">Daftar Soal Tersimpan</h3>
+                    <span className="text-xs font-bold text-slate-400">Total: {llmsQuestions.length} Soal</span>
+                  </div>
+
+                  {llmsQuestions.map((q, idx) => (
+                    <div key={q.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4 relative group">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">No. {idx + 1}</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                            q.difficulty === 'Hard' ? 'bg-red-50 text-red-600 border border-red-100' :
+                            q.difficulty === 'Medium' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                            'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                          }`}>{q.difficulty}</span>
+                          <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-md">{q.category}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setLlmsQuestions(llmsQuestions.filter(item => item.id !== q.id));
+                            showToast("Soal ujian berhasil dihapus.", "error");
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+
+                      <p className="text-slate-800 font-bold text-sm leading-relaxed">{q.question}</p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {q.options.map((opt: string, i: number) => (
+                          <div
+                            key={i}
+                            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all ${
+                              q.correct === String.fromCharCode(65 + i)
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                : "bg-slate-50/50 border-slate-100 text-slate-600"
+                            }`}
+                          >
+                            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                              q.correct === String.fromCharCode(65 + i) ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
+                            }`}>{String.fromCharCode(65 + i)}</span>
+                            {opt}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            )}
+
+            {/* 3. ⏱️ TAB SESI & WAKTU */}
+            {llmsActiveSubTab === "sesi" && (
+              <div className="space-y-6">
+                
+                {/* SAKLAR INPUT SESI BARU */}
+                <div className="bg-white rounded-3xl p-6 border border-slate-200">
+                  <h3 className="font-bold text-slate-800 text-lg mb-4">Buka Sesi Ujian Baru</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Judul Sesi</label>
+                      <input
+                        type="text"
+                        value={newSession.title}
+                        onChange={(e) => setNewSession({ ...newSession, title: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder="Contoh: Seleksi Tahap I MIPA"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Token Sesi</label>
+                      <input
+                        type="text"
+                        value={newSession.token}
+                        onChange={(e) => setNewSession({ ...newSession, token: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder="Contoh: MASUKMIPA"
+                      />
+                    </div>
+                    <div className="space-y-1 flex items-end">
+                      <button
+                        onClick={() => {
+                          if (!newSession.title || !newSession.token) {
+                            return showToast("Mohon isi judul sesi dan token!", "error");
+                          }
+                          setLlmsSessions([...llmsSessions, { ...newSession, id: Date.now() }]);
+                          setNewSession({
+                            title: "",
+                            token: "",
+                            duration: "90 Menit",
+                            status: "Nonaktif",
+                            wave: "Gelombang I"
+                          });
+                          showToast("Sesi ujian baru berhasil didaftarkan!", "success");
+                        }}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        <Clock size={16} /> Buka Sesi Baru
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* DAFTAR SESI AKTIF */}
+                <div className="space-y-4">
+                  {llmsSessions.map((session) => (
+                    <div key={session.id} className="bg-white rounded-3xl p-6 border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden shadow-sm">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                          session.status === 'Aktif' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          <Clock size={22} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-800 text-base leading-tight">{session.title}</h4>
+                          <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-slate-500">
+                            <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">Token: {session.token}</span>
+                            <span>Durasi: {session.duration}</span>
+                            <span>Akses: {session.wave}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          session.status === 'Aktif' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-slate-50 text-slate-400 border border-slate-100'
+                        }`}>
+                          {session.status}
+                        </span>
+                        
+                        {/* TOGGLE SWITCH */}
+                        <button
+                          onClick={() => {
+                            const updated = llmsSessions.map(s => {
+                              if (s.id === session.id) {
+                                const newStatus = s.status === 'Aktif' ? 'Nonaktif' : 'Aktif';
+                                showToast(`Sesi '${s.title}' diubah menjadi ${newStatus}.`, "success");
+                                return { ...s, status: newStatus };
+                              }
+                              return s;
+                            });
+                            setLlmsSessions(updated);
+                          }}
+                          className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${
+                            session.status === 'Aktif' ? 'bg-indigo-600' : 'bg-slate-200'
+                          }`}
+                        >
+                          <div className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ${
+                            session.status === 'Aktif' ? 'translate-x-6' : 'translate-x-0'
+                          }`}></div>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setLlmsSessions(llmsSessions.filter(s => s.id !== session.id));
+                            showToast("Sesi ujian dihapus.", "error");
+                          }}
+                          className="p-2 text-slate-400 hover:text-red-500 rounded-xl transition-all"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            )}
+
+            {/* 4. 🏆 TAB PENILAIAN */}
+            {llmsActiveSubTab === "nilai" && (
+              <div className="bg-white border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.02)] rounded-2xl overflow-hidden flex flex-col">
+                <div className="p-6 border-b border-slate-100">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="font-bold text-slate-800">Daftar Hasil Nilai Ujian</h3>
+                      <p className="text-xs text-slate-500 mt-1">Leaderboard dan akumulasi hasil pengerjaan CBT Olimpiade.</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        showToast("File hasil nilai (.csv) berhasil di-ekspor!", "success");
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95"
+                    >
+                      <Download size={14} /> Ekspor Hasil CBT
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/70 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                        <th className="py-4 px-6 text-center w-16">Peringkat</th>
+                        <th className="py-4 px-6">ID Tiket</th>
+                        <th className="py-4 px-6">Nama Peserta</th>
+                        <th className="py-4 px-6">Cabang</th>
+                        <th className="py-4 px-6 text-center">Akurasi</th>
+                        <th className="py-4 px-6 text-center">Waktu Pengerjaan</th>
+                        <th className="py-4 px-6 text-center">Skor Akhir</th>
+                        <th className="py-4 px-6 text-center w-28">Status Kelolosan</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs">
+                      {llmsLeaderboard.map((item, index) => (
+                        <tr key={item.ticket} className="hover:bg-slate-50/50 transition-colors font-medium text-slate-600">
+                          <td className="py-4 px-6 text-center font-bold text-slate-800">
+                            {index === 0 && <span className="inline-flex items-center justify-center w-6 h-6 bg-amber-100 text-amber-700 rounded-full font-black">🥇</span>}
+                            {index === 1 && <span className="inline-flex items-center justify-center w-6 h-6 bg-slate-100 text-slate-700 rounded-full font-black">🥈</span>}
+                            {index === 2 && <span className="inline-flex items-center justify-center w-6 h-6 bg-orange-100 text-orange-700 rounded-full font-black">🥉</span>}
+                            {index > 2 && index + 1}
+                          </td>
+                          <td className="py-4 px-6 font-mono font-bold text-indigo-600">{item.ticket}</td>
+                          <td className="py-4 px-6 font-bold text-slate-800">{item.name}</td>
+                          <td className="py-4 px-6">
+                            <span className="px-2.5 py-1 bg-slate-50 text-slate-600 border border-slate-100 rounded-lg text-[10px] font-bold">
+                              {item.category}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-center font-bold">{item.accuracy}</td>
+                          <td className="py-4 px-6 text-center font-mono text-slate-500">{item.time}</td>
+                          <td className="py-4 px-6 text-center font-black text-slate-800 text-sm">{item.score}</td>
+                          <td className="py-4 px-6 text-center">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              item.status === 'Lolos' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'
+                            }`}>
+                              {item.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
         {selectedParticipant && (
           <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40">
             {/* Area kosong untuk klik tutup */}
