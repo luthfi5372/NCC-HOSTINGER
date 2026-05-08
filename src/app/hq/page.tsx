@@ -254,7 +254,7 @@ export default function ModernHQDashboard() {
   const [realEntries, setRealEntries] = useState<any[]>([]);
   const [dynamicChartData, setDynamicChartData] = useState<any[]>([]);
   const [dynamicBarData, setDynamicBarData] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('Dashboard');
   const [timelineData, setTimelineData] = useState<any[]>([
     {
       category: "LKTI Nasional",
