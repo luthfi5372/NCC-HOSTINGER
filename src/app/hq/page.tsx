@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
   Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight, Save,
-  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck
+  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck, Pencil
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -3530,6 +3530,16 @@ export default function ModernHQDashboard() {
                       </div>
 
                       <div className="flex items-center gap-3 shrink-0">
+                        <button 
+                          onClick={() => {
+                            showToast(`Fitur kelola soal spesifik untuk sesi: ${session.title} akan segera hadir. Saat ini Bank Soal menampilkan soal untuk sesi yang statusnya Aktif.`, "success");
+                          }}
+                          className="px-4 py-2 bg-indigo-50 text-indigo-600 font-semibold text-xs rounded-xl border border-indigo-100 hover:bg-indigo-100 hover:text-indigo-700 transition-colors flex items-center gap-2"
+                        >
+                          <Pencil size={14} />
+                          Kelola Soal
+                        </button>
+
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                           session.status === 'Aktif' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-slate-50 text-slate-400 border border-slate-100'
                         }`}>
