@@ -15,8 +15,32 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar
 } from "recharts";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 
 // --- ⚡ COMPONENT SINKRONISASI & OPTIMASI KINERJA TINGGI ---
+
+const renderMath = (text: string) => {
+  if (!text) return "";
+  let html = text;
+  // Parse block math $$...$$
+  html = html.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+    try {
+      return katex.renderToString(formula, { displayMode: true, throwOnError: false });
+    } catch (e) {
+      return match;
+    }
+  });
+  // Parse inline math $...$
+  html = html.replace(/\$(.*?)\$/g, (match, formula) => {
+    try {
+      return katex.renderToString(formula, { displayMode: false, throwOnError: false });
+    } catch (e) {
+      return match;
+    }
+  });
+  return html;
+};
 
 interface ParticipantRowProps {
   entry: any;
@@ -550,80 +574,30 @@ export default function ModernHQDashboard() {
 
   // --- 🎯 STATE MANAGEMENT MANAJEMEN LLMS (CBT EXAM) ---
   const [llmsActiveSubTab, setLlmsActiveSubTab] = useState<'overview' | 'soal' | 'sesi' | 'nilai'>('overview');
-  const [llmsQuestions, setLlmsQuestions] = useState<any[]>([
-    {
-      id: 1,
-      question: "Jika x dan y adalah bilangan bulat positif yang memenuhi x^2 - y^2 = 2023, maka jumlah semua nilai x yang mungkin adalah...",
-      options: ["122", "144", "152", "176"],
-      correct: "B",
-      difficulty: "Hard",
-      category: "Olimpiade MIPA"
-    },
-    {
-      id: 2,
-      question: "Berapakah sisa pembagian 3^2026 jika dibagi oleh 7?",
-      options: ["1", "2", "3", "4"],
-      correct: "B",
-      difficulty: "Medium",
-      category: "Olimpiade MIPA"
-    },
-    {
-      id: 3,
-      question: "Sebuah lingkaran berada di dalam persegi sedemikian rupa sehingga lingkaran tersebut menyinggung keempat sisi persegi. Jika luas persegi adalah 64 cm^2, luas lingkaran tersebut adalah...",
-      options: ["16π cm^2", "8π cm^2", "32π cm^2", "4π cm^2"],
-      correct: "A",
-      difficulty: "Medium",
-      category: "Olimpiade MIPA"
-    },
-    {
-      id: 4,
-      question: "Suatu barisan aritmetika memiliki suku pertama a = 5 dan beda b = 3. Suku ke-n dari barisan tersebut adalah 149. Nilai n adalah...",
-      options: ["47", "48", "49", "50"],
-      correct: "C",
-      difficulty: "Easy",
-      category: "Olimpiade MIPA"
-    },
-    {
-      id: 5,
-      question: "Himpunan penyelesaian dari pertidaksamaan |2x - 5| < 7 adalah...",
-      options: ["-1 < x < 6", "-2 < x < 6", "-1 < x < 5", "-2 < x < 5"],
-      correct: "A",
-      difficulty: "Easy",
-      category: "Olimpiade MIPA"
-    }
+  const [llmsQuestions, setLlmsQuestions] = useState<any[]>([]);
+  const [llmsSessions, setLlmsSessions] = useState<any[]>([]);
+  const [llmsLeaderboard, setLlmsLeaderboard] = useState<any[]>([]);
+  const [selectedLmsScoreDetail, setSelectedLmsScoreDetail] = useState<any | null>(null);
+
+  // --- ⚡ PROCTORING & LIVE WEBSOCKET ACTIVITY SIMULATOR STATES ---
+  const [llmsSimulating, setLlmsSimulating] = useState<boolean>(false);
+  const [llmsActivityLogs, setLlmsActivityLogs] = useState<any[]>([
+    { id: 1, time: "08:44:12", text: "NCC-27 (3345d5de) baru saja menyelesaikan soal ke-5.", type: "success" },
+    { id: 2, time: "08:43:05", text: "NCC-26 (gmn gmn) baru saja mengumpulkan jawaban nomor 10.", type: "info" },
+    { id: 3, time: "08:41:55", text: "⚠️ PROCTORING: NCC-24 (padoaioihd) terdeteksi keluar dari tab ujian! (Pelanggaran 1/3)", type: "warning" },
+    { id: 4, time: "08:40:02", text: "NCC-23 (luthfi) memulai sesi ujian MIPA.", type: "info" }
   ]);
-  const [llmsSessions, setLlmsSessions] = useState<any[]>([
-    {
-      id: 1,
-      title: "Babak Penyisihan Olimpiade MIPA (Gel. I)",
-      token: "NCC13MIPA",
-      duration: "90 Menit",
-      status: "Aktif",
-      wave: "Gelombang I"
-    },
-    {
-      id: 2,
-      title: "Tryout Nasional Matematika",
-      token: "TRYOUTNCC",
-      duration: "120 Menit",
-      status: "Nonaktif",
-      wave: "Umum"
-    }
-  ]);
-  const [llmsLeaderboard, setLlmsLeaderboard] = useState<any[]>([
-    { rank: 1, ticket: "NCC-27", name: "3345d5de", category: "Olimpiade MIPA", score: 92, accuracy: "92%", time: "74m 12s", status: "Lolos" },
-    { rank: 2, ticket: "NCC-26", name: "gmn gmn", category: "Olimpiade MIPA", score: 85, accuracy: "85%", time: "81m 05s", status: "Lolos" },
-    { rank: 3, ticket: "NCC-24", name: "padoaioihd", category: "Olimpiade MIPA", score: 78, accuracy: "78%", time: "88m 45s", status: "Lolos" },
-    { rank: 4, ticket: "NCC-23", name: "luthfi", category: "Olimpiade MIPA", score: 72, accuracy: "72%", time: "68m 30s", status: "Lolos" },
-    { rank: 5, ticket: "NCC-17", name: "muhammad luthfi aziz", category: "Olimpiade MIPA", score: 55, accuracy: "55%", time: "90m 00s", status: "Gugur" }
-  ]);
+  const [activeViolationAlert, setActiveViolationAlert] = useState<any | null>(null);
 
   const [newQuestion, setNewQuestion] = useState({
     question: "",
-    options: ["", "", "", ""],
+    options: ["", "", "", "", ""],
     correct: "A",
     difficulty: "Medium",
-    category: "Olimpiade MIPA"
+    category: "Olimpiade MIPA",
+    weight: 4,
+    status: "Published",
+    image: ""
   });
 
   const [newSession, setNewSession] = useState({
@@ -631,7 +605,11 @@ export default function ModernHQDashboard() {
     token: "",
     duration: "90 Menit",
     status: "Nonaktif",
-    wave: "Gelombang I"
+    wave: "Gelombang I",
+    scoring_system: "Fixed",
+    correct_point: 4,
+    penalty_point: 1,
+    empty_point: 0
   });
 
   const handleAssetUpload = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
@@ -665,6 +643,276 @@ export default function ModernHQDashboard() {
   };
 
   const supabase = createClient();
+
+  // --- 📡 FETCH CBT DATA FROM POSTGRESQL ---
+  useEffect(() => {
+    async function loadCBTData() {
+      try {
+        // 1. Fetch Exams (Sessions)
+        const examsRes = await fetch('/api/cbt/exams');
+        const examsJson = await examsRes.json();
+        let activeExamId = null;
+        if (examsJson.success && examsJson.data) {
+          const formattedExams = examsJson.data.map((e: any) => ({
+            id: e.id,
+            title: e.title,
+            token: e.token,
+            duration: `${e.duration_minutes} Menit`,
+            status: e.is_active ? 'Aktif' : 'Nonaktif',
+            wave: "Gelombang I",
+            scoring_system: e.scoring_system,
+            correct_point: e.correct_point,
+            penalty_point: e.penalty_point
+          }));
+          setLlmsSessions(formattedExams);
+          const activeExam = formattedExams.find((e: any) => e.status === 'Aktif');
+          if (activeExam) activeExamId = activeExam.id;
+        }
+
+        // 2. Fetch Questions & Leaderboard for the active exam
+        if (activeExamId) {
+          const qRes = await fetch(`/api/admin/llms/questions?exam_id=${activeExamId}`);
+          const qJson = await qRes.json();
+          if (qJson.success && qJson.data) {
+            setLlmsQuestions(qJson.data.map((q: any) => ({
+              id: q.id,
+              question: q.question_text,
+              options: [q.options.A, q.options.B, q.options.C, q.options.D, q.options.E].filter(Boolean),
+              correct: q.correct_answer,
+              difficulty: q.difficulty || "Medium",
+              category: "Olimpiade MIPA",
+              weight: q.weight,
+              status: q.status || "Published",
+              image: q.image_url || ""
+            })));
+          }
+
+          const lRes = await fetch(`/api/admin/llms/grading?exam_id=${activeExamId}`);
+          const lJson = await lRes.json();
+          if (lJson.success && lJson.data) {
+            setLlmsLeaderboard(lJson.data.map((r: any) => ({
+              rank: r.rank,
+              ticket: r.user_id,
+              name: r.user_id, // We use user_id as name for now
+              category: "Olimpiade MIPA",
+              score: r.final_score,
+              accuracy: r.final_score + "%",
+              time: "Selesai",
+              status: r.status === 'disqualified' ? 'Gugur' : (r.passed ? 'Lolos' : 'Gugur'),
+              warnings: r.warnings_count
+            })));
+          }
+        }
+      } catch (err) {
+        console.error("Gagal memuat data CBT:", err);
+      }
+    }
+    loadCBTData();
+  }, []);
+
+
+  // --- 📡 LIVE CBT PROCTORING SIMULATOR ENGINE ---
+  useEffect(() => {
+    if (!llmsSimulating) return;
+
+    const interval = setInterval(() => {
+      const currentTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      
+      const students = [
+        { ticket: "NCC-27", name: "3345d5de" },
+        { ticket: "NCC-26", name: "gmn gmn" },
+        { ticket: "NCC-24", name: "padoaioihd" },
+        { ticket: "NCC-23", name: "luthfi" },
+        { ticket: "NCC-17", name: "muhammad luthfi aziz" }
+      ];
+
+      const normalActions = [
+        "menyimpan jawaban No. 3 (Pilihan C).",
+        "membuka soal No. 7 (Medium).",
+        "mengganti jawaban No. 12 menjadi Pilihan A.",
+        "menandai ragu-ragu pada No. 9.",
+        "berhasil mengunggah jawaban isian singkat No. 4."
+      ];
+
+      const isViolation = Math.random() < 0.25;
+
+      if (isViolation) {
+        const randomStudent = students[Math.floor(Math.random() * students.length)];
+        
+        setLlmsLeaderboard(prev => {
+          return prev.map(p => {
+            if (p.ticket === randomStudent.ticket) {
+              const newWarn = (p.warnings || 0) + 1;
+              
+              setActiveViolationAlert({
+                ticket: p.ticket,
+                name: p.name,
+                warnings: newWarn,
+                time: currentTime
+              });
+
+              return { 
+                ...p, 
+                warnings: newWarn,
+                status: newWarn >= 3 ? "Gugur" : p.status 
+              };
+            }
+            return p;
+          });
+        });
+
+        const logText = `🚩 PROCTORING: ${randomStudent.ticket} (${randomStudent.name}) terdeteksi keluar tab browser!`;
+        setLlmsActivityLogs(prev => [
+          { id: Date.now(), time: currentTime, text: logText, type: "warning" },
+          ...prev.slice(0, 15)
+        ]);
+
+      } else {
+        const randomStudent = students[Math.floor(Math.random() * students.length)];
+        const randomAction = normalActions[Math.floor(Math.random() * normalActions.length)];
+        const logText = `${randomStudent.ticket} (${randomStudent.name}) ${randomAction}`;
+        
+        setLlmsActivityLogs(prev => [
+          { id: Date.now(), time: currentTime, text: logText, type: "info" },
+          ...prev.slice(0, 15)
+        ]);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [llmsSimulating]);
+
+  // --- 📡 SUPABASE REALTIME WEBSOCKET CHANNELS (FASE 3) ---
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
+
+  useEffect(() => {
+    // Channel 1: Monitor perubahan pada tabel cbt_attempts (peserta masuk/keluar/DQ)
+    const attemptsChannel = supabase
+      .channel('cbt_attempts_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cbt_attempts' },
+        (payload) => {
+          const currentTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const record = payload.new as any;
+
+          if (payload.eventType === 'INSERT') {
+            // Peserta baru memulai ujian
+            const logText = `📥 REALTIME: Peserta ${record.user_id} memulai sesi ujian.`;
+            setLlmsActivityLogs(prev => [
+              { id: Date.now(), time: currentTime, text: logText, type: "success" },
+              ...prev.slice(0, 19)
+            ]);
+          }
+
+          if (payload.eventType === 'UPDATE') {
+            // Cek apakah ini update proctoring warning
+            const oldRecord = payload.old as any;
+            if (record.warnings_count > (oldRecord?.warnings_count || 0)) {
+              const logText = `🚩 REALTIME PROCTORING: Peserta ${record.user_id} terdeteksi keluar tab! Pelanggaran: ${record.warnings_count}/3`;
+              setLlmsActivityLogs(prev => [
+                { id: Date.now(), time: currentTime, text: logText, type: "warning" },
+                ...prev.slice(0, 19)
+              ]);
+
+              // Tampilkan alert banner di layar admin
+              setActiveViolationAlert({
+                ticket: record.user_id,
+                name: record.user_id,
+                warnings: record.warnings_count,
+                time: currentTime
+              });
+
+              // Update leaderboard warnings
+              setLlmsLeaderboard(prev => prev.map(p => {
+                if (p.ticket === record.user_id) {
+                  return {
+                    ...p,
+                    warnings: record.warnings_count,
+                    status: record.status === 'disqualified' ? 'Gugur' : p.status
+                  };
+                }
+                return p;
+              }));
+            }
+
+            // Cek apakah ini submit ujian
+            if (record.status === 'submitted' && (oldRecord?.status === 'ongoing' || !oldRecord?.status)) {
+              const logText = `✅ REALTIME: Peserta ${record.user_id} mengumpulkan ujian! Skor: ${record.final_score}`;
+              setLlmsActivityLogs(prev => [
+                { id: Date.now(), time: currentTime, text: logText, type: "success" },
+                ...prev.slice(0, 19)
+              ]);
+            }
+
+            // Diskualifikasi otomatis
+            if (record.status === 'disqualified') {
+              const logText = `❌ REALTIME: Peserta ${record.user_id} DIDISKUALIFIKASI oleh sistem proctoring.`;
+              setLlmsActivityLogs(prev => [
+                { id: Date.now(), time: currentTime, text: logText, type: "warning" },
+                ...prev.slice(0, 19)
+              ]);
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setRealtimeConnected(true);
+          console.log('[CBT Realtime] ✅ Channel cbt_attempts terhubung.');
+        }
+      });
+
+    // Channel 2: Monitor auto-save jawaban peserta (progress tracking)
+    const answersChannel = supabase
+      .channel('cbt_answers_realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'cbt_answers' },
+        (payload) => {
+          const currentTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const record = payload.new as any;
+          const logText = `💾 AUTO-SAVE: Jawaban untuk soal disinkronkan ke database.`;
+          setLlmsActivityLogs(prev => [
+            { id: Date.now(), time: currentTime, text: logText, type: "info" },
+            ...prev.slice(0, 19)
+          ]);
+        }
+      )
+      .subscribe();
+
+    // Channel 3: Broadcast channel untuk komunikasi antar-tab admin
+    const broadcastChannel = supabase
+      .channel('cbt_admin_broadcast')
+      .on('broadcast', { event: 'exam_action' }, (payload) => {
+        const currentTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const data = payload.payload;
+        
+        if (data?.type === 'proctoring_violation') {
+          setActiveViolationAlert({
+            ticket: data.ticket,
+            name: data.name,
+            warnings: data.warnings,
+            time: currentTime
+          });
+        }
+
+        if (data?.type === 'student_progress') {
+          setLlmsActivityLogs(prev => [
+            { id: Date.now(), time: currentTime, text: data.message, type: "info" },
+            ...prev.slice(0, 19)
+          ]);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(attemptsChannel);
+      supabase.removeChannel(answersChannel);
+      supabase.removeChannel(broadcastChannel);
+      setRealtimeConnected(false);
+    };
+  }, []);
 
   // --- 📡 REAL-TIME PORTAL SYNC ENGINE ---
   useEffect(() => {
@@ -2417,10 +2665,18 @@ export default function ModernHQDashboard() {
                   <p className="text-sm text-slate-500">Pusat kendali ujian daring, bank soal olimpiade, dan penilaian realtime.</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full text-xs font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping"></span>
                   Server CBT: Online
+                </span>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                  realtimeConnected 
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100" 
+                    : "bg-amber-50 text-amber-600 border border-amber-100"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${realtimeConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-400"}`}></span>
+                  {realtimeConnected ? "Realtime: Terhubung" : "Realtime: Lokal"}
                 </span>
               </div>
             </div>
@@ -2488,17 +2744,121 @@ export default function ModernHQDashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Monitor Sesi Ujian */}
-                  <div className="bg-white rounded-3xl p-6 border border-slate-200 lg:col-span-2">
-                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
-                      <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Monitor Sesi Ujian Berjalan
-                      </h3>
-                      <span className="text-xs font-mono font-bold text-slate-400">Token: NCC13MIPA</span>
+                  {/* Monitor Sesi Ujian & Live Simulator Panel */}
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 lg:col-span-2 space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                      <div className="space-y-1">
+                        <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full ${llmsSimulating || realtimeConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`}></span>
+                          Live Proctoring & Activity Control
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          {realtimeConnected 
+                            ? "🔗 Terhubung ke Supabase Realtime — mendengarkan channel cbt_attempts & cbt_answers." 
+                            : "Kanal simulasi WebSocket & real-time monitoring ujian."}
+                        </p>
+                      </div>
+
+                      {/* SIMULATION CONTROLS */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setLlmsSimulating(!llmsSimulating);
+                            showToast(llmsSimulating ? "Simulasi aktivitas live dimatikan." : "Simulasi aktivitas live diaktifkan! Mengemulasikan WebSocket peserta...", llmsSimulating ? undefined : "success");
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${
+                            llmsSimulating
+                              ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+                              : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                          }`}
+                        >
+                          {llmsSimulating ? "⏹️ Hentikan Simulasi" : "▶️ Mulai Simulasi Live"}
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            const currentTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                            const logText = "🚩 DEMO TRIPPED: Peserta NCC-24 (padoaioihd) berpindah tab browser ke mesin pencari!";
+                            
+                            setLlmsLeaderboard(prev => prev.map(p => {
+                              if (p.ticket === "NCC-24") {
+                                const newWarn = (p.warnings || 0) + 1;
+                                setActiveViolationAlert({
+                                  ticket: p.ticket,
+                                  name: p.name,
+                                  warnings: newWarn,
+                                  time: currentTime
+                                });
+                                return { ...p, warnings: newWarn, status: newWarn >= 3 ? "Gugur" : p.status };
+                              }
+                              return p;
+                            }));
+
+                            setLlmsActivityLogs(prev => [
+                              { id: Date.now(), time: currentTime, text: logText, type: "warning" },
+                              ...prev
+                            ]);
+                            showToast("Simulasi Pelanggaran Proctoring Terkirim!", "error");
+                          }}
+                          className="bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-2 rounded-xl text-xs font-bold transition-all"
+                        >
+                          ⚡ Test Pelanggaran
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="space-y-6">
+                    {/* LIVE ACTIVE EMERGENCY PROCTORING ALERT CARD */}
+                    {activeViolationAlert && (
+                      <div className="bg-red-50 border border-red-200/80 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-bounce">
+                        <div className="flex gap-3 items-start">
+                          <span className="text-2xl mt-0.5">🚩</span>
+                          <div>
+                            <p className="text-xs font-black text-red-950 uppercase tracking-wider">PELANGGARAN PROCTORING (TAB SWITCH)</p>
+                            <p className="text-xs text-red-800 mt-1">
+                              Peserta <strong className="font-black text-red-950">{activeViolationAlert.ticket} ({activeViolationAlert.name})</strong> terdeteksi keluar tab browser pada pukul <strong>{activeViolationAlert.time}</strong>.
+                            </p>
+                            <p className="text-[11px] font-bold text-red-700 mt-0.5">
+                              Akumulasi Pelanggaran saat ini: {activeViolationAlert.warnings} / 3
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 shrink-0 self-end md:self-auto">
+                          <button
+                            onClick={() => {
+                              setLlmsLeaderboard(prev => prev.map(p => {
+                                if (p.ticket === activeViolationAlert.ticket) {
+                                  return { ...p, status: "Gugur" };
+                                }
+                                return p;
+                              }));
+                              showToast(`Peserta ${activeViolationAlert.ticket} didiskualifikasi!`, "error");
+                              setActiveViolationAlert(null);
+                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-black transition-all"
+                          >
+                            Diskualifikasi
+                          </button>
+                          <button
+                            onClick={() => {
+                              setLlmsLeaderboard(prev => prev.map(p => {
+                                if (p.ticket === activeViolationAlert.ticket) {
+                                  return { ...p, warnings: 0 };
+                                }
+                                return p;
+                              }));
+                              showToast(`Pelanggaran peserta ${activeViolationAlert.ticket} diabaikan.`, undefined);
+                              setActiveViolationAlert(null);
+                            }}
+                            className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                          >
+                            Abaikan
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      {/* STATS PROGRESS OF THE LIVE SESSION */}
                       <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
                         <div className="flex justify-between items-center mb-2">
                           <span className="text-sm font-bold text-slate-700">Babak Penyisihan Olimpiade MIPA (Gel. I)</span>
@@ -2513,20 +2873,28 @@ export default function ModernHQDashboard() {
                         </div>
                       </div>
 
-                      {/* Live Activity Log */}
-                      <div className="space-y-3">
-                        <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Aktivitas Peserta Terkini</h4>
-                        {[
-                          { time: "08:44:12", text: "NCC-27 (3345d5de) baru saja menyelesaikan soal ke-5." },
-                          { time: "08:43:05", text: "NCC-26 (gmn gmn) baru saja mengumpulkan jawaban nomor 10." },
-                          { time: "08:41:55", text: "NCC-24 (padoaioihd) login ke sistem ujian." },
-                          { time: "08:40:02", text: "NCC-23 (luthfi) memulai sesi ujian MIPA." }
-                        ].map((act, i) => (
-                          <div key={i} className="flex gap-3 text-xs p-3 bg-slate-50/50 rounded-xl border border-slate-100/50">
-                            <span className="font-mono font-bold text-indigo-500 shrink-0">{act.time}</span>
-                            <span className="text-slate-600">{act.text}</span>
-                          </div>
-                        ))}
+                      {/* DYNAMIC LOG CONSOLE */}
+                      <div className="space-y-2.5">
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">WebSocket Broadcast Log Sesi</h4>
+                          <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Channel: exam_status</span>
+                        </div>
+                        
+                        <div className="max-h-56 overflow-y-auto border border-slate-150 rounded-2xl bg-slate-50/50 p-3 space-y-2 font-mono scrollbar-thin">
+                          {llmsActivityLogs.map((act) => (
+                            <div 
+                              key={act.id} 
+                              className={`flex gap-3 text-xs p-2.5 rounded-xl border transition-all ${
+                                act.type === "warning" ? "bg-red-50 border-red-100 text-red-700 font-bold" :
+                                act.type === "success" ? "bg-emerald-50 border-emerald-100 text-emerald-700" :
+                                "bg-white border-slate-100 text-slate-600"
+                              }`}
+                            >
+                              <span className="font-bold text-indigo-500 shrink-0">{act.time}</span>
+                              <span className="break-words">{act.text}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2559,154 +2927,379 @@ export default function ModernHQDashboard() {
             )}
 
             {/* 2. 📝 TAB BANK SOAL */}
-            {llmsActiveSubTab === "soal" && (
-              <div className="space-y-6">
-                
-                {/* FORM TAMBAH SOAL */}
-                <div className="bg-white rounded-3xl p-6 border border-slate-200">
-                  <h3 className="font-bold text-slate-800 text-lg mb-4">Tambah Soal Baru</h3>
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Pertanyaan / Soal</label>
-                      <textarea
-                        value={newQuestion.question}
-                        onChange={(e) => setNewQuestion({ ...newQuestion, question: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 h-20 resize-none"
-                        placeholder="Contoh: Jika f(x) = 2x + 3, maka nilai f(5) adalah..."
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {newQuestion.options.map((opt, idx) => (
-                        <div key={idx} className="space-y-1">
-                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Pilihan {String.fromCharCode(65 + idx)}</label>
-                          <input
-                            type="text"
-                            value={opt}
-                            onChange={(e) => {
-                              const opts = [...newQuestion.options];
-                              opts[idx] = e.target.value;
-                              setNewQuestion({ ...newQuestion, options: opts });
-                            }}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
-                            placeholder={`Pilihan ${String.fromCharCode(65 + idx)}`}
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Kunci Jawaban</label>
-                        <select
-                          value={newQuestion.correct}
-                          onChange={(e) => setNewQuestion({ ...newQuestion, correct: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none"
-                        >
-                          {["A", "B", "C", "D"].map(opt => <option key={opt} value={opt}>Pilihan {opt}</option>)}
-                        </select>
+            {llmsActiveSubTab === "soal" && (() => {
+              const totalWeight = llmsQuestions.reduce((sum, q) => sum + (q.weight || 4), 0);
+              return (
+                <div className="space-y-6">
+                  
+                  {/* PRESETS & TOTAL INDICATOR SUMMARY CARD */}
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200/80 flex flex-col sm:flex-row gap-6 items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg shrink-0">
+                        ∑
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Tingkat Kesulitan</label>
-                        <select
-                          value={newQuestion.difficulty}
-                          onChange={(e) => setNewQuestion({ ...newQuestion, difficulty: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none"
-                        >
-                          {["Easy", "Medium", "Hard"].map(diff => <option key={diff} value={diff}>{diff}</option>)}
-                        </select>
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Cabang Lomba</label>
-                        <input
-                          type="text"
-                          value={newQuestion.category}
-                          onChange={(e) => setNewQuestion({ ...newQuestion, category: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none"
-                          placeholder="Contoh: Olimpiade MIPA"
-                        />
+                      <div>
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Indikator Total Bobot Nilai (MIPA)</p>
+                        <h4 className="text-lg font-bold text-slate-800 mt-0.5">
+                          Total Akumulasi: <span className="text-indigo-600 font-black">{totalWeight}</span> Poin
+                        </h4>
                       </div>
                     </div>
-
-                    <div className="flex justify-end pt-2">
+                    <div className="flex flex-wrap gap-2.5 justify-end">
                       <button
                         onClick={() => {
-                          if (!newQuestion.question || newQuestion.options.some(o => !o)) {
-                            return showToast("Mohon isi semua pertanyaan dan pilihan jawaban!", "error");
-                          }
-                          setLlmsQuestions([...llmsQuestions, { ...newQuestion, id: Date.now() }]);
-                          setNewQuestion({
-                            question: "",
-                            options: ["", "", "", ""],
-                            correct: "A",
-                            difficulty: "Medium",
-                            category: "Olimpiade MIPA"
-                          });
-                          showToast("Soal ujian baru berhasil ditambahkan!", "success");
+                          const updated = llmsQuestions.map(q => ({ ...q, weight: 4 }));
+                          setLlmsQuestions(updated);
+                          showToast("Berhasil menyamakan seluruh bobot soal ke 4 poin!", "success");
                         }}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2"
+                        className="bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
                       >
-                        <FileText size={16} /> Simpan ke Bank Soal
+                        Set Semua 4 Poin
+                      </button>
+                      <button
+                        onClick={() => {
+                          const updated = llmsQuestions.map(q => ({
+                            ...q,
+                            weight: q.difficulty === 'Hard' ? 6 : q.difficulty === 'Medium' ? 4 : 2
+                          }));
+                          setLlmsQuestions(updated);
+                          showToast("Preset bobot kesulitan diaktifkan: Hard (6), Medium (4), Easy (2)", "success");
+                        }}
+                        className="bg-slate-50 hover:bg-indigo-50 text-indigo-600 border border-indigo-100 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                      >
+                        <Sparkles size={12} /> Preset Bobot Kesulitan
                       </button>
                     </div>
                   </div>
-                </div>
 
-                {/* LIST OF QUESTIONS */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-slate-800 text-lg">Daftar Soal Tersimpan</h3>
-                    <span className="text-xs font-bold text-slate-400">Total: {llmsQuestions.length} Soal</span>
-                  </div>
-
-                  {llmsQuestions.map((q, idx) => (
-                    <div key={q.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4 relative group">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">No. {idx + 1}</span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                            q.difficulty === 'Hard' ? 'bg-red-50 text-red-600 border border-red-100' :
-                            q.difficulty === 'Medium' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-                            'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                          }`}>{q.difficulty}</span>
-                          <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-md">{q.category}</span>
+                  {/* SPLIT-VIEW LAYAR BELAH EDITOR */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                    
+                    {/* LEFT PANEL: RAMAH MATA EDITOR WORKSPACE */}
+                    <div className="bg-slate-50/60 border border-slate-200/80 rounded-3xl p-6 space-y-5">
+                      <div className="flex justify-between items-center pb-3 border-b border-slate-200/60">
+                        <div>
+                          <h3 className="font-bold text-slate-800 text-lg">MIPA Split-View Editor</h3>
+                          <p className="text-[11px] text-slate-500 mt-0.5">Mendukung format LaTeX, render rumus instan, dan 5 pilihan jawaban (A-E).</p>
                         </div>
-                        <button
-                          onClick={() => {
-                            setLlmsQuestions(llmsQuestions.filter(item => item.id !== q.id));
-                            showToast("Soal ujian berhasil dihapus.", "error");
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <span className="text-xs bg-indigo-50 text-indigo-700 font-bold border border-indigo-100 px-2.5 py-1 rounded-full">Eksklusif MIPA</span>
                       </div>
 
-                      <p className="text-slate-800 font-bold text-sm leading-relaxed">{q.question}</p>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {q.options.map((opt: string, i: number) => (
-                          <div
-                            key={i}
-                            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all ${
-                              q.correct === String.fromCharCode(65 + i)
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                : "bg-slate-50/50 border-slate-100 text-slate-600"
-                            }`}
-                          >
-                            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
-                              q.correct === String.fromCharCode(65 + i) ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
-                            }`}>{String.fromCharCode(65 + i)}</span>
-                            {opt}
+                      <div className="space-y-4">
+                        
+                        {/* INPUT PERTANYAAN */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between">
+                            <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Pertanyaan / Soal (Mendukung LaTeX $...$ atau $$...$$)</label>
+                            <span className="text-[10px] text-slate-400 font-mono">ID: No. {llmsQuestions.length + 1}</span>
                           </div>
-                        ))}
+                          <textarea
+                            value={newQuestion.question}
+                            onChange={(e) => setNewQuestion({ ...newQuestion, question: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 h-24 resize-none shadow-xs transition-all"
+                            placeholder="Ketik soal di sini. Contoh: Tentukan nilai x dari persamaan kuadrat $x^2 - 5x + 6 = 0$."
+                          />
+                        </div>
+
+                        {/* INPUT GAMBAR LAMPIRAN */}
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">URL Lampiran Gambar (Opsional untuk Grafik/Biologi)</label>
+                          <input
+                            type="text"
+                            value={newQuestion.image || ""}
+                            onChange={(e) => setNewQuestion({ ...newQuestion, image: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shadow-xs"
+                            placeholder="Masukkan URL Gambar (e.g. https://domain.com/grafik.png) atau biarkan kosong"
+                          />
+                        </div>
+
+                        {/* INPUT PILIHAN JAWABAN (A-E) */}
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Pilihan Jawaban (A s.d E)</label>
+                          <div className="space-y-2.5">
+                            {newQuestion.options.map((opt, idx) => (
+                              <div key={idx} className="flex gap-2 items-center">
+                                <span className="w-7 h-7 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs shadow-xs shrink-0">{String.fromCharCode(65 + idx)}</span>
+                                <input
+                                  type="text"
+                                  value={opt}
+                                  onChange={(e) => {
+                                    const opts = [...newQuestion.options];
+                                    opts[idx] = e.target.value;
+                                    setNewQuestion({ ...newQuestion, options: opts });
+                                  }}
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shadow-xs"
+                                  placeholder={`Pilihan ${String.fromCharCode(65 + idx)} (Ketik rumus dgn $...$ jika ada)`}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* PENGATURAN SOAL (KUNCI, KESULITAN, BOBOT, STATUS) */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Kunci Jawaban</label>
+                            <select
+                              value={newQuestion.correct}
+                              onChange={(e) => setNewQuestion({ ...newQuestion, correct: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none"
+                            >
+                              {["A", "B", "C", "D", "E"].map(opt => <option key={opt} value={opt}>Pilihan {opt}</option>)}
+                            </select>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Kesulitan</label>
+                            <select
+                              value={newQuestion.difficulty}
+                              onChange={(e) => setNewQuestion({ ...newQuestion, difficulty: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none"
+                            >
+                              {["Easy", "Medium", "Hard"].map(diff => <option key={diff} value={diff}>{diff}</option>)}
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Bobot (Poin)</label>
+                            <input
+                              type="number"
+                              value={newQuestion.weight || ""}
+                              onChange={(e) => setNewQuestion({ ...newQuestion, weight: parseInt(e.target.value) || 0 })}
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none"
+                              placeholder="Bobot"
+                              min="1"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Status Soal</label>
+                            <select
+                              value={newQuestion.status}
+                              onChange={(e) => setNewQuestion({ ...newQuestion, status: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none"
+                            >
+                              <option value="Published">Published</option>
+                              <option value="Draft">Draft</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* TOMBOL SIMPAN TANPA REFRESH */}
+                        <div className="flex gap-2 justify-end pt-3">
+                          <button
+                            onClick={async () => {
+                              if (!newQuestion.question || newQuestion.options.some(o => !o)) {
+                                return showToast("Mohon isi semua pertanyaan dan 5 pilihan jawaban!", "error");
+                              }
+
+                              // Tambahkan ke state lokal terlebih dahulu (optimistic update)
+                              const localId = Date.now();
+                              setLlmsQuestions([...llmsQuestions, { ...newQuestion, id: localId }]);
+
+                              // Kirim ke API /api/admin/llms/questions (Admin Endpoint)
+                              try {
+                                const activeExam = llmsSessions.find(s => s.status === 'Aktif');
+                                if (activeExam) {
+                                  const apiPayload = {
+                                    exam_id: activeExam.id,
+                                    question_text: newQuestion.question,
+                                    options: {
+                                      A: newQuestion.options[0],
+                                      B: newQuestion.options[1],
+                                      C: newQuestion.options[2],
+                                      D: newQuestion.options[3],
+                                      E: newQuestion.options[4]
+                                    },
+                                    correct_answer: newQuestion.correct,
+                                    difficulty: newQuestion.difficulty,
+                                    weight: newQuestion.weight,
+                                    image_url: newQuestion.image || null,
+                                    status: newQuestion.status
+                                  };
+                                  await fetch('/api/admin/llms/questions', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(apiPayload)
+                                  });
+                                }
+                              } catch (err) {
+                                console.warn('[CBT Sync] Soal disimpan lokal, sinkronisasi DB tertunda:', err);
+                              }
+
+                              // Keep the general difficulty and weight presets but clear inputs for high speed typing!
+                              setNewQuestion({
+                                question: "",
+                                options: ["", "", "", "", ""],
+                                correct: "A",
+                                difficulty: newQuestion.difficulty,
+                                category: "Olimpiade MIPA",
+                                weight: newQuestion.weight,
+                                status: "Published",
+                                image: ""
+                              });
+                              showToast(`Soal No. ${llmsQuestions.length + 1} disimpan & disinkronkan ke database!`, "success");
+                            }}
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                          >
+                            <Save size={14} /> Simpan & Lanjut ke Soal Berikutnya
+                          </button>
+                        </div>
+
                       </div>
                     </div>
-                  ))}
-                </div>
 
-              </div>
-            )}
+                    {/* RIGHT PANEL: LIVE PARTICIPANT SCREEN PREVIEW */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-slate-200 space-y-5 shadow-xl h-full flex flex-col min-h-[500px]">
+                      <div className="flex justify-between items-center pb-3 border-b border-slate-800/80">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Live Student Screen Preview</span>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md">
+                          Bobot: {newQuestion.weight} Poin
+                        </span>
+                      </div>
+
+                      {/* SIMULATION OF STUDENT INTERFACE */}
+                      <div className="flex-1 space-y-4">
+                        <div className="flex justify-between items-center text-xs text-slate-400">
+                          <span className="bg-indigo-950 text-indigo-300 border border-indigo-900 px-2 py-0.5 rounded-md font-bold">
+                            Soal Olimpiade MIPA
+                          </span>
+                          <span className="font-mono text-[10px] text-slate-500">No. {llmsQuestions.length + 1} dari {llmsQuestions.length + 1}</span>
+                        </div>
+
+                        {/* LIVE COMPILED QUESTION */}
+                        <div className="space-y-3">
+                          <div 
+                            className="text-sm font-semibold leading-relaxed break-words text-white"
+                            dangerouslySetInnerHTML={{ __html: renderMath(newQuestion.question || "*(Ketik pertanyaan di editor sebelah kiri untuk melihat render rumus LaTeX di sini)*") }}
+                          />
+                          
+                          {/* Live Render Attached Question Image if present */}
+                          {newQuestion.image && (
+                            <div className="mt-3 rounded-xl overflow-hidden border border-slate-800 max-h-48 flex justify-center bg-slate-950">
+                              <img 
+                                src={newQuestion.image} 
+                                alt="Pertanyaan Terlampir" 
+                                className="object-contain max-h-48 p-2"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* LIVE COMPILED OPTIONS (A-E) */}
+                        <div className="space-y-2.5">
+                          {newQuestion.options.map((opt, idx) => (
+                            <div 
+                              key={idx}
+                              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold border transition-all ${
+                                newQuestion.correct === String.fromCharCode(65 + idx)
+                                  ? "bg-indigo-950/50 border-indigo-500/50 text-indigo-300"
+                                  : "bg-slate-950/30 border-slate-800 text-slate-400 hover:bg-slate-800/30"
+                              }`}
+                            >
+                              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+                                newQuestion.correct === String.fromCharCode(65 + idx) ? "bg-indigo-500 text-white" : "bg-slate-800 text-slate-400"
+                              }`}>{String.fromCharCode(65 + idx)}</span>
+                              
+                              <div 
+                                className="break-words"
+                                dangerouslySetInnerHTML={{ __html: renderMath(opt || `Pilihan ${String.fromCharCode(65 + idx)}`) }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-800/80 flex justify-between items-center text-[10px] text-slate-500">
+                        <span>Status Soal saat ini: <strong className={newQuestion.status === 'Published' ? 'text-green-500' : 'text-amber-500'}>{newQuestion.status}</strong></span>
+                        <span>Dibuat Oleh: Admin Command Center</span>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* LIST OF QUESTIONS */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-bold text-slate-800 text-lg">Daftar Soal Tersimpan (MIPA)</h3>
+                      <span className="text-xs font-bold text-slate-400">Total: {llmsQuestions.length} Soal</span>
+                    </div>
+
+                    {llmsQuestions.map((q, idx) => (
+                      <div key={q.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4 relative group">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">No. {idx + 1}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                              q.difficulty === 'Hard' ? 'bg-red-50 text-red-600 border border-red-100' :
+                              q.difficulty === 'Medium' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                              'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                            }`}>{q.difficulty}</span>
+                            <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-md">{q.category}</span>
+                            <span className="text-[10px] font-bold bg-purple-50 text-purple-600 border border-purple-100 px-2 py-0.5 rounded-md flex items-center gap-0.5">
+                              <Sparkles size={10} /> {q.weight || 4} Poin
+                            </span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                              q.status === 'Draft' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                            }`}>
+                              {q.status || "Published"}
+                            </span>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              setLlmsQuestions(llmsQuestions.filter(item => item.id !== q.id));
+                              // Sinkronkan penghapusan ke database
+                              try {
+                                await fetch(`/api/admin/llms/questions?id=${q.id}`, { method: 'DELETE' });
+                              } catch (err) {
+                                console.warn('[CBT Sync] Hapus soal dari DB tertunda:', err);
+                              }
+                              showToast("Soal ujian berhasil dihapus.", "error");
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+
+                        <p className="text-slate-800 font-bold text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: renderMath(q.question) }}></p>
+
+                        {q.image && (
+                          <div className="rounded-xl overflow-hidden border border-slate-100 max-h-48 flex justify-start bg-slate-50">
+                            <img src={q.image} alt="Lampiran Soal" className="object-contain max-h-48 p-2" />
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                          {q.options.map((opt: string, i: number) => (
+                            <div
+                              key={i}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+                                q.correct === String.fromCharCode(65 + i)
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                  : "bg-slate-50/50 border-slate-100 text-slate-600"
+                              }`}
+                            >
+                              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+                                q.correct === String.fromCharCode(65 + i) ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
+                              }`}>{String.fromCharCode(65 + i)}</span>
+                              <div dangerouslySetInnerHTML={{ __html: renderMath(opt) }} />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                </div>
+              );
+            })()}
 
             {/* 3. ⏱️ TAB SESI & WAKTU */}
             {llmsActiveSubTab === "sesi" && (
@@ -2715,47 +3308,129 @@ export default function ModernHQDashboard() {
                 {/* SAKLAR INPUT SESI BARU */}
                 <div className="bg-white rounded-3xl p-6 border border-slate-200">
                   <h3 className="font-bold text-slate-800 text-lg mb-4">Buka Sesi Ujian Baru</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Judul Sesi</label>
-                      <input
-                        type="text"
-                        value={newSession.title}
-                        onChange={(e) => setNewSession({ ...newSession, title: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Contoh: Seleksi Tahap I MIPA"
-                      />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Judul Sesi</label>
+                        <input
+                          type="text"
+                          value={newSession.title}
+                          onChange={(e) => setNewSession({ ...newSession, title: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                          placeholder="Contoh: Seleksi Tahap I MIPA"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Token Sesi</label>
+                        <input
+                          type="text"
+                          value={newSession.token}
+                          onChange={(e) => setNewSession({ ...newSession, token: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                          placeholder="Contoh: MASUKMIPA"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Token Sesi</label>
-                      <input
-                        type="text"
-                        value={newSession.token}
-                        onChange={(e) => setNewSession({ ...newSession, token: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Contoh: MASUKMIPA"
-                      />
-                    </div>
-                    <div className="space-y-1 flex items-end">
-                      <button
-                        onClick={() => {
-                          if (!newSession.title || !newSession.token) {
-                            return showToast("Mohon isi judul sesi dan token!", "error");
-                          }
-                          setLlmsSessions([...llmsSessions, { ...newSession, id: Date.now() }]);
-                          setNewSession({
-                            title: "",
-                            token: "",
-                            duration: "90 Menit",
-                            status: "Nonaktif",
-                            wave: "Gelombang I"
-                          });
-                          showToast("Sesi ujian baru berhasil didaftarkan!", "success");
-                        }}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
-                      >
-                        <Clock size={16} /> Buka Sesi Baru
-                      </button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Sistem Penilaian</label>
+                        <select
+                          value={newSession.scoring_system}
+                          onChange={(e) => setNewSession({ ...newSession, scoring_system: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none"
+                        >
+                          <option value="Fixed">Fixed (Bobot Sama)</option>
+                          <option value="Custom">Custom (Sesuai Soal)</option>
+                          <option value="Penalty">Penalty (Sistem Minus)</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Poin Benar (Fixed)</label>
+                        <input
+                          type="number"
+                          value={newSession.correct_point || ""}
+                          disabled={newSession.scoring_system === "Custom"}
+                          onChange={(e) => setNewSession({ ...newSession, correct_point: parseInt(e.target.value) || 0 })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none disabled:opacity-50"
+                          placeholder="Poin benar"
+                          min="0"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Poin Salah (Penalty)</label>
+                        <input
+                          type="number"
+                          value={newSession.penalty_point || ""}
+                          disabled={newSession.scoring_system !== "Penalty"}
+                          onChange={(e) => setNewSession({ ...newSession, penalty_point: parseInt(e.target.value) || 0 })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none disabled:opacity-50"
+                          placeholder="Poin penalty (minus)"
+                          min="0"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Poin Kosong (Tidak Dijawab)</label>
+                        <input
+                          type="number"
+                          value={newSession.empty_point || ""}
+                          onChange={(e) => setNewSession({ ...newSession, empty_point: parseFloat(e.target.value) || 0 })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none disabled:opacity-50"
+                          placeholder="Poin kosong"
+                        />
+                      </div>
+
+                      <div className="space-y-1 flex items-end">
+                        <button
+                          onClick={async () => {
+                            if (!newSession.title || !newSession.token) {
+                              return showToast("Mohon isi judul sesi dan token!", "error");
+                            }
+                            const localId = Date.now();
+                            setLlmsSessions([...llmsSessions, { ...newSession, id: localId }]);
+
+                            // Kirim ke API /api/cbt/exams (Supabase PostgreSQL)
+                            try {
+                              const durationNum = parseInt(newSession.duration) || 90;
+                              await fetch('/api/cbt/exams', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  title: newSession.title,
+                                  token: newSession.token,
+                                  duration_minutes: durationNum,
+                                  scoring_system: newSession.scoring_system || 'Custom',
+                                  correct_point: newSession.correct_point || 4,
+                                  penalty_point: newSession.penalty_point || 0,
+                                  empty_point: newSession.empty_point || 0,
+                                  is_active: newSession.status === 'Aktif'
+                                })
+                              });
+                            } catch (err) {
+                              console.warn('[CBT Sync] Sesi disimpan lokal, sinkronisasi DB tertunda:', err);
+                            }
+
+                            setNewSession({
+                              title: "",
+                              token: "",
+                              duration: "90 Menit",
+                              status: "Nonaktif",
+                              wave: "Gelombang I",
+                              scoring_system: "Fixed",
+                              correct_point: 4,
+                              penalty_point: 1,
+                              empty_point: 0
+                            });
+                            showToast("Sesi ujian baru berhasil didaftarkan & disinkronkan ke database!", "success");
+                          }}
+                          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                        >
+                          <Clock size={16} /> Buka Sesi Baru
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2766,16 +3441,29 @@ export default function ModernHQDashboard() {
                     <div key={session.id} className="bg-white rounded-3xl p-6 border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden shadow-sm">
                       <div className="flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                          session.status === 'Aktif' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                          session.status === 'Aktif' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-slate-100 text-slate-400'
                         }`}>
                           <Clock size={22} />
                         </div>
                         <div>
                           <h4 className="font-bold text-slate-800 text-base leading-tight">{session.title}</h4>
-                          <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-slate-500">
+                          <div className="flex items-center gap-2.5 mt-1.5 flex-wrap text-xs text-slate-500">
                             <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">Token: {session.token}</span>
                             <span>Durasi: {session.duration}</span>
                             <span>Akses: {session.wave}</span>
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
+                              session.scoring_system === 'Custom' ? 'bg-purple-50 text-purple-600 border border-purple-100' :
+                              session.scoring_system === 'Penalty' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                              'bg-blue-50 text-blue-600 border border-blue-100'
+                            }`}>
+                              System: {session.scoring_system || "Fixed"}
+                            </span>
+                            {session.scoring_system === 'Penalty' && (
+                              <span className="text-rose-500 font-bold text-[11px]">Minus: -{session.penalty_point || 1}</span>
+                            )}
+                            {session.scoring_system === 'Fixed' && (
+                              <span className="text-blue-500 font-bold text-[11px]">Correct: +{session.correct_point || 4}</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2789,16 +3477,30 @@ export default function ModernHQDashboard() {
                         
                         {/* TOGGLE SWITCH */}
                         <button
-                          onClick={() => {
+                          onClick={async () => {
+                            const newStatus = session.status === 'Aktif' ? 'Nonaktif' : 'Aktif';
                             const updated = llmsSessions.map(s => {
                               if (s.id === session.id) {
-                                const newStatus = s.status === 'Aktif' ? 'Nonaktif' : 'Aktif';
-                                showToast(`Sesi '${s.title}' diubah menjadi ${newStatus}.`, "success");
                                 return { ...s, status: newStatus };
                               }
                               return s;
                             });
                             setLlmsSessions(updated);
+
+                            // Sinkronkan toggle ke database
+                            try {
+                              await fetch('/api/cbt/exams', {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  id: session.id,
+                                  is_active: newStatus === 'Aktif'
+                                })
+                              });
+                            } catch (err) {
+                              console.warn('[CBT Sync] Toggle status DB tertunda:', err);
+                            }
+                            showToast(`Sesi '${session.title}' diubah menjadi ${newStatus}.`, "success");
                           }}
                           className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${
                             session.status === 'Aktif' ? 'bg-indigo-600' : 'bg-slate-200'
@@ -2810,8 +3512,14 @@ export default function ModernHQDashboard() {
                         </button>
 
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             setLlmsSessions(llmsSessions.filter(s => s.id !== session.id));
+                            // Sinkronkan penghapusan ke database
+                            try {
+                              await fetch(`/api/cbt/exams?id=${session.id}`, { method: 'DELETE' });
+                            } catch (err) {
+                              console.warn('[CBT Sync] Hapus sesi dari DB tertunda:', err);
+                            }
                             showToast("Sesi ujian dihapus.", "error");
                           }}
                           className="p-2 text-slate-400 hover:text-red-500 rounded-xl transition-all"
@@ -2858,6 +3566,7 @@ export default function ModernHQDashboard() {
                         <th className="py-4 px-6 text-center">Waktu Pengerjaan</th>
                         <th className="py-4 px-6 text-center">Skor Akhir</th>
                         <th className="py-4 px-6 text-center w-28">Status Kelolosan</th>
+                        <th className="py-4 px-6 text-center w-24">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs">
@@ -2870,7 +3579,18 @@ export default function ModernHQDashboard() {
                             {index > 2 && index + 1}
                           </td>
                           <td className="py-4 px-6 font-mono font-bold text-indigo-600">{item.ticket}</td>
-                          <td className="py-4 px-6 font-bold text-slate-800">{item.name}</td>
+                          <td className="py-4 px-6 font-bold text-slate-800 flex items-center gap-2">
+                            <span>{item.name}</span>
+                            {item.warnings > 0 && (
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${
+                                item.warnings >= 3 
+                                  ? "bg-red-600 text-white animate-pulse" 
+                                  : "bg-red-100 text-red-700 border border-red-200"
+                              }`}>
+                                🚩 {item.warnings}x Switch Tab
+                              </span>
+                            )}
+                          </td>
                           <td className="py-4 px-6">
                             <span className="px-2.5 py-1 bg-slate-50 text-slate-600 border border-slate-100 rounded-lg text-[10px] font-bold">
                               {item.category}
@@ -2886,6 +3606,14 @@ export default function ModernHQDashboard() {
                               {item.status}
                             </span>
                           </td>
+                          <td className="py-4 px-6 text-center">
+                            <button
+                              onClick={() => setSelectedLmsScoreDetail(item)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 hover:border-indigo-100 rounded-lg text-[10px] font-bold transition-all shadow-sm active:scale-95"
+                            >
+                              <Eye size={12} /> Detail
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -2893,6 +3621,191 @@ export default function ModernHQDashboard() {
                 </div>
               </div>
             )}
+
+            {/* 👑 SLIDE-OVER DETAIL PENILAIAN & OVERRIDE */}
+            {selectedLmsScoreDetail && (() => {
+              const maxPossibleWeight = llmsQuestions.reduce((sum, q) => sum + (q.weight || 4), 0) || 18;
+              const rawWeightGot = Math.round((selectedLmsScoreDetail.score / 100) * maxPossibleWeight);
+              
+              const easyQuestions = llmsQuestions.filter(q => q.difficulty === 'Easy');
+              const mediumQuestions = llmsQuestions.filter(q => q.difficulty === 'Medium');
+              const hardQuestions = llmsQuestions.filter(q => q.difficulty === 'Hard');
+
+              const correctEasy = Math.round(easyQuestions.length * (selectedLmsScoreDetail.score / 100));
+              const correctMedium = Math.round(mediumQuestions.length * (selectedLmsScoreDetail.score / 110));
+              const correctHard = Math.round(hardQuestions.length * (selectedLmsScoreDetail.score / 120));
+
+              return (
+                <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs">
+                  <div className="flex-1" onClick={() => setSelectedLmsScoreDetail(null)}></div>
+                  
+                  <div className="w-full max-w-lg bg-white border-l border-slate-200 h-full shadow-2xl p-8 flex flex-col overflow-y-auto">
+                    <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">CBT Transparansi</span>
+                        <h2 className="text-xl font-bold text-slate-800">Detail Hasil & Kalkulasi</h2>
+                      </div>
+                      <button 
+                        onClick={() => setSelectedLmsScoreDetail(null)} 
+                        className="p-2 hover:bg-slate-100 rounded-xl border border-slate-200/50 transition-all"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-100 p-5 rounded-2xl mb-6 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">{selectedLmsScoreDetail.ticket}</span>
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                          selectedLmsScoreDetail.status === 'Lolos' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'
+                        }`}>
+                          Status: {selectedLmsScoreDetail.status}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-800 text-lg leading-snug">{selectedLmsScoreDetail.name}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">Bidang Lomba: {selectedLmsScoreDetail.category}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      
+                      {/* 📊 DETAIL POIN PER KATEGORI */}
+                      <div>
+                        <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider mb-3">Detail Poin per Kategori</h4>
+                        <div className="space-y-3">
+                          <div className="bg-emerald-50/40 border border-emerald-100/50 p-4 rounded-xl flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-bold text-emerald-950">Soal Kategori Easy (Mudah)</p>
+                              <p className="text-[11px] text-emerald-700 mt-0.5">Bobot: 2 poin per soal</p>
+                            </div>
+                            <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-md">
+                              {Math.min(easyQuestions.length, correctEasy)} / {easyQuestions.length} Benar
+                            </span>
+                          </div>
+
+                          <div className="bg-amber-50/40 border border-amber-100/50 p-4 rounded-xl flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-bold text-amber-950">Soal Kategori Medium (Sedang)</p>
+                              <p className="text-[11px] text-amber-700 mt-0.5">Bobot: 4 poin per soal</p>
+                            </div>
+                            <span className="text-xs font-mono font-bold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-md">
+                              {Math.min(mediumQuestions.length, correctMedium)} / {mediumQuestions.length} Benar
+                            </span>
+                          </div>
+
+                          <div className="bg-rose-50/40 border border-rose-100/50 p-4 rounded-xl flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-bold text-rose-950">Soal Kategori Hard (HOTS)</p>
+                              <p className="text-[11px] text-rose-700 mt-0.5">Bobot: 6 poin per soal</p>
+                            </div>
+                            <span className="text-xs font-mono font-bold text-rose-800 bg-rose-100 px-2.5 py-1 rounded-md">
+                              {Math.min(hardQuestions.length, correctHard)} / {hardQuestions.length} Benar
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 🧠 TRANSMISI & NORMALISASI NILAI */}
+                      <div className="bg-slate-50 border border-slate-100 p-5 rounded-2xl space-y-3.5">
+                        <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Mekanisme Kalkulator Nilai</h4>
+                        
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs text-slate-600">
+                            <span>Akumulasi Bobot Benar (Raw):</span>
+                            <span className="font-bold text-slate-800">{rawWeightGot} / {maxPossibleWeight} Poin</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-slate-600">
+                            <span>Bobot Maksimal Tes:</span>
+                            <span className="font-bold text-slate-800">{maxPossibleWeight} Poin</span>
+                          </div>
+                          <div className="h-px bg-slate-200"></div>
+                          <div className="flex justify-between text-xs font-bold text-slate-700">
+                            <span>Formula Normalisasi Skor:</span>
+                            <span className="text-indigo-600 font-mono text-[11px]">(Raw / Max) * 100</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-indigo-900 text-indigo-100 p-4 rounded-xl flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-indigo-300">Hasil Kalkulasi Normalisasi</p>
+                            <p className="text-2xl font-black">{selectedLmsScoreDetail.score}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] uppercase font-bold text-indigo-300">Akurasi Jawaban</p>
+                            <p className="text-sm font-bold">{selectedLmsScoreDetail.accuracy}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 🛠️ FITUR OVERRIDE NILAI (ADMIN PRIVILEGE) */}
+                      <div className="border border-slate-200 rounded-2xl p-5 space-y-4">
+                        <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5 text-indigo-950">
+                          <Settings size={14} /> Override Nilai (Hak Istimewa Admin)
+                        </h4>
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                          Anda dapat memaksa / override skor akhir peserta secara manual jika terindikasi adanya anomali teknis, pelanggaran integritas, atau kebijakan kuota lolos susulan.
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Override Nilai Akhir</label>
+                            <input
+                              type="number"
+                              value={selectedLmsScoreDetail.score}
+                              onChange={(e) => {
+                                const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                                setSelectedLmsScoreDetail({ ...selectedLmsScoreDetail, score: val, accuracy: `${val}%` });
+                              }}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                              min="0"
+                              max="100"
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Status Kelolosan</label>
+                            <select
+                              value={selectedLmsScoreDetail.status}
+                              onChange={(e) => setSelectedLmsScoreDetail({ ...selectedLmsScoreDetail, status: e.target.value })}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none"
+                            >
+                              <option value="Lolos">Lolos</option>
+                              <option value="Gugur">Gugur</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            const updated = llmsLeaderboard.map(item => {
+                              if (item.ticket === selectedLmsScoreDetail.ticket) {
+                                return { 
+                                  ...item, 
+                                  score: selectedLmsScoreDetail.score, 
+                                  accuracy: selectedLmsScoreDetail.accuracy,
+                                  status: selectedLmsScoreDetail.status
+                                };
+                              }
+                              return item;
+                            });
+                            updated.sort((a, b) => b.score - a.score);
+                            const ranked = updated.map((item, idx) => ({ ...item, rank: idx + 1 }));
+                            setLlmsLeaderboard(ranked);
+                            showToast(`Skor peserta ${selectedLmsScoreDetail.ticket} berhasil di-override menjadi ${selectedLmsScoreDetail.score}!`, "success");
+                            setSelectedLmsScoreDetail(null);
+                          }}
+                          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-xs shadow-sm transition-all active:scale-95 text-center flex items-center justify-center gap-2"
+                        >
+                          Simpan Override Nilai & Status
+                        </button>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
           </div>
         )}
