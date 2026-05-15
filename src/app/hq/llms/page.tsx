@@ -548,27 +548,30 @@ export default function ManajemenJadwalLLMS() {
                           <p className="text-[9px] font-bold text-slate-400 uppercase">Correct</p>
                           <input 
                             type="number" 
+                            step="any"
                             value={newSession.correct_point}
-                            onChange={(e) => setNewSession({...newSession, correct_point: parseInt(e.target.value) || 0})}
-                            className="w-full bg-white border border-indigo-100 rounded-xl px-3 py-2 text-xs font-bold text-indigo-600"
+                            onChange={(e) => setNewSession({...newSession, correct_point: e.target.value === '' ? 0 : Number(e.target.value)})}
+                            className="w-full bg-white border border-indigo-100 rounded-xl px-3 py-2 text-xs font-bold text-indigo-600 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                           />
                        </div>
                        <div className="space-y-1">
                           <p className="text-[9px] font-bold text-slate-400 uppercase">Penalty</p>
                           <input 
                             type="number" 
+                            step="any"
                             value={newSession.penalty_point}
-                            onChange={(e) => setNewSession({...newSession, penalty_point: parseInt(e.target.value) || 0})}
-                            className="w-full bg-white border border-indigo-100 rounded-xl px-3 py-2 text-xs font-bold text-rose-600"
+                            onChange={(e) => setNewSession({...newSession, penalty_point: e.target.value === '' ? 0 : Number(e.target.value)})}
+                            className="w-full bg-white border border-indigo-100 rounded-xl px-3 py-2 text-xs font-bold text-rose-600 outline-none focus:ring-2 focus:ring-rose-500 transition-all"
                           />
                        </div>
                        <div className="space-y-1">
                           <p className="text-[9px] font-bold text-slate-400 uppercase">Empty</p>
                           <input 
                             type="number" 
+                            step="any"
                             value={newSession.empty_point}
-                            onChange={(e) => setNewSession({...newSession, empty_point: parseInt(e.target.value) || 0})}
-                            className="w-full bg-white border border-indigo-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-600"
+                            onChange={(e) => setNewSession({...newSession, empty_point: e.target.value === '' ? 0 : Number(e.target.value)})}
+                            className="w-full bg-white border border-indigo-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-slate-500 transition-all"
                           />
                        </div>
                     </div>
