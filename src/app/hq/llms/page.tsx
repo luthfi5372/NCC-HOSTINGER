@@ -11,7 +11,8 @@ import {
   Activity, AlertTriangle, CheckCircle, Search,
   ChevronRight, Calendar, UserPlus, FileText,
   Power, Pencil, LayoutDashboard, Trophy, X,
-  Save, Loader2
+  Save, Loader2, Users, BarChart3, Server, Download,
+  Target
 } from "lucide-react";
 
 export default function ManajemenJadwalLLMS() {
@@ -363,34 +364,123 @@ export default function ManajemenJadwalLLMS() {
         )}
 
         {activeSubTab === 'overview' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                  <Activity size={14} className="text-indigo-500" /> Sesi Aktif
-                </p>
-                <h2 className="text-5xl font-black text-slate-800 tracking-tighter">{stats.activeSessions}</h2>
-                <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="bg-indigo-500 h-full w-2/3"></div>
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+            {/* HEADER TELEMETRI */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Sistem Telemetri NCC</h2>
+                <p className="text-sm text-slate-500 font-medium mt-1">Pantauan real-time infrastruktur ujian dan aktivitas peserta.</p>
+              </div>
+              <div className="flex items-center gap-3 bg-emerald-50 px-5 py-2.5 rounded-2xl border border-emerald-100 shadow-sm shadow-emerald-100/20">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Server Ujian Online</span>
+              </div>
+            </div>
+
+            {/* BENTO GRID INFRASTRUCTURE */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* CARD 1: Sesi Aktif (Main Bento) */}
+              <div className="md:col-span-2 bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-800 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-indigo-200 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-white opacity-5 blur-3xl transition-transform duration-700 group-hover:scale-125"></div>
+                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 rounded-full bg-indigo-400 opacity-10 blur-3xl"></div>
+                
+                <div className="relative z-10 flex flex-col h-full justify-between">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-indigo-100 font-black tracking-[0.2em] text-[10px] mb-2 uppercase opacity-80">Live CBT Session</p>
+                      <h3 className="text-7xl font-black mb-6 tracking-tighter">{stats.activeSessions}</h3>
+                    </div>
+                    <div className="p-5 bg-white/10 rounded-[2rem] backdrop-blur-xl border border-white/20 shadow-xl group-hover:rotate-12 transition-transform duration-500">
+                      <Server className="w-10 h-10 text-white" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 text-sm bg-white/10 w-fit px-5 py-2.5 rounded-2xl backdrop-blur-md border border-white/10">
+                    <Clock className="w-4 h-4 text-indigo-200" />
+                    <span className="text-indigo-50 font-bold">
+                      {stats.activeSessions > 0 ? `${stats.activeSessions} Sesi sedang berjalan` : "Menunggu jadwal dimulai"}
+                    </span>
+                  </div>
                 </div>
-             </div>
-             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                  <FileText size={14} className="text-blue-500" /> Bank Soal
-                </p>
-                <h2 className="text-5xl font-black text-slate-800 tracking-tighter">{stats.totalQuestions}</h2>
-                <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="bg-blue-500 h-full w-1/2"></div>
+              </div>
+
+              {/* CARD 2: Total Bank Soal */}
+              <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-500 flex flex-col justify-between group">
+                <div className="flex justify-between items-start">
+                  <div className="p-4 bg-indigo-50 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-500">
+                    <FileText className="w-7 h-7 text-indigo-600 group-hover:text-white" />
+                  </div>
                 </div>
-             </div>
-             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                  <Activity size={14} className="text-emerald-500" /> Peserta Live
-                </p>
-                <h2 className="text-5xl font-black text-emerald-600 tracking-tighter">{stats.liveParticipants}</h2>
-                <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="bg-emerald-500 h-full w-1/4 animate-pulse"></div>
+                <div className="mt-8">
+                  <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-1">Total Bank Soal</p>
+                  <h3 className="text-4xl font-black text-slate-800 tracking-tight">
+                    {stats.totalQuestions}<span className="text-base text-slate-300 font-bold ml-2">Butir</span>
+                  </h3>
+                  <div className="w-full bg-slate-50 h-2 rounded-full mt-6 overflow-hidden border border-slate-100">
+                    <div 
+                      className="bg-indigo-500 h-full rounded-full transition-all duration-1000" 
+                      style={{ width: `${Math.min(100, (stats.totalQuestions / 100) * 100)}%` }}
+                    ></div>
+                  </div>
                 </div>
-             </div>
+              </div>
+
+              {/* CARD 3: Peserta Live */}
+              <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-500/5 transition-all duration-500 flex flex-col justify-between group">
+                <div className="flex justify-between items-start">
+                  <div className="p-4 bg-emerald-50 rounded-2xl group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-500">
+                    <Users className="w-7 h-7 text-emerald-600 group-hover:text-white" />
+                  </div>
+                  <div className="text-[10px] font-black text-emerald-500 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+                    {stats.liveParticipants > 0 ? "Lonjakan" : "Stabil"}
+                  </div>
+                </div>
+                <div className="mt-8">
+                  <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-1">Peserta Live</p>
+                  <h3 className="text-4xl font-black text-slate-800 tracking-tight">
+                    {stats.liveParticipants}<span className="text-base text-slate-300 font-bold ml-2">Anak</span>
+                  </h3>
+                  <p className="text-[10px] text-emerald-600 mt-6 font-bold flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5" /> 
+                    {stats.liveParticipants > 0 ? "Koneksi aktif terdeteksi" : "Infrastruktur siap menerima trafik"}
+                  </p>
+                </div>
+              </div>
+
+              {/* CARD 4: Log Sistem & Aktivitas */}
+              <div className="md:col-span-2 bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-sm flex flex-col justify-between group hover:border-indigo-200 transition-all duration-500">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                    <Activity className="text-indigo-500" size={20} />
+                    Log Aktivitas Sistem
+                  </h3>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Auto-sync: Enabled</span>
+                </div>
+                <div className="space-y-5">
+                  <div className="flex items-center gap-4 p-4 bg-slate-50/50 rounded-2xl border border-transparent hover:border-slate-200 transition-all">
+                    <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>
+                    <div className="flex-grow">
+                      <p className="text-sm font-bold text-slate-700 leading-none">Inisiasi Sistem LLMS NCC 13th</p>
+                      <p className="text-[10px] text-slate-400 mt-1 font-medium italic">Arsitektur Exam-First berhasil dimuat ke memori.</p>
+                    </div>
+                    <span className="text-slate-300 text-[10px] font-black tracking-widest uppercase">Baru saja</span>
+                  </div>
+                  <div className="flex items-center gap-4 p-4 rounded-2xl opacity-50">
+                    <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                    <div className="flex-grow">
+                      <p className="text-sm font-bold text-slate-500 leading-none">Sinkronisasi Database Supabase</p>
+                      <p className="text-[10px] text-slate-400 mt-1 font-medium italic">Menunggu pembuatan sesi ujian perdana.</p>
+                    </div>
+                    <span className="text-slate-300 text-[10px] font-black tracking-widest uppercase">-</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
         )}
 
