@@ -12,7 +12,8 @@ import {
   ChevronRight, Calendar, UserPlus, FileText,
   Power, Pencil, LayoutDashboard, Trophy, X,
   Save, Loader2, Users, BarChart3, Server, Download,
-  Target, Cpu, ShieldAlert, PlusCircle
+  Target, Cpu, ShieldAlert, PlusCircle, CheckCircle2,
+  CircleEllipsis
 } from "lucide-react";
 
 export default function ManajemenJadwalLLMS() {
@@ -561,6 +562,76 @@ export default function ManajemenJadwalLLMS() {
                 </button>
               </div>
 
+            </div>
+
+            {/* 📝 ROADMAP PERSIAPAN NCC 13th (PREMIUM CHECKLIST) */}
+            <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
+                  <Target size={120} className="text-slate-900" />
+               </div>
+               
+               <div className="relative z-10 max-w-4xl">
+                  <div className="mb-10">
+                    <div className="flex items-center gap-3 mb-2">
+                       <Trophy className="text-amber-500" size={24} />
+                       <h2 className="text-2xl font-black text-slate-800 tracking-tight">Roadmap Persiapan NCC 13th</h2>
+                    </div>
+                    <p className="text-sm text-slate-400 font-medium italic">Pantau kesiapan infrastruktur dan fitur Pusat Komando CBT.</p>
+                  </div>
+
+                  {/* PROGRESS BAR TOTAL */}
+                  <div className="mb-12">
+                    <div className="flex items-center justify-between mb-3 px-1">
+                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Kesiapan Sistem</span>
+                      <span className="text-sm font-black text-slate-800">85%</span>
+                    </div>
+                    <div className="w-full bg-slate-50 h-3 rounded-full overflow-hidden border border-slate-100">
+                      <div className="bg-indigo-500 h-full rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(79,70,229,0.3)] w-[85%]"></div>
+                    </div>
+                  </div>
+
+                  {/* TASK LIST GRID */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { id: 1, title: 'Infrastruktur Database & Vercel', status: 'done', mod: 'DevOps' },
+                      { id: 2, title: 'Buka Sesi & Scoring Config', status: 'done', mod: 'CBT Core' },
+                      { id: 3, title: 'Editor Bank Soal & LaTeX', status: 'done', mod: 'Content' },
+                      { id: 4, title: 'Telemetri Overview Real-time', status: 'done', mod: 'Dashboard' },
+                      { id: 5, title: 'Tabel Penilaian & Export CSV', status: 'done', mod: 'Real-time' },
+                      { id: 6, title: 'Layar Ujian & Anti-Cheat Radar', status: 'progress', mod: 'Frontend' },
+                    ].map((task) => (
+                      <div 
+                        key={task.id}
+                        className={`flex items-center gap-5 p-5 rounded-[2rem] border transition-all duration-300 ${
+                          task.status === 'done' ? 'bg-slate-50 border-slate-100 opacity-60' : 
+                          task.status === 'progress' ? 'bg-indigo-50/50 border-indigo-200 shadow-xl shadow-indigo-100/20' : 
+                          'bg-white border-slate-100'
+                        }`}
+                      >
+                        <div className="flex-shrink-0">
+                          {task.status === 'done' ? <CheckCircle2 className="w-8 h-8 text-emerald-500" /> : 
+                           task.status === 'progress' ? <Clock className="w-8 h-8 text-indigo-500 animate-pulse" /> : 
+                           <CircleEllipsis className="w-8 h-8 text-slate-200" />}
+                        </div>
+                        <div className="flex-grow">
+                          <h4 className={`text-sm font-black tracking-tight ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                            {task.title}
+                          </h4>
+                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{task.mod}</span>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full border ${
+                            task.status === 'done' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                            task.status === 'progress' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 
+                            'bg-slate-50 text-slate-400 border-slate-100'
+                          }`}>
+                            {task.status === 'done' ? 'Selesai' : task.status === 'progress' ? 'Fokus' : 'Queue'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+               </div>
             </div>
           </div>
         )}
