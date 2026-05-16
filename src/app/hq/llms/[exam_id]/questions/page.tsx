@@ -15,6 +15,7 @@ import {
   ArrowUpTrayIcon,
   XCircleIcon
 } from '@heroicons/react/24/outline';
+import { BookOpen } from 'lucide-react';
 import katex from "katex";
 import "katex/dist/katex.min.css";
 
@@ -244,7 +245,7 @@ export default function EditorBankSoal() {
     <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8 font-sans">
       
       {/* HEADER UTAMA */}
-      <div className="max-w-6xl mx-auto mb-8 flex flex-col sm:flex-row sm:items-center justify-between bg-white p-5 rounded-2xl shadow-sm border border-gray-100 gap-4">
+      <div className="max-w-6xl mx-auto mb-8 flex flex-col sm:flex-row sm:items-center justify-between bg-white p-5 rounded-2xl shadow-sm border border-gray-100 gap-4 text-left">
         <div className="flex items-center space-x-4">
           <Link href="/hq/llms" className="p-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
             <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
@@ -257,6 +258,14 @@ export default function EditorBankSoal() {
 
         {/* AREA IMPORT EXCEL/CSV */}
         <div className="flex items-center space-x-3">
+          <Link 
+            href={`/hq/llms/${examId}/tutorial-csv`}
+            className="flex items-center px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100 rounded-xl text-xs font-bold tracking-wide transition-all shadow-sm"
+          >
+            <BookOpen className="w-4 h-4 mr-2" />
+            Panduan CSV
+          </Link>
+
           <label className="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-gray-50 cursor-pointer shadow-sm transition-colors">
             {isImporting ? (
               <><ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" /> Mengimpor...</>
@@ -278,7 +287,7 @@ export default function EditorBankSoal() {
         <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col h-full relative">
           
           <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center">
+            <div className="flex items-center text-left">
               <DocumentTextIcon className="w-6 h-6 text-indigo-600 mr-2" />
               <h2 className="font-bold text-gray-800 text-lg">
                 {editingId ? 'Edit Komponen Soal' : 'Input Data Soal'}
@@ -363,7 +372,7 @@ export default function EditorBankSoal() {
         </div>
 
         {/* KANAN: LIVE PREVIEW MODAL MOCKUP (SOFT UI) */}
-        <div className="bg-[#f0f4f8] p-6 md:p-8 rounded-3xl border border-indigo-50 flex flex-col relative overflow-hidden">
+        <div className="bg-[#f0f4f8] p-6 md:p-8 rounded-3xl border border-indigo-50 flex flex-col relative overflow-hidden text-left">
           <div className="flex justify-between items-center mb-6 relative z-10">
             <div className="flex items-center">
               <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2 animate-ping"></div>
@@ -408,7 +417,7 @@ export default function EditorBankSoal() {
       </div>
 
       {/* --- DAFTAR HASIL PENYIMPANAN DATA --- */}
-      <div className="max-w-6xl mx-auto mt-12 mb-20">
+      <div className="max-w-6xl mx-auto mt-12 mb-20 text-left">
         <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
           Soal Terdaftar <span className="ml-3 bg-indigo-100 text-indigo-700 text-sm font-bold px-3 py-1 rounded-full">{daftarSoal.length}</span>
         </h3>
@@ -418,12 +427,12 @@ export default function EditorBankSoal() {
             Belum ada susunan soal yang terdaftar di database untuk sesi ini.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-4 text-left">
             {daftarSoal.map((item, index) => (
               <div key={item.id} className={`bg-white p-6 rounded-2xl shadow-sm border flex flex-col md:flex-row justify-between items-start hover:shadow-md transition-all
                 ${editingId === item.id ? 'border-amber-400 ring-1 ring-amber-400 bg-amber-50/10' : 'border-gray-100'}`}>
                 
-                <div className="flex-grow w-full md:pr-6">
+                <div className="flex-grow w-full md:pr-6 text-left">
                   <div className="flex items-center mb-3 flex-wrap gap-2">
                     <span className="bg-slate-800 text-white text-xs font-bold px-2.5 py-1 rounded-md">Soal {daftarSoal.length - index}</span>
                     <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border
