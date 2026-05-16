@@ -1,6 +1,6 @@
 "use client";
 export const dynamic = 'force-dynamic';
-// Vercel Deployment Sync: Modul 3 Proctoring System Active
+// Vercel Deployment Sync: Modul 4 Live Broadcast System Active
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight, Send, AlertTriangle,
   LayoutDashboard, Info, Loader2, X,
   Expand, ShieldAlert as ShieldExclamationIcon,
-  Maximize as ArrowsInLineHorizontalIcon
+  Maximize as ArrowsInLineHorizontalIcon, BellRing, Megaphone
 } from "lucide-react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
@@ -50,6 +50,10 @@ export default function PengerjaanUjianSesi() {
   const [isFinished, setIsFinished] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+
+  // 📢 BROADCAST ENGINE STATE
+  const [activeAnnouncement, setActiveAnnouncement] = useState<any>(null);
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
 
   // 🛡️ ADVANCED PROCTORING HOOK
   const { 
@@ -130,6 +134,34 @@ export default function PengerjaanUjianSesi() {
     };
     initExam();
   }, [exam_id, supabase, router]);
+
+  // --- 📢 REAL-TIME ANNOUNCEMENT ENGINE ---
+  useEffect(() => {
+    const channel = supabase
+      .channel('live_broadcasts')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'announcements' 
+      }, (payload) => {
+        const newMsg = payload.new;
+        // Filter: Global (null) or matches current exam_id
+        if (!newMsg.exam_id || newMsg.exam_id === exam_id) {
+          setActiveAnnouncement(newMsg);
+          setShowAnnouncement(true);
+          
+          // Auto-hide after 15 seconds
+          setTimeout(() => {
+            setShowAnnouncement(false);
+          }, 15000);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [exam_id, supabase]);
 
   // --- ⏱️ TIMER ENGINE ---
   useEffect(() => {
@@ -294,6 +326,31 @@ export default function PengerjaanUjianSesi() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-inter flex flex-col overflow-hidden select-none">
+      {/* 📢 FLOATING ANNOUNCEMENT BANNER */}
+      {showAnnouncement && activeAnnouncement && (
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-2xl px-6 animate-in slide-in-from-top-10 duration-700">
+           <div className={`p-6 rounded-[2rem] border shadow-2xl backdrop-blur-xl flex items-center gap-6 ${
+              activeAnnouncement.type === 'danger' ? 'bg-rose-500/95 border-rose-400 text-white shadow-rose-500/20' :
+              activeAnnouncement.type === 'warning' ? 'bg-amber-400/95 border-amber-300 text-amber-950 shadow-amber-500/20' :
+              'bg-indigo-600/95 border-indigo-500 text-white shadow-indigo-500/20'
+           }`}>
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                 <Megaphone size={24} className="animate-bounce" />
+              </div>
+              <div className="flex-grow text-left">
+                 <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-1">Pengumuman Panitia</p>
+                 <p className="text-lg font-bold leading-tight">{activeAnnouncement.message}</p>
+              </div>
+              <button 
+                onClick={() => setShowAnnouncement(false)}
+                className="p-2 hover:bg-white/10 rounded-full transition-all"
+              >
+                 <X size={20} />
+              </button>
+           </div>
+        </div>
+      )}
+
       {/* --- WARNING MODAL NOTIFICATION --- */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 z-[100]">
@@ -328,12 +385,12 @@ export default function PengerjaanUjianSesi() {
 
       {/* 🚀 SMART NAV BAR */}
       <div className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-50 shadow-sm">
-         <div className="flex items-center gap-4">
+         <div className="flex items-center gap-4 text-left">
             <div className="w-10 h-10 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-lg">
                <Timer size={20} />
             </div>
             <div>
-               <h2 className="font-black text-slate-800 leading-none">{examData.title}</h2>
+               <h2 className="font-black text-slate-800 leading-none">{examData?.title}</h2>
                <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">
                   Progress: {Math.round((Object.keys(answers).length / questions.length) * 100)}% Terselesaikan
                </p>
@@ -364,7 +421,7 @@ export default function PengerjaanUjianSesi() {
                            <span className="w-12 h-12 bg-indigo-600 text-white rounded-[1.25rem] flex items-center justify-center font-black text-xl shadow-lg">
                               {currentQ + 1}
                            </span>
-                           <div>
+                           <div className="text-left">
                               <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full border ${q.difficulty === 'Hard' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                                 {q.difficulty}
                               </span>
@@ -383,7 +440,7 @@ export default function PengerjaanUjianSesi() {
                         </button>
                      </div>
 
-                     <div className="bg-white rounded-[3rem] p-12 border border-slate-200 shadow-sm mb-8">
+                     <div className="bg-white rounded-[3rem] p-12 border border-slate-200 shadow-sm mb-8 text-left">
                         <div 
                           className="text-slate-800 font-bold text-xl leading-relaxed mb-6"
                           dangerouslySetInnerHTML={{ __html: renderMath(q.question_text) }}
@@ -402,7 +459,7 @@ export default function PengerjaanUjianSesi() {
                              onClick={() => saveAnswer(q.id, key)}
                              className={`p-6 rounded-[2rem] border-2 transition-all flex items-start gap-5 text-left group ${answers[q.id] === key ? 'bg-indigo-50 border-indigo-400 shadow-xl shadow-indigo-100' : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'}`}
                            >
-                              <span className={`w-10 h-10 rounded-xl flex items-center justify-center font-black transition-all ${answers[q.id] === key ? 'bg-indigo-600 text-white scale-110 shadow-lg' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}`}>
+                              <span className={`w-10 h-10 rounded-xl flex items-center justify-center font-black transition-all shrink-0 ${answers[q.id] === key ? 'bg-indigo-600 text-white scale-110 shadow-lg' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}`}>
                                  {key}
                               </span>
                               <div 
@@ -466,7 +523,7 @@ export default function PengerjaanUjianSesi() {
                ))}
             </div>
 
-            <div className="mt-auto space-y-4 pt-6 border-t border-slate-100">
+            <div className="mt-auto space-y-4 pt-6 border-t border-slate-100 text-left">
                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-tight">
                   <span className="text-slate-400">Total Soal</span>
                   <span className="text-slate-800">{questions.length}</span>
@@ -487,7 +544,7 @@ export default function PengerjaanUjianSesi() {
       {showConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowConfirm(false)}></div>
-           <div className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl relative z-10 text-center animate-in zoom-in-95 duration-300">
+           <div className="bg-white w-full max-md:max-w-md max-w-lg rounded-[3rem] p-10 shadow-2xl relative z-10 text-center animate-in zoom-in-95 duration-300">
               <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
                  <CheckCircle2 size={40} />
               </div>

@@ -13,14 +13,15 @@ import {
   Power, Pencil, LayoutDashboard, Trophy, X,
   Save, Loader2, Users, BarChart3, Server, Download,
   Target, Cpu, ShieldAlert, PlusCircle, CheckCircle2,
-  CircleEllipsis
+  CircleEllipsis, Megaphone, SendHorizonal, 
+  Trash, BellRing, Info
 } from "lucide-react";
 
 export default function ManajemenJadwalLLMS() {
   const supabase = createClient();
   const router = useRouter();
   const [sessions, setSessions] = useState<any[]>([]);
-  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'sesi' | 'nilai'>('sesi');
+  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'sesi' | 'nilai' | 'broadcast'>('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedExamForLeaderboard, setSelectedExamForLeaderboard] = useState<string>("");
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
@@ -46,6 +47,14 @@ export default function ManajemenJadwalLLMS() {
     penalty_point: 0,
     empty_point: 0
   });
+
+  // Broadcast State
+  const [broadcast, setBroadcast] = useState({
+    exam_id: "", // Empty means Global
+    message: "",
+    type: "info"
+  });
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   // --- 📡 DATA FETCHING ENGINE ---
   const fetchData = async () => {
@@ -203,6 +212,7 @@ export default function ManajemenJadwalLLMS() {
               { id: 'overview', label: 'Overview', icon: Activity },
               { id: 'sesi', label: 'Sesi & Waktu', icon: Clock },
               { id: 'nilai', label: 'Penilaian Live', icon: Trophy },
+              { id: 'broadcast', label: 'Broadcast', icon: Megaphone },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -568,6 +578,105 @@ export default function ManajemenJadwalLLMS() {
                  </div>
                )}
             </div>
+          </div>
+        )}
+
+        {/* 📢 CONTENT TAB: LIVE BROADCAST COMMAND */}
+        {activeSubTab === 'broadcast' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+             <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden">
+                <div className="max-w-2xl">
+                   <div className="flex items-center gap-4 mb-8">
+                      <div className="p-4 bg-indigo-600 rounded-[1.5rem] shadow-xl shadow-indigo-200">
+                         <Megaphone className="text-white" size={28} />
+                      </div>
+                      <div>
+                         <h2 className="text-3xl font-black text-slate-900 tracking-tight">Pusat Siaran Live</h2>
+                         <p className="text-sm text-slate-500 font-medium">Kirim instruksi massal ke layar peserta secara real-time.</p>
+                      </div>
+                   </div>
+
+                   <div className="space-y-6">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Target Sesi (Opsional)</label>
+                         <select 
+                            value={broadcast.exam_id}
+                            onChange={(e) => setBroadcast({...broadcast, exam_id: e.target.value})}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all appearance-none cursor-pointer"
+                         >
+                            <option value="">🚀 Seluruh Sesi (Global)</option>
+                            {sessions.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                         </select>
+                      </div>
+
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Tipe Pengumuman</label>
+                         <div className="grid grid-cols-3 gap-3">
+                            {[
+                              { id: 'info', label: 'Info (Biru)', color: 'bg-blue-50 text-blue-600 border-blue-200' },
+                              { id: 'warning', label: 'Warning (Kuning)', color: 'bg-amber-50 text-amber-600 border-amber-200' },
+                              { id: 'danger', label: 'Urgent (Merah)', color: 'bg-rose-50 text-rose-600 border-rose-200' }
+                            ].map(t => (
+                              <button
+                                key={t.id}
+                                onClick={() => setBroadcast({...broadcast, type: t.id})}
+                                className={`px-4 py-3 rounded-xl border text-[10px] font-black uppercase transition-all ${broadcast.type === t.id ? t.color : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}`}
+                              >
+                                {t.label}
+                              </button>
+                            ))}
+                         </div>
+                      </div>
+
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Pesan Siaran</label>
+                         <textarea 
+                            placeholder="Ketik pesan Anda di sini..."
+                            value={broadcast.message}
+                            onChange={(e) => setBroadcast({...broadcast, message: e.target.value})}
+                            rows={4}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-[2rem] px-8 py-6 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all resize-none"
+                         />
+                      </div>
+
+                      <button 
+                         onClick={async () => {
+                            if (!broadcast.message) return alert("Pesan tidak boleh kosong!");
+                            setIsBroadcasting(true);
+                            const { error } = await supabase.from('announcements').insert([{
+                               exam_id: broadcast.exam_id || null,
+                               message: broadcast.message,
+                               type: broadcast.type
+                            }]);
+                            if (error) {
+                               alert("Gagal mengirim siaran: " + error.message);
+                            } else {
+                               setBroadcast({...broadcast, message: ""});
+                               alert("🚀 Siaran berhasil diluncurkan!");
+                            }
+                            setIsBroadcasting(false);
+                         }}
+                         disabled={isBroadcasting}
+                         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                      >
+                         {isBroadcasting ? <Loader2 className="animate-spin" /> : <><SendHorizonal size={20} /> Lancarkan Siaran</>}
+                      </button>
+                   </div>
+                </div>
+
+                <div className="absolute top-10 right-10 hidden lg:block opacity-10">
+                   <Megaphone size={200} className="rotate-12 text-indigo-600" />
+                </div>
+             </div>
+
+             <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                   <BellRing size={14} className="text-indigo-500" /> Riwayat Siaran Terakhir
+                </h3>
+                <div className="space-y-4">
+                   <p className="text-xs text-slate-400 font-medium italic">Menampilkan 5 siaran terakhir yang dikirim ke sistem...</p>
+                </div>
+             </div>
           </div>
         )}
       </div>
