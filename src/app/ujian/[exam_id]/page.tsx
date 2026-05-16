@@ -7,10 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 import { 
   Timer, ShieldAlert, Flag, CheckCircle2, 
   ChevronLeft, ChevronRight, Send, AlertTriangle,
-  LayoutDashboard, Info, Loader2, X
+  LayoutDashboard, Info, Loader2, X,
+  Expand, ShieldAlert as ShieldExclamationIcon,
+  Maximize as ArrowsInLineHorizontalIcon
 } from "lucide-react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import { useAdvancedProctoring } from "@/hooks/useAdvancedProctoring";
 
 const renderMath = (text: string) => {
   if (!text) return "";
@@ -44,6 +47,23 @@ export default function PengerjaanUjianSesi() {
   const [attemptId, setAttemptId] = useState("");
   const [score, setScore] = useState<number | null>(null);
   const [isFinished, setIsFinished] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+
+  // 🛡️ ADVANCED PROCTORING HOOK
+  const { 
+    violationsCount, 
+    setViolations, 
+    showModal, 
+    setShowModal, 
+    warningMessage 
+  } = useAdvancedProctoring({
+    examId: exam_id,
+    userId: attemptId, // Will be set in useEffect
+    attemptId: attemptId,
+    maxViolations: 3,
+    onBlock: () => setIsLocked(true)
+  });
 
   // --- 📡 DATA INITIALIZATION ---
   useEffect(() => {
@@ -86,13 +106,15 @@ export default function PengerjaanUjianSesi() {
         }
 
         // 5. Timer Logic
-        const { data: attempt } = await supabase.from('cbt_attempts').select('started_at, warnings_count, status').eq('id', savedAttemptId).single();
+        const { data: attempt } = await supabase.from('cbt_attempts').select('started_at, violations_count, status').eq('id', savedAttemptId).single();
         if (attempt.status === 'submitted') {
            setIsFinished(true);
            return;
         }
 
-        setWarnings(attempt.warnings_count || 0);
+        setViolations(attempt.violations_count || 0);
+        if ((attempt.violations_count || 0) >= 3) setIsLocked(true);
+        
         const started = new Date(attempt.started_at).getTime();
         const durationMs = exam.duration_minutes * 60 * 1000;
         const remaining = Math.max(0, Math.floor((started + durationMs - Date.now()) / 1000));
@@ -136,24 +158,20 @@ export default function PengerjaanUjianSesi() {
     } catch (e) { console.error("Auto-save failed"); }
   };
 
-  // --- 🛡️ PROCTORING ENGINE ---
+  // --- 🛡️ PROCTORING UI LOGIC ---
   useEffect(() => {
-    if (isLoading || isFinished) return;
+    const checkFS = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', checkFS);
+    return () => document.removeEventListener('fullscreenchange', checkFS);
+  }, []);
 
-    const handleVisibility = async () => {
-      if (document.hidden) {
-        const nextW = warnings + 1;
-        setWarnings(nextW);
-        
-        await supabase.from('cbt_attempts').update({ warnings_count: nextW }).eq('id', attemptId);
-        
-        if (nextW >= 3) handleFinish(true);
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [isLoading, isFinished, warnings, attemptId, supabase]);
+  const enterFullscreen = () => {
+    document.documentElement.requestFullscreen().then(() => {
+      setIsFullscreen(true);
+    }).catch(() => {
+      alert("Gagal masuk mode fullscreen. Silakan gunakan browser modern.");
+    });
+  };
 
   // --- 🏁 SUBMIT ENGINE ---
   const handleFinish = async (isAuto = false) => {
@@ -191,23 +209,68 @@ export default function PengerjaanUjianSesi() {
     </div>
   );
 
+  if (isLocked) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-white font-inter">
+         <div className="max-w-md w-full text-center space-y-8">
+            <div className="w-24 h-24 bg-rose-500 rounded-[2.5rem] mx-auto flex items-center justify-center shadow-2xl shadow-rose-500/20">
+               <ShieldAlert size={48} />
+            </div>
+            <div>
+               <h1 className="text-4xl font-black tracking-tight">Akses Dibekukan</h1>
+               <p className="text-slate-400 mt-3 font-medium leading-relaxed">
+                  Anda telah mencapai batas maksimal toleransi keluar dari sistem (3 kali). 
+                  Lembar jawaban Anda telah dikunci dan dilaporkan ke Pusat Komando demi integritas kompetisi.
+               </p>
+            </div>
+            <button 
+              onClick={() => router.push('/')}
+              className="w-full bg-white text-slate-900 py-5 rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all"
+            >
+               Kembali ke Beranda
+            </button>
+         </div>
+      </div>
+    );
+  }
+
+  if (!isFullscreen && !isLoading && !isFinished) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
+        <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm max-w-md text-center">
+          <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-8">
+            <ArrowsInLineHorizontalIcon size={40} />
+          </div>
+          <h2 className="text-2xl font-black text-gray-800 tracking-tight">Wajib Fullscreen</h2>
+          <p className="text-sm text-gray-400 mt-3 leading-relaxed">
+            Untuk memulai ujian CBT NCC 13th, browser Anda diwajibkan mengunci layar penuh guna mengaktifkan sistem monitoring integritas kelulusan.
+          </p>
+          <button
+            onClick={enterFullscreen}
+            className="mt-8 w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-indigo-100"
+          >
+            Masuk Mode Layar Penuh & Mulai
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (isFinished) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-white font-inter">
          <div className="max-w-md w-full text-center space-y-8">
-            <div className={`w-24 h-24 rounded-[2.5rem] mx-auto flex items-center justify-center shadow-2xl ${warnings >= 3 ? 'bg-rose-500 shadow-rose-500/20' : 'bg-emerald-500 shadow-emerald-500/20'}`}>
-               {warnings >= 3 ? <ShieldAlert size={48} /> : <CheckCircle2 size={48} />}
+            <div className="w-24 h-24 bg-emerald-500 rounded-[2.5rem] mx-auto flex items-center justify-center shadow-2xl shadow-emerald-500/20">
+               <CheckCircle2 size={48} />
             </div>
             <div>
-               <h1 className="text-4xl font-black tracking-tight">{warnings >= 3 ? 'Diskualifikasi' : 'Ujian Selesai!'}</h1>
+               <h1 className="text-4xl font-black tracking-tight">Ujian Selesai!</h1>
                <p className="text-slate-400 mt-3 font-medium">
-                  {warnings >= 3 
-                    ? 'Anda terdeteksi melakukan pelanggaran proctoring sebanyak 3 kali.' 
-                    : 'Terima kasih telah berpartisipasi dalam NCC 13th MIPA Olympiad.'}
+                  Terima kasih telah berpartisipasi dalam NCC 13th MIPA Olympiad.
                </p>
             </div>
             
-            {warnings < 3 && score !== null && (
+            {score !== null && (
                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 backdrop-blur-xl">
                   <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Skor Akhir Kamu</span>
                   <div className="text-7xl font-black text-indigo-400 my-2">{score}</div>
@@ -229,12 +292,36 @@ export default function PengerjaanUjianSesi() {
   const q = questions[currentQ];
 
   return (
-    <div className="min-h-screen bg-slate-50 font-inter flex flex-col overflow-hidden">
-      {/* 🚩 PROCTORING ALERT */}
-      {warnings > 0 && (
-        <div className={`py-3 text-center text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 ${warnings >= 2 ? 'bg-rose-600 text-white animate-pulse' : 'bg-amber-400 text-amber-950'}`}>
+    <div className="min-h-screen bg-[#f8fafc] font-inter flex flex-col overflow-hidden select-none">
+      {/* --- WARNING MODAL NOTIFICATION --- */}
+      {showModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 z-[100]">
+          <div className="bg-white p-10 rounded-[3rem] border border-amber-100 shadow-2xl max-w-sm w-full text-center animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <ShieldAlertIcon className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-black text-gray-800 uppercase tracking-tight">Sinyal Peringatan</h3>
+            <p className="text-sm text-gray-500 mt-3 leading-relaxed">
+              {warningMessage}
+            </p>
+            <div className="mt-6 bg-amber-50/50 p-4 rounded-2xl border border-amber-100/50 text-xs font-black text-amber-800">
+              Total Pelanggaran: {violationsCount} / 3
+            </div>
+            <button
+              onClick={() => setShowModal(false)}
+              className="mt-8 w-full py-4 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-amber-100"
+            >
+              Kembali Fokus Ujian
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🚩 PROCTORING ALERT BAR */}
+      {violationsCount > 0 && (
+        <div className={`py-3 text-center text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 ${violationsCount >= 2 ? 'bg-rose-600 text-white animate-pulse' : 'bg-amber-400 text-amber-950'}`}>
            <ShieldAlert size={14} />
-           Peringatan: Kamu berpindah tab browser ({warnings}/3). Batas 3x = Diskualifikasi.
+           Radar Deteksi: {violationsCount} / 3 Pelanggaran Terdeteksi
         </div>
       )}
 

@@ -22,6 +22,8 @@ export default function ManajemenJadwalLLMS() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'overview' | 'sesi' | 'nilai'>('sesi');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedExamForLeaderboard, setSelectedExamForLeaderboard] = useState<string>("");
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -45,9 +47,6 @@ export default function ManajemenJadwalLLMS() {
     empty_point: 0
   });
 
-  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
-  const [selectedExamForLeaderboard, setSelectedExamForLeaderboard] = useState<string | null>(null);
-
   // --- 📡 DATA FETCHING ENGINE ---
   const fetchData = async () => {
     const startTime = performance.now();
@@ -55,7 +54,7 @@ export default function ManajemenJadwalLLMS() {
       // 1. Ambil Sesi (Head Only for count)
       const { count: sCount } = await supabase.from('cbt_exams').select('*', { count: 'exact', head: true });
       
-      // Ambil data sesi untuk tabel (full fetch tetap diperlukan di tab lain)
+      // Ambil data sesi untuk tabel
       const { data: sessionData } = await supabase.from('cbt_exams').select('*').order('created_at', { ascending: false });
       
       // 2. Ambil Soal (Head Only)
@@ -77,7 +76,6 @@ export default function ManajemenJadwalLLMS() {
           serverLatency: latency
         });
       }
-
     } catch (err) {
       console.error("Fetch Error:", err);
     } finally {
@@ -94,19 +92,7 @@ export default function ManajemenJadwalLLMS() {
         .order('final_score', { ascending: false });
       
       if (attempts) {
-        // Link to competition_entries for names/schools
-        const { data: participants } = await supabase
-          .from('competition_entries')
-          .select('id, full_name, school_name');
-
-        const linked = attempts.map(a => {
-          // Extract numeric ID from "NCC-27" or use as is
-          const numericId = a.user_id.replace('NCC-', '');
-          const p = participants?.find(p => String(p.id) === numericId);
-          return { ...a, participant: p };
-        });
-
-        setLeaderboardData(linked);
+        setLeaderboardData(attempts);
       }
     } catch (err) { console.error("Leaderboard Error:", err); }
   };
@@ -114,7 +100,7 @@ export default function ManajemenJadwalLLMS() {
   useEffect(() => {
     fetchData();
     
-    // Live Ping Simulator: Bikin angka latensi berfluktuasi agar terasa live
+    // Live Ping Simulator
     const pingInterval = setInterval(() => {
       setStats(prev => ({
         ...prev,
@@ -129,7 +115,6 @@ export default function ManajemenJadwalLLMS() {
     if (selectedExamForLeaderboard) {
       fetchLeaderboard(selectedExamForLeaderboard);
 
-      // --- ⚡ REAL-TIME CHANNEL ---
       const channel = supabase
         .channel('realtime_leaderboard')
         .on('postgres_changes', { 
@@ -142,98 +127,50 @@ export default function ManajemenJadwalLLMS() {
         })
         .subscribe();
 
-      return () => { supabase.removeChannel(channel); };
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [selectedExamForLeaderboard]);
 
-  const exportToCSV = () => {
-    if (!leaderboardData.length) return;
-    
-    const headers = ["Rank", "Ticket ID", "Nama Peserta", "Sekolah", "Status", "Warnings", "Skor"];
-    const rows = leaderboardData.map((row, idx) => [
-      idx + 1,
-      row.user_id,
-      row.participant?.full_name || "-",
-      row.participant?.school_name || "-",
-      row.status,
-      row.warnings_count || 0,
-      row.final_score || 0
-    ]);
-
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `NCC_Leaderboard_${selectedExamForLeaderboard}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleToggleAktif = async (id: string, current: boolean) => {
+    const { error } = await supabase.from('cbt_exams').update({ is_active: !current }).eq('id', id);
+    if (!error) fetchData();
   };
 
-  // --- 🛠️ ACTIONS ---
-  const handleToggleAktif = async (id: string, currentStatus: boolean) => {
-    const newStatus = !currentStatus;
-    const { error } = await supabase
-      .from('cbt_exams')
-      .update({ is_active: newStatus })
-      .eq('id', id);
-
-    if (!error) {
-      setSessions(prev => prev.map(s => s.id === id ? { ...s, is_active: newStatus } : s));
-    } else {
-      alert("Gagal mengubah status jadwal.");
-    }
-  };
-
-  const handleHapusJadwal = async (id: string, judul: string) => {
-    const konfirmasi = window.confirm(`Yakin ingin menghapus jadwal "${judul}"? SEMUA BANK SOAL di dalamnya akan ikut terhapus permanen!`);
-    if (!konfirmasi) return;
-
-    const { error } = await supabase
-      .from('cbt_exams')
-      .delete()
-      .eq('id', id);
-
-    if (!error) {
-      setSessions(prev => prev.filter(s => s.id !== id));
-    } else {
-      alert("Gagal menghapus jadwal.");
+  const handleHapusJadwal = async (id: string, title: string) => {
+    if (confirm(`Hapus sesi "${title}"? Semua soal dan data pengerjaan akan hilang.`)) {
+      const { error } = await supabase.from('cbt_exams').delete().eq('id', id);
+      if (!error) fetchData();
     }
   };
 
   const handleAddSession = async () => {
-    if (!newSession.title || !newSession.token) {
-      alert("Mohon isi judul dan token!");
-      return;
-    }
-
     setIsSaving(true);
-    const { data, error } = await supabase
-      .from('cbt_exams')
-      .insert([{
-        ...newSession,
-        is_active: false
-      }])
-      .select();
-
-    if (!error && data) {
-      setSessions([data[0], ...sessions]);
+    const { error } = await supabase.from('cbt_exams').insert([newSession]);
+    if (!error) {
       setShowAddModal(false);
       setNewSession({
-        title: "",
-        token: "",
-        duration_minutes: 90,
-        scoring_system: "Fixed",
-        correct_point: 4,
-        penalty_point: 0,
-        empty_point: 0
+        title: "", token: "", duration_minutes: 90, scoring_system: "Fixed",
+        correct_point: 4, penalty_point: 0, empty_point: 0
       });
-    } else {
-      alert("Gagal menambah sesi: " + error?.message);
+      fetchData();
     }
     setIsSaving(false);
+  };
+
+  const exportToCSV = () => {
+    if (!leaderboardData.length) return;
+    const headers = ["Rank", "Ticket ID", "Status", "Skor"];
+    const rows = leaderboardData.map((row, idx) => [
+      idx + 1, row.user_id, row.status, row.final_score || 0
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].map(e => e.join(",")).join("\n");
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `leaderboard_${selectedExamForLeaderboard}.csv`);
+    document.body.appendChild(link);
+    link.click();
   };
 
   if (isLoading) return (
@@ -246,149 +183,128 @@ export default function ManajemenJadwalLLMS() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 font-inter">
-      {/* 👑 PREMIUM HEADER SECTION */}
-      <div className="bg-white border-b border-slate-200 px-8 py-10 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-50"></div>
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <Link href="/hq" className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500">
-                  <ChevronRight size={20} className="rotate-180" />
-                </Link>
-                <div className="p-2.5 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-200">
-                  <GraduationCap size={22} />
-                </div>
-                <span className="text-[10px] font-black uppercase text-indigo-600 tracking-widest bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">Pusat Komando CBT</span>
-              </div>
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight">Manajemen Sesi Ujian</h1>
-              <p className="text-slate-500 font-medium mt-2">Arsitektur Exam-First: Bangun jadwalnya, kelola soalnya, amankan nilainya.</p>
-            </div>
-            
+    <div className="min-h-screen bg-[#F8FAFC] p-8 md:p-12 font-sans selection:bg-indigo-100 selection:text-indigo-900">
+      <div className="max-w-7xl mx-auto space-y-10">
+        
+        {/* \ud83d\ude80 HEADER COMMAND CENTER */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 bg-white/50 backdrop-blur-xl p-10 rounded-[3rem] border border-white shadow-2xl shadow-slate-200/50">
+          <div className="space-y-2">
             <div className="flex items-center gap-3">
-               <button 
-                onClick={() => setShowAddModal(true)}
-                className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl shadow-slate-200 flex items-center gap-2 hover:bg-slate-800 transition-all hover:scale-[1.02] active:scale-[0.98]"
-               >
-                  <Plus size={20} /> Buat Sesi Baru
-               </button>
+               <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200">
+                  <LayoutDashboard className="text-white" size={24} />
+               </div>
+               <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Pusat Komando LLMS</h1>
             </div>
+            <p className="text-slate-400 font-medium ml-1">Administrasi Ujian & Manajemen Real-time NCC 13th.</p>
           </div>
-
-          {/* QUICK NAVIGATION TABS */}
-          <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50 max-w-lg mt-10">
+          
+          <div className="flex bg-slate-100/50 p-1.5 rounded-[2rem] border border-slate-200/50">
             {[
-              { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={16} /> },
-              { id: 'sesi', label: 'Sesi & Waktu', icon: <Clock size={16} /> },
-              { id: 'nilai', label: 'Penilaian', icon: <Trophy size={16} /> }
+              { id: 'overview', label: 'Overview', icon: Activity },
+              { id: 'sesi', label: 'Sesi & Waktu', icon: Clock },
+              { id: 'nilai', label: 'Penilaian Live', icon: Trophy },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveSubTab(tab.id as any)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black transition-all ${
-                  activeSubTab === tab.id
-                    ? "bg-white text-indigo-600 shadow-md border border-slate-200"
-                    : "text-slate-500 hover:text-slate-800"
+                className={`flex items-center gap-2.5 px-8 py-3.5 rounded-[1.5rem] text-xs font-black transition-all duration-500 ${
+                  activeSubTab === tab.id 
+                  ? 'bg-white text-indigo-600 shadow-xl shadow-indigo-100 ring-1 ring-slate-200' 
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
                 }`}
               >
-                {tab.icon} {tab.label}
+                <tab.icon size={16} />
+                {tab.label}
               </button>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* 📦 CONTENT AREA */}
-      <div className="max-w-7xl mx-auto p-8 pb-20">
-        
+        {/* \ud83d\udcca CONTENT TAB: SESI & WAKTU */}
         {activeSubTab === 'sesi' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-               <h3 className="text-xl font-black text-slate-800">Daftar Jadwal Aktif</h3>
-               <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  <Activity size={14} className="text-emerald-500" />
-                  Real-time Database Sync
-               </div>
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+            <div className="flex justify-between items-center px-4">
+               <h2 className="text-2xl font-black text-slate-800 tracking-tight">Manajemen Sesi Ujian</h2>
+               <button 
+                onClick={() => setShowAddModal(true)}
+                className="group flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs hover:bg-indigo-600 transition-all shadow-2xl shadow-slate-200 hover:scale-[1.05] active:scale-95"
+               >
+                  <Plus size={18} className="group-hover:rotate-90 transition-transform duration-500" />
+                  BUAT JADWAL BARU
+               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-5">
-              {sessions.map((session) => (
-                <div key={session.id} className="bg-white rounded-[2.5rem] p-8 border border-slate-200 hover:border-indigo-300 transition-all group flex flex-col md:flex-row items-center justify-between gap-8 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5">
-                   <div className="flex items-center gap-8 flex-1">
-                      <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-3xl font-black transition-all duration-500 ${session.is_active ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-inner' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
-                        {session.title.charAt(0)}
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-black text-slate-900 text-xl leading-none">{session.title}</h3>
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${session.is_active ? 'bg-emerald-50 text-emerald-700 border-emerald-100 animate-pulse' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
-                            {session.is_active ? 'Online' : 'Offline'}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-400">
-                           <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                             <ShieldCheck size={14} className="text-indigo-500" />
-                             Token: <span className="text-slate-800">{session.token}</span>
-                           </div>
-                           <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                             <Clock size={14} className="text-blue-500" />
-                             <span className="text-slate-800">{session.duration_minutes} Menit</span>
-                           </div>
-                           <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                             <Trophy size={14} className="text-amber-500" />
-                             <span className="text-slate-800">Correct: +{session.correct_point || 4}</span>
-                           </div>
-                        </div>
-                      </div>
+            <div className="grid grid-cols-1 gap-6">
+              {sessions.length === 0 ? (
+                <div className="bg-white rounded-[3rem] border-2 border-dashed border-slate-100 py-32 text-center flex flex-col items-center justify-center">
+                   <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                      <Clock size={40} className="text-slate-200" />
                    </div>
-
-                   <div className="flex items-center gap-4 shrink-0">
-                      {/* ACTION 1: EDIT BANK SOAL (CENTRAL COMMAND) */}
-                      <Link 
-                        href={`/hq/llms/${session.id}/questions`}
-                        className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100 hover:scale-[1.05] active:scale-95"
-                      >
-                        <FileText size={18} /> Kelola Bank Soal
-                      </Link>
-
-                      {/* ACTION 2: TOGGLE POWER */}
-                      <button 
-                        onClick={() => handleToggleAktif(session.id, session.is_active)}
-                        className={`p-4 rounded-2xl transition-all border ${session.is_active ? 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'}`}
-                        title={session.is_active ? "Nonaktifkan" : "Aktifkan"}
-                      >
-                        <Power size={20} />
-                      </button>
-
-                      {/* ACTION 3: DELETE */}
-                      <button 
-                        onClick={() => handleHapusJadwal(session.id, session.title)}
-                        className="p-4 bg-slate-50 text-slate-400 rounded-2xl border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all"
-                        title="Hapus Sesi"
-                      >
-                        <Trash2 size={20} />
-                      </button>
-                   </div>
+                   <h3 className="text-xl font-black text-slate-800">Belum Ada Jadwal</h3>
+                   <p className="text-slate-400 font-medium max-w-xs mx-auto mt-2 text-sm leading-relaxed">
+                      Silakan buat jadwal sesi ujian pertama untuk memulai kompetisi NCC 13th.
+                   </p>
                 </div>
-              ))}
-              
-              {sessions.length === 0 && (
-                <div className="bg-white rounded-[3rem] border-4 border-dashed border-slate-100 py-32 text-center flex flex-col items-center justify-center">
-                  <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-                    <GraduationCap size={48} className="text-slate-200" />
+              ) : (
+                sessions.map((session) => (
+                  <div key={session.id} className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-slate-200 transition-all duration-700 group border-l-[12px] border-l-indigo-500">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-10">
+                       <div className="space-y-4">
+                          <div className="flex items-center gap-4">
+                             <h3 className="text-2xl font-black text-slate-800 tracking-tight">{session.title}</h3>
+                             <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${session.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                                {session.is_active ? '\u25cf Aktif' : 'Non-aktif'}
+                             </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-6">
+                             <div className="flex items-center gap-2.5 text-slate-400 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                                <ShieldCheck size={16} className="text-indigo-500" />
+                                <span className="text-xs font-black uppercase tracking-tighter">{session.token}</span>
+                             </div>
+                             <div className="flex items-center gap-2.5 text-slate-400 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                                <Clock size={16} className="text-blue-500" />
+                                <span className="text-xs font-black uppercase tracking-tighter">{session.duration_minutes} Menit</span>
+                             </div>
+                             <div className="flex items-center gap-2.5 text-slate-400 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                                <Trophy size={16} className="text-amber-500" />
+                                <span className="text-xs font-black uppercase tracking-tighter">B: {session.correct_point} / S: {session.penalty_point}</span>
+                             </div>
+                          </div>
+                       </div>
+
+                       <div className="flex items-center gap-4 shrink-0">
+                          <Link 
+                            href={`/hq/llms/${session.id}/questions`}
+                            className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100 hover:scale-[1.05] active:scale-95"
+                          >
+                            <FileText size={18} /> Kelola Bank Soal
+                          </Link>
+
+                          <button 
+                            onClick={() => handleToggleAktif(session.id, session.is_active)}
+                            className={`p-4 rounded-2xl transition-all border ${session.is_active ? 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'}`}
+                          >
+                            <Power size={20} />
+                          </button>
+
+                          <button 
+                            onClick={() => handleHapusJadwal(session.id, session.title)}
+                            className="p-4 bg-slate-50 text-slate-400 rounded-2xl border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all"
+                          >
+                            <Trash2 size={20} />
+                          </button>
+                       </div>
+                    </div>
                   </div>
-                  <h3 className="font-black text-slate-800 text-2xl">Belum Ada Sesi Ujian</h3>
-                  <p className="text-slate-400 font-medium mt-2 max-w-sm mx-auto">Klik tombol <strong>"Buat Sesi Baru"</strong> di atas untuk memulai pembangunan bank soal dan jadwal lomba.</p>
-                </div>
+                ))
               )}
             </div>
           </div>
         )}
 
+        {/* \ud83d\udcca CONTENT TAB: OVERVIEW BENTO */}
         {activeSubTab === 'overview' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            {/* 👑 HEADER TELEMETRI ULTIMATE */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
                 <h2 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
@@ -406,16 +322,10 @@ export default function ManajemenJadwalLLMS() {
               </div>
             </div>
 
-            {/* 🍱 ULTIMATE BENTO GRID LAYOUT */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
-              {/* --- ROW 1 --- */}
-
-              {/* CARD 1: Sesi Aktif (Hero) - Span 2 */}
               <div className="md:col-span-2 bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-800 rounded-[3rem] p-10 text-white shadow-2xl shadow-indigo-200 relative overflow-hidden group min-h-[300px] flex flex-col justify-between">
                 <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-white opacity-5 blur-3xl transition-transform duration-700 group-hover:scale-125"></div>
                 <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 rounded-full bg-indigo-400 opacity-10 blur-3xl"></div>
-                
                 <div className="relative z-10 flex justify-between items-start">
                   <div>
                     <p className="text-indigo-100 font-black tracking-[0.2em] text-[10px] mb-2 uppercase opacity-80 flex items-center gap-2">
@@ -427,7 +337,6 @@ export default function ManajemenJadwalLLMS() {
                     <Server className="w-12 h-12 text-white" />
                   </div>
                 </div>
-                
                 <div className="relative z-10 flex items-center gap-3 text-sm bg-white/10 w-fit px-6 py-3 rounded-2xl backdrop-blur-md border border-white/10">
                   <Clock className="w-4 h-4 text-indigo-200" />
                   <span className="text-indigo-50 font-bold uppercase tracking-widest text-[10px]">
@@ -436,31 +345,22 @@ export default function ManajemenJadwalLLMS() {
                 </div>
               </div>
 
-              {/* CARD 2: Server & Infra Health (Contrast Dark Card) */}
               <div className="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl shadow-slate-200 relative overflow-hidden group">
                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
                  <div className="relative z-10 h-full flex flex-col justify-between">
                     <div>
                       <div className="flex items-center gap-3 mb-8">
-                        <div className="p-3 bg-white/10 rounded-2xl">
-                          <Cpu className="w-6 h-6 text-indigo-400" />
-                        </div>
+                        <div className="p-3 bg-white/10 rounded-2xl"><Cpu className="w-6 h-6 text-indigo-400" /></div>
                         <h3 className="font-black text-slate-100 text-sm uppercase tracking-widest">Infra Health</h3>
                       </div>
-                      
                       <div className="space-y-6">
                         <div>
                           <div className="flex justify-between text-[10px] mb-2 font-black uppercase tracking-widest">
                             <span className="text-slate-400">Database (Supabase)</span>
-                            <span className={stats.serverLatency > 100 ? "text-rose-400" : "text-emerald-400"}>
-                              {stats.serverLatency}ms
-                            </span>
+                            <span className={stats.serverLatency > 100 ? "text-rose-400" : "text-emerald-400"}>{stats.serverLatency}ms</span>
                           </div>
                           <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-700">
-                            <div 
-                              className={`h-full rounded-full transition-all duration-500 shadow-lg ${stats.serverLatency > 100 ? "bg-rose-400" : "bg-emerald-400"}`}
-                              style={{ width: `${Math.min(100, (stats.serverLatency / 200) * 100)}%` }}
-                            ></div>
+                            <div className={`h-full rounded-full transition-all duration-500 shadow-lg ${stats.serverLatency > 100 ? "bg-rose-400" : "bg-emerald-400"}`} style={{ width: `${Math.min(100, (stats.serverLatency / 200) * 100)}%` }}></div>
                           </div>
                         </div>
                         <div>
@@ -481,9 +381,6 @@ export default function ManajemenJadwalLLMS() {
                  </div>
               </div>
 
-              {/* --- ROW 2 --- */}
-
-              {/* CARD 3: Peserta Live */}
               <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-500/5 transition-all duration-500 flex flex-col justify-between group">
                 <div className="flex justify-between items-start">
                   <div className="p-4 bg-emerald-50 rounded-2xl group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-500">
@@ -492,21 +389,16 @@ export default function ManajemenJadwalLLMS() {
                 </div>
                 <div className="mt-8">
                   <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-1">Traffic Peserta Live</p>
-                  <h3 className="text-5xl font-black text-slate-800 tracking-tight">
-                    {stats.liveParticipants}
-                  </h3>
+                  <h3 className="text-5xl font-black text-slate-800 tracking-tight">{stats.liveParticipants}</h3>
                   <div className="mt-4 flex items-center gap-2">
                     <div className="flex -space-x-2">
-                      {[1,2,3].map(i => (
-                        <div key={i} className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white"></div>
-                      ))}
+                      {[1,2,3].map(i => <div key={i} className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white"></div>)}
                     </div>
                     <span className="text-[10px] text-slate-400 font-bold tracking-tighter uppercase italic">Peserta masuk...</span>
                   </div>
                 </div>
               </div>
 
-              {/* CARD 4: Bank Soal */}
               <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-500 flex flex-col justify-between group">
                 <div className="flex justify-between items-start">
                   <div className="p-4 bg-indigo-50 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-500">
@@ -515,13 +407,10 @@ export default function ManajemenJadwalLLMS() {
                 </div>
                 <div className="mt-8">
                   <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-1">Butir Soal Tersimpan</p>
-                  <h3 className="text-5xl font-black text-slate-800 tracking-tight">
-                    {stats.totalQuestions}
-                  </h3>
+                  <h3 className="text-5xl font-black text-slate-800 tracking-tight">{stats.totalQuestions}</h3>
                 </div>
               </div>
 
-              {/* CARD 5: Radar Pelanggaran (Proctoring) */}
               <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-rose-500/5 transition-all duration-500 flex flex-col justify-between group">
                 <div className="flex justify-between items-start">
                   <div className="p-4 bg-rose-50 rounded-2xl group-hover:bg-rose-600 group-hover:text-white transition-colors duration-500">
@@ -532,24 +421,19 @@ export default function ManajemenJadwalLLMS() {
                 <div className="mt-8">
                   <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-1">Radar Pelanggaran</p>
                   <div className="flex items-end gap-2">
-                    <h3 className={`text-5xl font-black tracking-tight ${stats.totalViolations > 0 ? "text-rose-500" : "text-emerald-500"}`}>
-                      {stats.totalViolations}
-                    </h3>
+                    <h3 className={`text-5xl font-black tracking-tight ${stats.totalViolations > 0 ? "text-rose-500" : "text-emerald-500"}`}>{stats.totalViolations}</h3>
                     <span className="text-xs font-black text-slate-300 uppercase mb-2">Warnings</span>
                   </div>
                 </div>
               </div>
 
-              {/* --- ROW 3 --- */}
-
-              {/* CARD 6: Log Sistem (Span 2) */}
               <div className="md:col-span-2 bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm flex flex-col justify-between group hover:border-indigo-200 transition-all duration-500">
                 <div className="flex items-center justify-between mb-10">
                   <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
                     <Activity className="text-indigo-500" size={24} />
                     Log Aktivitas Sistem
                   </h3>
-                  <button className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 hover:bg-indigo-100 transition-all">Clear Logs</button>
+                  <button onClick={fetchData} className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 hover:bg-indigo-100 transition-all">Refresh Logs</button>
                 </div>
                 <div className="space-y-6">
                   <div className="flex items-start gap-5 p-5 bg-slate-50/50 rounded-3xl border border-transparent hover:border-slate-200 transition-all group/item">
@@ -560,46 +444,22 @@ export default function ManajemenJadwalLLMS() {
                     </div>
                     <span className="text-slate-300 text-[10px] font-black tracking-widest uppercase mt-1">Baru saja</span>
                   </div>
-                  <div className="flex items-start gap-5 p-5 rounded-3xl opacity-40">
-                    <div className="w-3 h-3 rounded-full bg-slate-300 mt-1.5"></div>
-                    <div className="flex-grow">
-                      <p className="text-base font-black text-slate-500 leading-tight">Sinkronisasi Database Global</p>
-                      <p className="text-xs text-slate-400 mt-1 font-medium italic">Menunggu instruksi pembuatan jadwal sesi ujian pertama.</p>
-                    </div>
-                    <span className="text-slate-300 text-[10px] font-black tracking-widest uppercase mt-1">2 mnt lalu</span>
-                  </div>
                 </div>
               </div>
 
-              {/* CARD 7: Quick Actions */}
               <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm flex flex-col justify-center gap-6 group hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] text-center mb-2">Aksi Cepat</h3>
-                <button 
-                  onClick={() => setShowAddModal(true)}
-                  className="w-full flex items-center justify-center gap-3 px-6 py-5 bg-indigo-600 text-white font-black text-xs rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 hover:scale-[1.03] active:scale-[0.97]"
-                >
-                  <PlusCircle size={20} />
-                  BUAT SESI BARU
+                <button onClick={() => setShowAddModal(true)} className="w-full flex items-center justify-center gap-3 px-6 py-5 bg-indigo-600 text-white font-black text-xs rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 hover:scale-[1.03] active:scale-[0.97]">
+                  <PlusCircle size={20} /> BUAT SESI BARU
                 </button>
-                <button 
-                  onClick={exportToCSV}
-                  disabled={!selectedExamForLeaderboard || leaderboardData.length === 0}
-                  className="w-full flex items-center justify-center gap-3 px-6 py-5 bg-slate-50 text-slate-700 font-black text-xs rounded-2xl hover:bg-slate-100 transition-all border border-slate-200 disabled:opacity-30 disabled:hover:scale-100"
-                >
-                  <Download size={20} />
-                  EXPORT LAPORAN
+                <button onClick={exportToCSV} disabled={!selectedExamForLeaderboard || leaderboardData.length === 0} className="w-full flex items-center justify-center gap-3 px-6 py-5 bg-slate-50 text-slate-700 font-black text-xs rounded-2xl hover:bg-slate-100 transition-all border border-slate-200 disabled:opacity-30">
+                  <Download size={20} /> EXPORT LAPORAN
                 </button>
               </div>
-
             </div>
 
-            {/* 📝 ROADMAP PERSIAPAN NCC 13th (PREMIUM CHECKLIST) */}
             <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
-                  <Target size={120} className="text-slate-900" />
-               </div>
-               
-               <div className="relative z-10 max-w-4xl">
+               <div className="max-w-4xl">
                   <div className="mb-10">
                     <div className="flex items-center gap-3 mb-2">
                        <Trophy className="text-amber-500" size={24} />
@@ -607,55 +467,20 @@ export default function ManajemenJadwalLLMS() {
                     </div>
                     <p className="text-sm text-slate-400 font-medium italic">Pantau kesiapan infrastruktur dan fitur Pusat Komando CBT.</p>
                   </div>
-
-                  {/* PROGRESS BAR TOTAL */}
-                  <div className="mb-12">
-                    <div className="flex items-center justify-between mb-3 px-1">
-                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Kesiapan Sistem</span>
-                      <span className="text-sm font-black text-slate-800">85%</span>
-                    </div>
-                    <div className="w-full bg-slate-50 h-3 rounded-full overflow-hidden border border-slate-100">
-                      <div className="bg-indigo-500 h-full rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(79,70,229,0.3)] w-[85%]"></div>
-                    </div>
-                  </div>
-
-                  {/* TASK LIST GRID */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
                       { id: 1, title: 'Infrastruktur Database & Vercel', status: 'done', mod: 'DevOps' },
                       { id: 2, title: 'Buka Sesi & Scoring Config', status: 'done', mod: 'CBT Core' },
                       { id: 3, title: 'Editor Bank Soal & LaTeX', status: 'done', mod: 'Content' },
                       { id: 4, title: 'Telemetri Overview Real-time', status: 'done', mod: 'Dashboard' },
-                      { id: 5, title: 'Tabel Penilaian & Export CSV', status: 'done', mod: 'Real-time' },
-                      { id: 6, title: 'Layar Ujian & Anti-Cheat Radar', status: 'progress', mod: 'Frontend' },
+                      { id: 5, title: 'Tabel Penilaian & Export CSV', status: 'progress', mod: 'Real-time' },
+                      { id: 6, title: 'Layar Ujian & Anti-Cheat Radar', status: 'pending', mod: 'Frontend' },
                     ].map((task) => (
-                      <div 
-                        key={task.id}
-                        className={`flex items-center gap-5 p-5 rounded-[2rem] border transition-all duration-300 ${
-                          task.status === 'done' ? 'bg-slate-50 border-slate-100 opacity-60' : 
-                          task.status === 'progress' ? 'bg-indigo-50/50 border-indigo-200 shadow-xl shadow-indigo-100/20' : 
-                          'bg-white border-slate-100'
-                        }`}
-                      >
-                        <div className="flex-shrink-0">
-                          {task.status === 'done' ? <CheckCircle2 className="w-8 h-8 text-emerald-500" /> : 
-                           task.status === 'progress' ? <Clock className="w-8 h-8 text-indigo-500 animate-pulse" /> : 
-                           <CircleEllipsis className="w-8 h-8 text-slate-200" />}
-                        </div>
+                      <div key={task.id} className={`flex items-center gap-5 p-5 rounded-[2rem] border transition-all duration-300 ${task.status === 'done' ? 'bg-slate-50 border-slate-100 opacity-60' : task.status === 'progress' ? 'bg-indigo-50/50 border-indigo-200 shadow-xl shadow-indigo-100/20' : 'bg-white border-slate-100'}`}>
+                        {task.status === 'done' ? <CheckCircle2 className="w-8 h-8 text-emerald-500" /> : task.status === 'progress' ? <Clock className="w-8 h-8 text-indigo-500 animate-pulse" /> : <CircleEllipsis className="w-8 h-8 text-slate-200" />}
                         <div className="flex-grow">
-                          <h4 className={`text-sm font-black tracking-tight ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
-                            {task.title}
-                          </h4>
+                          <h4 className={`text-sm font-black tracking-tight ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{task.title}</h4>
                           <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{task.mod}</span>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full border ${
-                            task.status === 'done' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
-                            task.status === 'progress' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 
-                            'bg-slate-50 text-slate-400 border-slate-100'
-                          }`}>
-                            {task.status === 'done' ? 'Selesai' : task.status === 'progress' ? 'Fokus' : 'Queue'}
-                          </span>
                         </div>
                       </div>
                     ))}
@@ -665,103 +490,89 @@ export default function ManajemenJadwalLLMS() {
           </div>
         )}
 
+        {/* \ud83d\udcca CONTENT TAB: PENILAIAN LIVE */}
         {activeSubTab === 'nilai' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                <div>
-                   <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                      <Trophy className="text-amber-500" size={24} />
-                      Monitoring Hasil & Leaderboard
-                   </h3>
-                   <p className="text-sm text-slate-500 font-medium mt-1">Pantau skor dan progres pengerjaan peserta secara langsung.</p>
-                </div>
-                
-                <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+              <div>
+                <h3 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                  <Trophy className="text-amber-500" size={28} />
+                  Real-time Leaderboard
+                </h3>
+                <p className="text-sm text-slate-500 font-medium mt-1">Pantau pergerakan skor dan progres peserta secara langsung.</p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                <div className="relative w-full sm:w-72">
+                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><GraduationCap size={18} /></div>
                    <select 
-                    value={selectedExamForLeaderboard || ""}
+                    value={selectedExamForLeaderboard}
                     onChange={(e) => setSelectedExamForLeaderboard(e.target.value)}
-                    className="flex-1 md:w-64 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-xs font-black text-slate-700 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl text-sm font-black text-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
                    >
-                      <option value="">Pilih Sesi Ujian...</option>
-                      {sessions.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                    <option value="">Pilih Sesi Ujian...</option>
+                    {sessions.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                    </select>
+                </div>
+                <button onClick={exportToCSV} disabled={!selectedExamForLeaderboard || leaderboardData.length === 0} className="flex items-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs hover:bg-indigo-700 transition-all disabled:opacity-30 shadow-lg shadow-indigo-100">
+                  <Download size={18} /> EXPORT CSV
+                </button>
+              </div>
+            </div>
 
-                   <button 
-                    onClick={exportToCSV}
-                    disabled={!selectedExamForLeaderboard || leaderboardData.length === 0}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3.5 rounded-2xl font-black text-xs shadow-xl shadow-emerald-100 flex items-center gap-2 transition-all disabled:opacity-30"
-                   >
-                      <Download size={18} /> Export CSV
-                   </button>
-                </div>
-             </div>
-
-             {!selectedExamForLeaderboard ? (
-                <div className="bg-white rounded-[3rem] border-2 border-dashed border-slate-100 py-32 text-center flex flex-col items-center justify-center">
-                   <Search size={48} className="text-slate-100 mb-4" />
-                   <p className="text-slate-400 font-bold">Pilih sesi ujian untuk melihat leaderboard.</p>
-                </div>
-             ) : leaderboardData.length === 0 ? (
-                <div className="bg-white rounded-[3rem] border-2 border-dashed border-slate-100 py-32 text-center flex flex-col items-center justify-center">
-                   <Activity size={48} className="text-slate-100 mb-4 animate-pulse" />
-                   <p className="text-slate-400 font-bold">Belum ada aktivitas pengerjaan pada sesi ini.</p>
-                </div>
-             ) : (
-                <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
-                   <table className="w-full text-left border-collapse">
-                      <thead>
-                         <tr className="bg-slate-50/50 border-b border-slate-100">
-                            <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Peringkat</th>
-                            <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Peserta</th>
-                            <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Sekolah</th>
-                            <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                            <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Pelanggaran</th>
-                            <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Skor Akhir</th>
-                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50">
-                         {leaderboardData.sort((a,b) => (b.final_score || 0) - (a.final_score || 0)).map((entry, idx) => (
-                           <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="py-5 px-8">
-                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-200 text-slate-600' : idx === 2 ? 'bg-orange-100 text-orange-600' : 'bg-slate-50 text-slate-400'}`}>
-                                    {idx + 1}
-                                 </div>
-                              </td>
-                              <td className="py-5 px-8">
-                                 <div className="font-bold text-slate-800 text-sm">{entry.participant?.full_name || entry.user_id}</div>
-                                 <div className="text-[10px] text-slate-400 font-medium">Ticket: {entry.user_id}</div>
-                              </td>
-                              <td className="py-5 px-8">
-                                 <div className="font-medium text-slate-600 text-xs">{entry.participant?.school_name || "-"}</div>
-                              </td>
-                              <td className="py-5 px-8 text-center">
-                                 <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border ${
-                                    entry.status === 'ongoing' ? 'bg-blue-50 text-blue-600 border-blue-100 animate-pulse' :
-                                    entry.status === 'submitted' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                    'bg-rose-50 text-rose-600 border-rose-100'
-                                 }`}>
-                                    {entry.status}
-                                 </span>
-                              </td>
-                              <td className="py-5 px-8 text-center">
-                                 <div className={`text-xs font-black ${entry.warnings_count > 0 ? 'text-rose-500' : 'text-slate-300'}`}>
-                                    {entry.warnings_count || 0}x
-                                 </div>
-                              </td>
-                              <td className="py-5 px-8 text-right">
-                                 <div className="text-xl font-black text-indigo-600">{entry.final_score || 0}</div>
-                              </td>
-                           </tr>
-                         ))}
-                      </tbody>
-                   </table>
-                </div>
-             )}
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+               {!selectedExamForLeaderboard ? (
+                 <div className="p-20 text-center flex flex-col items-center justify-center">
+                    <Activity size={48} className="text-indigo-100 mb-4" />
+                    <h4 className="text-lg font-black text-slate-800">Pilih Sesi Ujian</h4>
+                    <p className="text-sm text-slate-400 font-medium mt-2">Pilih salah satu jadwal di atas untuk memantau nilai real-time.</p>
+                 </div>
+               ) : leaderboardData.length === 0 ? (
+                 <div className="p-20 text-center flex flex-col items-center justify-center">
+                    <Search size={48} className="text-slate-100 mb-4 animate-pulse" />
+                    <h4 className="text-lg font-black text-slate-800">Belum Ada Peserta</h4>
+                    <p className="text-sm text-slate-400 font-medium mt-2">Menunggu peserta memulai pengerjaan sesi ini.</p>
+                 </div>
+               ) : (
+                 <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                       <thead>
+                          <tr className="bg-slate-50/50 border-b border-slate-100">
+                             <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Rank</th>
+                             <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Peserta</th>
+                             <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                             <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Pelanggaran</th>
+                             <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Skor Akhir</th>
+                          </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-50">
+                          {leaderboardData.map((entry, idx) => (
+                            <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
+                               <td className="px-8 py-6">
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-200 text-slate-600' : idx === 2 ? 'bg-orange-100 text-orange-600' : 'bg-slate-50 text-slate-400'}`}>
+                                     {idx + 1}
+                                  </div>
+                               </td>
+                               <td className="px-8 py-6">
+                                  <div className="font-bold text-slate-800 text-sm">{entry.user_id}</div>
+                                  <div className="text-[10px] text-slate-400 font-medium">Ticket: {entry.id.substring(0,8)}</div>
+                               </td>
+                               <td className="px-8 py-6 text-center">
+                                  <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase border ${entry.status === 'ongoing' ? 'bg-blue-50 text-blue-600 border-blue-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>{entry.status}</span>
+                               </td>
+                               <td className="px-8 py-6 text-center font-black text-xs text-slate-400">{entry.warnings_count || 0}x</td>
+                               <td className="px-8 py-6 text-right font-black text-xl text-indigo-600">{entry.final_score || 0}</td>
+                            </tr>
+                          ))}
+                       </tbody>
+                    </table>
+                 </div>
+               )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* 🛸 MODAL ADD SESSION */}
+      {/* \ud83d\udef8 MODAL ADD SESSION */}
       {showAddModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowAddModal(false)}></div>
