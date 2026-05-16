@@ -6,10 +6,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { 
-  Timer, ShieldAlert, Flag, CheckCircle2, 
+  Timer, Flag, CheckCircle2, 
   ChevronLeft, ChevronRight, Send, AlertTriangle,
   LayoutDashboard, Info, Loader2, X,
-  Expand, ShieldExclamation as ShieldExclamationIcon,
+  Expand, ShieldAlert as ShieldExclamationIcon,
   Maximize as ArrowsInLineHorizontalIcon
 } from "lucide-react";
 import katex from "katex";
@@ -215,7 +215,7 @@ export default function PengerjaanUjianSesi() {
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-white font-inter">
          <div className="max-w-md w-full text-center space-y-8">
             <div className="w-24 h-24 bg-rose-500 rounded-[2.5rem] mx-auto flex items-center justify-center shadow-2xl shadow-rose-500/20">
-               <ShieldAlert size={48} />
+               <ShieldExclamationIcon size={48} />
             </div>
             <div>
                <h1 className="text-4xl font-black tracking-tight">Akses Dibekukan</h1>
@@ -321,7 +321,7 @@ export default function PengerjaanUjianSesi() {
       {/* 🚩 PROCTORING ALERT BAR */}
       {violationsCount > 0 && (
         <div className={`py-3 text-center text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 ${violationsCount >= 2 ? 'bg-rose-600 text-white animate-pulse' : 'bg-amber-400 text-amber-950'}`}>
-           <ShieldAlert size={14} />
+           <ShieldExclamationIcon size={14} />
            Radar Deteksi: {violationsCount} / 3 Pelanggaran Terdeteksi
         </div>
       )}
