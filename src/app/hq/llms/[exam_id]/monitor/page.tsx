@@ -26,7 +26,6 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
       const { data } = await supabase
         .from('cbt_attempts')
         .select('*')
-        .eq('exam_id', examId)
         .order('updated_at', { ascending: false });
 
       if (data) {
