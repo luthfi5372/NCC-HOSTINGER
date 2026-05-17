@@ -200,30 +200,43 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
 
                 {/* Opsi Jawaban */}
                 <div className="space-y-3 mt-8">
-                  {['A', 'B', 'C', 'D', 'E'].map((letter) => {
-                    const optionText = currentQ[`option_${letter.toLowerCase()}`];
-                    if (!optionText) return null; // Sembunyikan jika opsi kosong
-                    
-                    const isSelected = answers[currentQ.id] === letter;
-                    return (
-                      <button
-                        key={letter}
-                        onClick={() => handleSelectOption(currentQ.id, letter)}
-                        className={`w-full flex items-center p-4 rounded-2xl border-2 transition-all text-left group
-                          ${isSelected 
-                            ? 'border-[#5145cd] bg-indigo-50/50 shadow-md' 
-                            : 'border-gray-100 bg-white hover:border-indigo-200 hover:bg-gray-50'}`}
-                      >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black mr-4 transition-colors flex-shrink-0
-                          ${isSelected ? 'bg-[#5145cd] text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-indigo-100 group-hover:text-[#5145cd]'}`}>
-                          {letter}
-                        </div>
-                        <span className={`text-sm font-medium ${isSelected ? 'text-indigo-900' : 'text-gray-700'}`}>
-                          {optionText}
-                        </span>
-                      </button>
-                    );
-                  })}
+                  {currentQ.options && Object.keys(currentQ.options).length > 0 ? (
+                    ['A', 'B', 'C', 'D', 'E'].map((letter) => {
+                      // KODE BARU: Membaca dari objek JSONB 'options' milikmu
+                      // Mendukung format huruf besar "A" atau kecil "a" di databasemu
+                      const optionText = currentQ.options[letter] || currentQ.options[letter.toLowerCase()];
+                      
+                      if (!optionText) return null; // Sembunyikan tombol jika opsi ini tidak ada di JSON
+                      
+                      const isSelected = answers[currentQ.id] === letter;
+                      return (
+                        <button
+                          key={letter}
+                          onClick={() => handleSelectOption(currentQ.id, letter)}
+                          className={`w-full flex items-center p-4 rounded-2xl border-2 transition-all text-left group
+                            ${isSelected 
+                              ? 'border-[#5145cd] bg-indigo-50/50 shadow-md' 
+                              : 'border-gray-100 bg-white hover:border-indigo-200 hover:bg-gray-50'}`}
+                        >
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black mr-4 transition-colors flex-shrink-0
+                            ${isSelected ? 'bg-[#5145cd] text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-indigo-100 group-hover:text-[#5145cd]'}`}>
+                            {letter}
+                          </div>
+                          <span className={`text-sm font-medium ${isSelected ? 'text-indigo-900' : 'text-gray-700'}`}>
+                            {optionText}
+                          </span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="w-full p-5 bg-amber-50 border-2 border-amber-200 border-dashed rounded-2xl flex items-center text-amber-600">
+                      <AlertTriangle className="w-6 h-6 mr-3 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-widest">Opsi Jawaban Kosong</p>
+                        <p className="text-[10px] font-bold mt-0.5">Panitia belum memasukkan data JSON pilihan ganda untuk soal ini.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
