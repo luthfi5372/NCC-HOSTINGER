@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client';
 import { 
   User, 
   GraduationCap, 
-  ClipboardCheck,
   ShieldCheck,
   ArrowRight,
   LogOut,
@@ -22,7 +21,6 @@ export default function StudentDashboard() {
   const [examDetail, setExamDetail] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Ambil data siswa dan ID Ujian dari LocalStorage setelah login
   useEffect(() => {
     const savedUser = localStorage.getItem('ncc_user');
     if (!savedUser) {
@@ -31,9 +29,9 @@ export default function StudentDashboard() {
       const parsedUser = JSON.parse(savedUser);
       setStudent(parsedUser);
 
-      // Fetch detail durasi ujian dari Supabase berdasarkan ID yang dibawa dari Login
-      const fetchExamInfo = async () => {
+      const fetchExamInfoAndReportPresence = async () => {
         if (parsedUser.active_exam_id) {
+          // 1. Ambil detail waktu ujian
           const { data } = await supabase
             .from('cbt_exams')
             .select('duration')
@@ -41,11 +39,20 @@ export default function StudentDashboard() {
             .single();
             
           if (data) setExamDetail(data);
+
+          // 2. 🔥 LAPOR KE CCTV ADMIN BAHWA PESERTA SUDAH DI DASHBOARD 🔥
+          // Ini akan membuat nama peserta langsung muncul di layar Admin
+          const userId = parsedUser.nisn || parsedUser.username;
+          await supabase.from('cbt_attempts').upsert({
+            user_id: userId,
+            exam_id: parsedUser.active_exam_id,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
         }
         setLoading(false);
       };
 
-      fetchExamInfo();
+      fetchExamInfoAndReportPresence();
     }
   }, [router]);
 
@@ -55,7 +62,6 @@ export default function StudentDashboard() {
   };
 
   const handleStartExam = () => {
-    // Arahkan ke URL Ujian Dinamis sesuai ID sesi yang sedang aktif!
     if (student?.active_exam_id) {
       router.push(`/ujian/${student.active_exam_id}`);
     }
@@ -135,7 +141,6 @@ export default function StudentDashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[9px] font-black uppercase tracking-widest">Sesi Tersedia</span>
-                  {/* 👇 INI BAGIAN YANG SUDAH TERINTEGRASI DATABASE 👇 */}
                   <h3 className="text-2xl font-black text-gray-900 mt-3 tracking-tight">
                     {student.active_exam_title || 'Sesi Ujian Sedang Disiapkan'}
                   </h3>
@@ -172,7 +177,7 @@ export default function StudentDashboard() {
                 </li>
                 <li className="flex items-start">
                   <div className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center font-black text-[10px] mr-3 flex-shrink-0 mt-0.5">2</div>
-                  <span className="leading-relaxed"><strong>Auto-Cloud Sync:</strong> Jawaban Anda disinkronkan setiap 1 detik. Anda dapat melanjutkan ujian di perangkat lain jika terjadi kendala teknis.</span>
+                  <span className="leading-relaxed"><strong>Auto-Cloud Sync:</strong> Jawaban Anda disinkronkan setiap detik. Anda dapat melanjutkan ujian di perangkat lain jika terjadi kendala.</span>
                 </li>
               </ul>
             </div>
