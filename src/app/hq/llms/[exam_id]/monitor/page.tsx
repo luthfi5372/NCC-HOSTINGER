@@ -3,16 +3,16 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { 
   ArrowLeft,
   Monitor,
   ShieldAlert,
   BadgeCheck,
   Clock,
-  AlertTriangle,
-  UserCircle
+  User,
+  Search
 } from 'lucide-react';
-import { useParams } from 'next/navigation';
 
 export default function LiveMonitor() {
   const params = useParams();
@@ -21,14 +21,13 @@ export default function LiveMonitor() {
 
   const [participants, setParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Fungsi mengambil data peserta yang sedang ujian di sesi ini
   const fetchMonitorData = async () => {
     try {
       const { data, error } = await supabase
         .from('cbt_attempts')
         .select('*')
-        // .eq('exam_id', examId) // Aktifkan ini jika tabel attempts-mu punya kolom exam_id
         .order('updated_at', { ascending: false });
 
       if (data) setParticipants(data);
@@ -41,148 +40,167 @@ export default function LiveMonitor() {
 
   useEffect(() => {
     fetchMonitorData();
-
-    // Antena Real-time: Berubah seketika jika siswa klik jawaban atau curang!
     const channel = supabase
       .channel('live-cctv')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cbt_attempts' }, (payload) => {
-        fetchMonitorData();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cbt_attempts' }, () => fetchMonitorData())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [examId]);
 
-  // Hitung Statistik Cepat
+  // Statistik & Filter
   const activeCount = participants.filter(p => !p.submitted_at).length;
   const cheatingCount = participants.filter(p => p.violations_count > 0).length;
   const finishedCount = participants.filter(p => p.submitted_at).length;
 
+  const filteredParticipants = participants.filter(p => 
+    p.user_id?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="min-h-screen bg-slate-100 p-6 md:p-8 font-sans select-none text-gray-800 text-left overflow-x-hidden">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#f4f7fe] p-6 md:p-10 font-sans select-none text-gray-800 text-left overflow-x-hidden">
+      <div className="max-w-[1400px] mx-auto space-y-8">
         
-        {/* HEADER */}
-        <div className="bg-white p-4 rounded-2xl border-2 border-gray-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-4 px-2">
-            <Link href="/hq/llms" className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors border border-gray-300">
+        {/* HEADER AREA (Terinspirasi dari referensi "What are your plans...") */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="flex items-center space-x-6">
+            <Link href="/hq/llms" className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-gray-500 hover:text-[#5145cd] shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_4px_25px_rgb(81,69,205,0.15)] transition-all">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-inner border border-blue-100">
-              <Monitor className="w-6 h-6" />
-            </div>
             <div>
-              <h1 className="text-xl font-black tracking-tight text-gray-900">Live Monitor Pengawas</h1>
-              <p className="text-xs text-gray-500 font-bold mt-0.5 font-mono uppercase">SESI: {examId?.substring(0, 12)}...</p>
+              <h1 className="text-3xl font-black text-gray-900 tracking-tight">Live Monitor CCTV</h1>
+              <p className="text-sm text-gray-500 mt-1 font-medium">Sistem pengawasan real-time NCC 13th.</p>
             </div>
           </div>
 
-          {/* INDIKATOR STATUS CCTV */}
-          <div className="flex items-center space-x-3">
-            <div className="px-4 py-2 bg-slate-800 border-2 border-slate-900 rounded-xl flex items-center shadow-lg">
-               <span className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-pulse mr-2 shadow-[0_0_8px_rgba(244,63,94,0.8)]"></span>
-               <span className="text-xs font-black text-white uppercase tracking-widest">Rec. Active</span>
+          <div className="flex items-center space-x-4 w-full md:w-auto">
+            {/* Search Bar ala Referensi */}
+            <div className="relative w-full md:w-64">
+              <Search className="w-5 h-5 absolute left-4 top-3.5 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="Cari ID Peserta..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white pl-11 pr-4 py-3 rounded-full text-sm font-medium outline-none text-gray-700 shadow-[0_4px_20px_rgb(0,0,0,0.02)] focus:shadow-[0_4px_25px_rgb(81,69,205,0.1)] transition-all placeholder-gray-400"
+              />
+            </div>
+            
+            <div className="px-5 py-3 bg-white rounded-full flex items-center shadow-[0_4px_20px_rgb(0,0,0,0.02)]">
+               <span className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-pulse mr-2.5 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span>
+               <span className="text-[11px] font-bold text-gray-700 uppercase tracking-widest">Rec.</span>
             </div>
           </div>
         </div>
 
-        {/* METRIK REKAP */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bg-white p-5 rounded-2xl border-2 border-indigo-100 shadow-sm flex items-center justify-between">
+        {/* METRIK REKAP (Soft Bento Style) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.03)] flex items-center justify-between transition-transform hover:-translate-y-1 duration-300">
             <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Peserta Mengerjakan</p>
-              <h3 className="text-3xl font-black text-indigo-600 mt-1">{activeCount}</h3>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Mengerjakan</p>
+              <h3 className="text-4xl font-black text-gray-800">{activeCount}</h3>
             </div>
-            <Clock className="w-10 h-10 text-indigo-100" />
+            <div className="w-16 h-16 bg-[#f4f7fe] rounded-[20px] flex items-center justify-center text-[#5145cd]">
+              <Clock className="w-8 h-8" />
+            </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl border-2 border-emerald-100 shadow-sm flex items-center justify-between">
+
+          <div className="bg-white p-6 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.03)] flex items-center justify-between transition-transform hover:-translate-y-1 duration-300">
             <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Selesai / Submit</p>
-              <h3 className="text-3xl font-black text-emerald-600 mt-1">{finishedCount}</h3>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Telah Submit</p>
+              <h3 className="text-4xl font-black text-gray-800">{finishedCount}</h3>
             </div>
-            <BadgeCheck className="w-10 h-10 text-emerald-100" />
+            <div className="w-16 h-16 bg-emerald-50 rounded-[20px] flex items-center justify-center text-emerald-500">
+              <BadgeCheck className="w-8 h-8" />
+            </div>
           </div>
-          <div className="bg-rose-50/50 p-5 rounded-2xl border-2 border-rose-200 shadow-sm flex items-center justify-between">
+
+          <div className="bg-white p-6 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.03)] flex items-center justify-between relative overflow-hidden transition-transform hover:-translate-y-1 duration-300">
+            {cheatingCount > 0 && <div className="absolute top-0 right-0 w-32 h-32 bg-rose-400/10 rounded-full blur-2xl"></div>}
             <div>
-              <p className="text-[10px] font-black text-rose-800 uppercase tracking-widest">Deteksi Kecurangan</p>
-              <h3 className="text-3xl font-black text-rose-600 mt-1">{cheatingCount}</h3>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Deteksi Curang</p>
+              <h3 className="text-4xl font-black text-rose-500">{cheatingCount}</h3>
             </div>
-            <ShieldAlert className={`w-10 h-10 ${cheatingCount > 0 ? 'text-rose-500 animate-pulse' : 'text-rose-200'}`} />
+            <div className="w-16 h-16 bg-rose-50 rounded-[20px] flex items-center justify-center text-rose-500">
+              <ShieldAlert className={`w-8 h-8 ${cheatingCount > 0 ? 'animate-pulse' : ''}`} />
+            </div>
           </div>
         </div>
 
-        {/* PANEL CCTV (BENTO GRID PESERTA) */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm p-6">
-          <div className="flex justify-between items-center mb-6 border-b-2 border-gray-100 pb-4">
-            <h2 className="text-base font-black text-gray-800">Layar Perangkat Peserta</h2>
-            <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 uppercase tracking-widest">Sinkronisasi 1 Detik</span>
+        {/* LAYAR CCTV (Grid of Participants) */}
+        <div className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-8 min-h-[500px]">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-lg font-black text-gray-800">Layar Perangkat Peserta</h2>
+            <span className="text-xs font-bold text-[#5145cd] bg-[#5145cd]/10 px-4 py-1.5 rounded-full">Live Feed • Auto Sync</span>
           </div>
 
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center text-gray-400">
-              <Monitor className="w-12 h-12 animate-pulse mb-3 text-gray-300" />
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Menyambungkan ke perangkat peserta...</p>
+              <div className="w-16 h-16 border-4 border-gray-100 border-t-[#5145cd] rounded-full animate-spin mb-4"></div>
+              <p className="text-xs font-bold uppercase tracking-widest">Menyambungkan...</p>
             </div>
-          ) : participants.length === 0 ? (
-            <div className="py-20 flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
-              <UserCircle className="w-12 h-12 mb-3 text-gray-300" />
-              <p className="text-xs font-bold uppercase tracking-widest">Belum ada peserta yang masuk ruangan</p>
+          ) : filteredParticipants.length === 0 ? (
+            <div className="py-20 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50 rounded-[24px]">
+              <Monitor className="w-16 h-16 mb-4 text-gray-300" />
+              <p className="text-xs font-bold uppercase tracking-widest">Tidak ada peserta ditemukan</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {participants.map((p, idx) => {
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+              {filteredParticipants.map((p, idx) => {
                 const isCheating = p.violations_count > 0;
                 const isFinished = p.submitted_at !== null;
                 
                 return (
-                  <div key={idx} className={`relative p-4 rounded-xl border-2 transition-all flex flex-col h-32
-                    ${isFinished ? 'border-emerald-200 bg-emerald-50/30' : 
-                      isCheating ? 'border-rose-400 bg-rose-50 shadow-[0_0_15px_rgba(244,63,94,0.15)]' : 
-                      'border-indigo-100 bg-white hover:border-indigo-300 shadow-sm'}`}
+                  <div key={idx} className={`relative p-5 rounded-[24px] transition-all duration-300 flex flex-col justify-between h-40
+                    ${isFinished ? 'bg-emerald-50/40 border border-emerald-100/50' : 
+                      isCheating ? 'bg-rose-50 border border-rose-100 shadow-[0_4px_20px_rgba(244,63,94,0.15)]' : 
+                      'bg-white border border-gray-100 shadow-[0_4px_15px_rgb(0,0,0,0.02)] hover:shadow-[0_8px_25px_rgb(0,0,0,0.05)] hover:-translate-y-1'}`}
                   >
                     {/* Badge Selesai */}
                     {isFinished && (
-                      <div className="absolute top-3 right-3 text-emerald-500">
-                        <BadgeCheck className="w-5 h-5" />
+                      <div className="absolute top-4 right-4 bg-emerald-100 text-emerald-600 p-1.5 rounded-full">
+                        <BadgeCheck className="w-4 h-4" />
                       </div>
                     )}
 
                     {/* Badge Curang Berkedip */}
                     {isCheating && !isFinished && (
-                      <div className="absolute top-2 right-2 flex items-center bg-rose-100 px-2 py-1 rounded-md border border-rose-300">
-                        <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping mr-1.5"></span>
-                        <span className="text-[8px] font-black text-rose-700 tracking-widest">PELANGGARAN</span>
+                      <div className="absolute top-4 right-4 flex items-center bg-white px-2 py-1 rounded-full shadow-sm border border-rose-100">
+                        <span className="w-2 h-2 bg-rose-500 rounded-full animate-ping mr-1.5"></span>
+                        <span className="text-[9px] font-black text-rose-600 tracking-wider">ALERT</span>
                       </div>
                     )}
 
-                    <div className="flex items-center space-x-3 mb-auto mt-1">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-xs shadow-sm
-                        ${isFinished ? 'bg-emerald-400' : isCheating ? 'bg-rose-500' : 'bg-indigo-500'}`}>
-                        {p.user_id ? p.user_id.substring(0, 2).toUpperCase() : '?'}
+                    {/* Identitas */}
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className={`w-10 h-10 rounded-[14px] flex items-center justify-center text-white font-bold text-sm shadow-sm transition-colors
+                        ${isFinished ? 'bg-emerald-400' : isCheating ? 'bg-rose-500' : 'bg-[#5145cd]'}`}>
+                        <User className="w-5 h-5" />
                       </div>
-                      <div className="min-w-0 flex-1 text-left">
-                        <p className="text-xs font-black text-gray-800 truncate">{p.user_id}</p>
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">
-                          {isFinished ? 'Telah Submit' : 'Online Aktif'}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-black text-gray-800 truncate">{p.user_id}</p>
+                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5
+                          ${isFinished ? 'text-emerald-500' : isCheating ? 'text-rose-500' : 'text-gray-400'}`}>
+                          {isFinished ? 'Selesai' : 'Online'}
                         </p>
                       </div>
                     </div>
 
-                    {/* Informasi Status Bawah */}
-                    <div className={`mt-3 pt-2.5 border-t-2 flex items-center justify-between
-                      ${isFinished ? 'border-emerald-200/50' : isCheating ? 'border-rose-200' : 'border-gray-100'}`}>
-                      
+                    {/* Status Pengerjaan (Bottom) */}
+                    <div className="mt-auto">
                       {!isFinished ? (
-                        <div className="flex items-center">
-                          <Monitor className={`w-3.5 h-3.5 mr-1.5 ${isCheating ? 'text-rose-500' : 'text-indigo-400'}`} />
-                          <span className={`text-[10px] font-black uppercase tracking-wider ${isCheating ? 'text-rose-600' : 'text-gray-600'}`}>
-                            {isCheating ? `${p.violations_count}x Keluar Layar` : 'Fokus Mengerjakan'}
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-full h-1.5 rounded-full bg-gray-100 overflow-hidden`}>
+                            <div className={`h-full rounded-full transition-all duration-1000 ${isCheating ? 'bg-rose-500 w-full' : 'bg-[#5145cd] w-[70%]'}`}></div>
+                          </div>
+                          <span className={`text-[10px] font-bold whitespace-nowrap ${isCheating ? 'text-rose-600' : 'text-[#5145cd]'}`}>
+                            {isCheating ? `${p.violations_count}x Out` : 'Aktif'}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 flex items-center">
-                           <BadgeCheck className="w-3.5 h-3.5 mr-1" /> Jawaban Aman
-                        </span>
+                        <div className="flex items-center text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100/50 w-max px-3 py-1.5 rounded-full">
+                          Jawaban Disimpan
+                        </div>
                       )}
                     </div>
                   </div>
