@@ -33,7 +33,6 @@ export default function IntegratedLLMSDashboard() {
     correct_point: 4, penalty_point: 0, empty_point: 0
   });
 
-  // Logika Fetch Data
   const fetchTelemetryData = async () => {
     setRefreshing(true);
     try {
@@ -75,7 +74,6 @@ export default function IntegratedLLMSDashboard() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Mesin Token 10 Menit
   useEffect(() => {
     const updateTimerAndTokens = () => {
       const now = Math.floor(Date.now() / 1000);
@@ -130,62 +128,86 @@ export default function IntegratedLLMSDashboard() {
 
   if (loading && sessions.length === 0) {
     return (
-      <div className="min-h-screen bg-[#f4f7fe] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
         <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f4f7fe] font-sans text-gray-800">
+    <div className="flex min-h-screen bg-[#f8fafc] font-sans text-gray-800">
       
-      {/* 1. SIDEBAR (Sesuai Referensi) */}
-      <aside className="hidden lg:flex w-72 bg-[#1e293b] text-white flex-col fixed h-full z-20">
-        <div className="p-8 flex items-center space-x-3">
-          <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shadow-inner">
-            <Server className="w-5 h-5 text-indigo-400" />
+      {/* 1. SIDEBAR (Disesuaikan dengan Screenshot Light Theme) */}
+      <aside className="hidden lg:flex w-64 bg-white border-r border-gray-100 flex-col fixed h-full z-20">
+        <div className="p-6 flex items-center space-x-3 mt-2">
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-200/50">
+            <ShieldCheck className="w-6 h-6 text-white" fill="currentColor" />
           </div>
-          <span className="text-xl font-black tracking-tight">NCC HQ.</span>
+          <div>
+            <h1 className="text-lg font-black tracking-tight text-gray-900 leading-none">NCC HQ.</h1>
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">Command Center</p>
+          </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
-          <Link href="/hq" className="flex items-center space-x-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-xl transition-all group">
+        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto">
+          <Link href="/hq" className="flex items-center space-x-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">
             <LayoutGrid className="w-5 h-5" />
-            <span className="text-sm font-bold">Dashboard</span>
+            <span>Dashboard</span>
           </Link>
           
-          <div className="pt-5 pb-2 px-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Manajemen Konten</div>
-          <Link href="/hq/participants" className="flex items-center space-x-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-xl transition-all">
-            <Users className="w-5 h-5" />
-            <span className="text-sm font-bold">Buku Peserta</span>
-          </Link>
-          <Link href="/hq/verification" className="flex items-center space-x-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-xl transition-all">
-            <BadgeCheck className="w-5 h-5" />
-            <span className="text-sm font-bold">Verifikasi Berkas</span>
-          </Link>
-          <Link href="/hq/llms/broadcast" className="flex items-center space-x-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-xl transition-all">
-            <Megaphone className="w-5 h-5" />
-            <span className="text-sm font-bold">Siaran Info</span>
-          </Link>
-          
-          <div className="pt-5 pb-2 px-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Sistem CBT</div>
-          {/* Menu Active: Manajemen LLMS */}
-          <Link href="/hq/llms" className="flex items-center justify-between px-4 py-3 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-900/20 transition-all">
+          <Link href="/hq/participants" className="flex items-center justify-between px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">
             <div className="flex items-center space-x-3">
-              <Server className="w-5 h-5" />
-              <span className="text-sm font-bold">Manajemen LLMS</span>
+               <Users className="w-5 h-5" />
+               <span>Buku Peserta</span>
             </div>
-            <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+            <span className="bg-gray-100 text-gray-500 text-[10px] font-black px-2 py-0.5 rounded-full">5</span>
+          </Link>
+          
+          <Link href="/hq/verification" className="flex items-center justify-between px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">
+            <div className="flex items-center space-x-3">
+               <BadgeCheck className="w-5 h-5" />
+               <span>Verifikasi Berkas</span>
+            </div>
+            <span className="bg-gray-100 text-gray-400 text-[10px] font-black px-2 py-0.5 rounded-full">0</span>
+          </Link>
+          
+          <Link href="/hq/llms/broadcast" className="flex items-center space-x-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">
+            <Megaphone className="w-5 h-5" />
+            <span>Siaran Info</span>
+          </Link>
+          
+          <Link href="#" className="flex items-center space-x-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">
+            <Calendar className="w-5 h-5" />
+            <span>Kegiatan</span>
+          </Link>
+          
+          <Link href="#" className="flex items-center space-x-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">
+            <Clock className="w-5 h-5" />
+            <span>Schedule Lomba</span>
+          </Link>
+          
+          <Link href="#" className="flex items-center space-x-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">
+            <ImageIcon className="w-5 h-5" />
+            <span>Kelola Media</span>
+          </Link>
+          
+          {/* ACTIVE MENU: Manajemen LLMS */}
+          <Link href="/hq/llms" className="flex items-center justify-between px-4 py-3 bg-slate-900 text-white rounded-xl shadow-md shadow-slate-200 transition-all font-semibold text-sm">
+            <div className="flex items-center space-x-3">
+              <Server className="w-5 h-5 text-indigo-400" />
+              <span>Manajemen LLMS</span>
+            </div>
+            <span className="bg-indigo-500 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">New</span>
           </Link>
 
-          <Link href="/hq/settings" className="flex items-center space-x-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-xl transition-all mt-4">
+          <Link href="/hq/settings" className="flex items-center space-x-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">
             <Settings className="w-5 h-5" />
-            <span className="text-sm font-bold">Pengaturan</span>
+            <span>Pengaturan</span>
           </Link>
         </nav>
 
-        <div className="p-6 mt-auto border-t border-slate-700/50">
-          <button className="w-full flex items-center justify-center space-x-3 px-4 py-3 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all font-bold text-sm">
+        <div className="p-4 border-t border-gray-100">
+          <button className="w-full flex items-center justify-center space-x-3 px-4 py-3 text-rose-500 hover:bg-rose-50 rounded-xl transition-all font-bold text-sm">
             <LogOut className="w-5 h-5" />
             <span>Keluar Sesi</span>
           </button>
@@ -193,65 +215,59 @@ export default function IntegratedLLMSDashboard() {
       </aside>
 
       {/* 2. MAIN CONTENT AREA */}
-      <main className="flex-1 lg:ml-72 flex flex-col min-h-screen">
+      <main className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         
-        {/* HEADER TOP BAR (Sesuai Referensi) */}
-        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-10 px-6 md:px-10 py-5 flex flex-wrap justify-between items-center border-b border-gray-100 gap-4">
+        {/* HEADER TOP BAR */}
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-10 px-8 py-5 flex justify-between items-center border-b border-gray-100">
           <div>
             <h2 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">Pusat Komando LLMS</h2>
-            <p className="text-[10px] md:text-xs text-gray-400 font-bold mt-0.5">Administering CBT Infrastructure NCC 13th</p>
+            <p className="text-[10px] md:text-xs text-gray-400 font-bold mt-0.5">Administrasi CBT Terpusat NCC 13th.</p>
           </div>
           
-          <div className="flex items-center space-x-4 md:space-x-6">
+          <div className="flex items-center space-x-6">
             <div className="hidden md:flex px-4 py-2 bg-emerald-50 text-emerald-600 rounded-full items-center text-[10px] font-black uppercase tracking-widest border border-emerald-100">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse mr-2"></span>
               Sistem Online
-            </div>
-            <div className="flex items-center space-x-3 md:pl-6 md:border-l border-gray-100">
-               <div className="text-right hidden sm:block">
-                 <p className="text-xs font-black text-gray-900">Panitia Pusat</p>
-                 <p className="text-[10px] font-bold text-gray-400">Super Admin</p>
-               </div>
-               <div className="w-10 h-10 bg-indigo-100 rounded-full border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
-                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar" />
-               </div>
             </div>
           </div>
         </header>
 
         {/* CONTENT (The "Bento" Grid) */}
-        <div className="p-6 md:p-10 space-y-8 flex-1">
+        <div className="p-6 md:p-8 space-y-8 flex-1">
           
           {/* STATS CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all">
+            <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all relative overflow-hidden">
+              <div className="absolute left-0 top-0 w-1.5 h-full bg-blue-500"></div>
               <div>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Peserta Online</p>
-                <h3 className="text-3xl font-black mt-1 text-indigo-600">{stats.onlineParticipants}</h3>
+                <h3 className="text-3xl font-black mt-1 text-blue-600">{stats.onlineParticipants}</h3>
               </div>
-              <Users className="w-10 h-10 text-indigo-100 group-hover:text-indigo-500 transition-colors" />
+              <Users className="w-10 h-10 text-blue-100 group-hover:text-blue-500 transition-colors" />
             </div>
-            <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all">
+            <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all relative overflow-hidden">
+              <div className="absolute left-0 top-0 w-1.5 h-full bg-[#5145cd]"></div>
               <div>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sesi Aktif</p>
-                <h3 className="text-3xl font-black mt-1 text-gray-800">{stats.activeSessions}</h3>
+                <h3 className="text-3xl font-black mt-1 text-[#5145cd]">{stats.activeSessions}</h3>
               </div>
-              <Play className="w-10 h-10 text-gray-200 group-hover:text-gray-800 transition-colors" />
+              <Play className="w-10 h-10 text-indigo-100 group-hover:text-[#5145cd] transition-colors" />
             </div>
-            <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all">
+            <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all relative overflow-hidden">
+              <div className="absolute left-0 top-0 w-1.5 h-full bg-teal-500"></div>
               <div>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Bank Soal</p>
-                <h3 className="text-3xl font-black mt-1 text-gray-800">{stats.totalQuestions}</h3>
+                <h3 className="text-3xl font-black mt-1 text-teal-600">{stats.totalQuestions}</h3>
               </div>
-              <FileText className="w-10 h-10 text-gray-200 group-hover:text-gray-800 transition-colors" />
+              <FileText className="w-10 h-10 text-teal-100 group-hover:text-teal-500 transition-colors" />
             </div>
-            <div className="bg-white p-6 rounded-[24px] shadow-sm border border-rose-100/50 flex items-center justify-between group hover:shadow-md transition-all relative overflow-hidden">
-              <div className={`absolute left-0 top-0 w-1.5 h-full ${stats.totalViolations > 0 ? 'bg-rose-500 animate-pulse' : 'bg-transparent'}`}></div>
+            <div className="bg-white p-6 rounded-[24px] shadow-sm border border-rose-100 flex items-center justify-between group hover:shadow-md transition-all relative overflow-hidden bg-rose-50/30">
+              <div className={`absolute left-0 top-0 w-1.5 h-full ${stats.totalViolations > 0 ? 'bg-rose-500 animate-pulse' : 'bg-rose-300'}`}></div>
               <div>
                 <p className="text-[10px] font-black text-rose-800 uppercase tracking-widest">Kecurangan</p>
                 <h3 className="text-3xl font-black mt-1 text-rose-600">{stats.totalViolations}</h3>
               </div>
-              <ShieldAlert className="w-10 h-10 text-rose-100 group-hover:text-rose-500 transition-colors" />
+              <ShieldAlert className="w-10 h-10 text-rose-200 group-hover:text-rose-500 transition-colors" />
             </div>
           </div>
 
@@ -260,51 +276,64 @@ export default function IntegratedLLMSDashboard() {
             {/* MONITORING SESI */}
             <div className="xl:col-span-2 bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden flex flex-col">
               <div className="p-6 flex justify-between items-center border-b border-gray-50 bg-gray-50/50">
-                <h2 className="text-lg font-black text-gray-800 tracking-tight">Monitoring Sesi Ujian</h2>
-                <button onClick={() => setShowAddModal(true)} className="px-5 py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center">
-                  <Plus className="w-4 h-4 mr-1.5" /> Buat Sesi Baru
+                <h2 className="text-base font-black text-gray-800 tracking-tight">Daftar Sesi & Live Monitoring</h2>
+                <button onClick={() => setShowAddModal(true)} className="px-5 py-2.5 bg-[#5145cd] text-white text-[10px] font-black uppercase rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 flex items-center">
+                  <Plus className="w-4 h-4 mr-1" /> Buat Sesi Baru
                 </button>
               </div>
               <div className="p-4 overflow-x-auto">
                 <table className="w-full text-left min-w-[600px]">
                   <thead>
                     <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-50">
-                      <th className="py-4 px-4">Sesi Informasi</th>
-                      <th className="py-4 px-4 text-center">Live Token</th>
-                      <th className="py-4 px-4 text-right">Manajemen</th>
+                      <th className="py-4 px-4">Informasi Sesi</th>
+                      <th className="py-4 px-4 text-center">Live Token (10 Menit)</th>
+                      <th className="py-4 px-4 text-right">Aksi Terpadu Panitia</th>
                     </tr>
                   </thead>
-                  <tbody className="text-sm divide-y divide-gray-50">
+                  <tbody className="text-sm">
                     {sessions.map((session) => (
-                      <tr key={session.id} className="hover:bg-gray-50/50 transition-all group">
+                      <tr key={session.id} className="hover:bg-indigo-50/30 transition-all border-b border-gray-50 last:border-0">
                         <td className="py-5 px-4">
                           <p className="font-black text-gray-900 flex items-center">
                             <span className={`w-2 h-2 rounded-full mr-2 ${session.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`}></span>
                             {session.title || 'Ujian MIPA'}
                           </p>
                           <div className="flex space-x-2 mt-1.5 pl-4">
-                            <span className="text-[9px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">{session.duration_minutes || 90} Menit</span>
+                            <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-mono font-bold">ID: {session.id.substring(0,8)}</span>
+                            <span className="text-[9px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">{session.duration_minutes || 90} MNT</span>
                           </div>
                         </td>
                         <td className="py-5 px-4">
-                          <div className="flex flex-col items-center bg-[#f8fafc] p-2.5 rounded-2xl border border-gray-100">
-                             <span className="font-mono font-black text-indigo-600 text-lg tracking-[0.2em]">{liveTokens[session.id] || '------'}</span>
-                             <div className="text-[9px] font-bold text-gray-400 mt-1 uppercase flex items-center">
+                          <div className="flex flex-col items-center bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100/50">
+                             <div className="flex items-center text-[#5145cd]">
+                               <Key className="w-4 h-4 mr-2" />
+                               <span className="font-mono font-black text-lg tracking-[0.2em]">{liveTokens[session.id] || '------'}</span>
+                             </div>
+                             <div className="text-[9px] font-bold text-indigo-400 mt-1 uppercase flex items-center">
                                <Clock className="w-3 h-3 mr-1" /> Update: {Math.floor(countdown/60)}:{(countdown%60).toString().padStart(2,'0')}
                              </div>
                           </div>
                         </td>
                         <td className="py-5 px-4 text-right">
-                          <div className="flex items-center justify-end space-x-2">
-                             <Link href={`/hq/llms/${session.id}/questions`} className="p-2.5 bg-gray-50 text-gray-500 rounded-xl hover:bg-indigo-600 hover:text-white transition-all group/btn">
-                                <FileText className="w-5 h-5" />
+                          <div className="flex items-center justify-end space-x-3">
+                             <Link href={`/hq/llms/${session.id}/questions`} className="flex flex-col items-center group">
+                                <div className="p-2.5 bg-gray-100 text-gray-500 rounded-lg group-hover:bg-[#5145cd] group-hover:text-white transition-all shadow-sm">
+                                   <FileText className="w-5 h-5" />
+                                </div>
+                                <span className="text-[9px] font-bold text-gray-500 mt-1 group-hover:text-[#5145cd]">SOAL</span>
                              </Link>
-                             <Link href={`/hq/llms/${session.id}/monitor`} className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all relative">
-                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 border-2 border-white rounded-full animate-pulse"></span>
-                                <Monitor className="w-5 h-5" />
+                             <Link href={`/hq/llms/${session.id}/monitor`} className="flex flex-col items-center group">
+                                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm relative">
+                                   <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 border-2 border-white rounded-full animate-pulse"></span>
+                                   <Monitor className="w-5 h-5" />
+                                </div>
+                                <span className="text-[9px] font-bold text-blue-600 mt-1">PANTAU</span>
                              </Link>
-                             <Link href={`/hq/llms/${session.id}/leaderboard`} className="p-2.5 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-500 hover:text-white transition-all">
-                                <Trophy className="w-5 h-5" />
+                             <Link href={`/hq/llms/${session.id}/leaderboard`} className="flex flex-col items-center group">
+                                <div className="p-2.5 bg-amber-50 text-amber-500 rounded-lg group-hover:bg-amber-500 group-hover:text-white transition-all shadow-sm">
+                                   <Trophy className="w-5 h-5" />
+                                </div>
+                                <span className="text-[9px] font-bold text-amber-500 mt-1">SKOR</span>
                              </Link>
                           </div>
                         </td>
@@ -316,11 +345,11 @@ export default function IntegratedLLMSDashboard() {
             </div>
 
             {/* SIDEBAR TOOLS */}
-            <div className="space-y-8">
+            <div className="space-y-6">
               <div className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
-                <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-4 border-b border-gray-100 pb-3">Aksi Cepat</h3>
+                <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-4">Aksi Cepat</h3>
                 <div className="space-y-3">
-                  <Link href="/hq/llms/broadcast" className="w-full flex items-center justify-between p-4 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100 hover:scale-[1.02] transition-all group">
+                  <Link href="/hq/llms/broadcast" className="w-full flex items-center justify-between p-4 bg-[#5145cd] text-white rounded-2xl shadow-md hover:scale-[1.02] transition-all group">
                     <span className="text-[10px] font-black uppercase tracking-widest">Kirim Siaran</span>
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
@@ -330,22 +359,21 @@ export default function IntegratedLLMSDashboard() {
                 </div>
               </div>
 
-              {/* SECURITY LOG */}
-              <div className={`p-6 rounded-[32px] shadow-sm border transition-colors ${securityLogs.length > 0 ? 'bg-rose-50/20 border-rose-100' : 'bg-white border-gray-100'}`}>
-                <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+              <div className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest">Security Log</h3>
-                  <div className={`px-2 py-0.5 text-[8px] text-white font-black rounded uppercase ${securityLogs.length > 0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`}>Live</div>
+                  <div className="px-2 py-0.5 bg-rose-500 text-[8px] text-white font-black rounded uppercase">Live Feed</div>
                 </div>
                 {securityLogs.length === 0 ? (
-                  <div className="py-6 flex flex-col items-center justify-center text-center">
+                  <div className="py-6 flex flex-col items-center justify-center text-center bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
                     <ShieldCheck className="w-12 h-12 text-emerald-400 mb-2 drop-shadow-sm" />
-                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Aman Terkendali</p>
-                    <p className="text-[9px] text-emerald-500/70 mt-1 font-bold">100% Integritas Terjaga</p>
+                    <p className="text-[10px] font-black text-emerald-600 uppercase">Aman Terkendali</p>
+                    <p className="text-[9px] font-bold text-emerald-500/70 mt-0.5">100% Integritas Terjaga</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {securityLogs.map(log => (
-                      <div key={log.id} className="p-3 bg-white rounded-xl border border-rose-100 flex justify-between items-center shadow-sm relative overflow-hidden">
+                      <div key={log.id} className="p-3 bg-rose-50/80 rounded-xl border border-rose-100 flex justify-between items-center relative overflow-hidden">
                         <div className="absolute left-0 top-0 w-1 h-full bg-rose-500"></div>
                         <div className="flex items-center pl-1">
                           <AlertTriangle className="w-4 h-4 text-rose-500 mr-2" />
