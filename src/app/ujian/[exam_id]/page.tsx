@@ -26,10 +26,9 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(5400); 
 
-  // 🔥 STATE KEAMANAN 🔥
   const [showCheatWarning, setShowCheatWarning] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
-  const [isBlocked, setIsBlocked] = useState(false); // State untuk mengunci layar penuh
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('ncc_user');
@@ -51,33 +50,23 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
           setQuestions(shuffled);
         }
 
-        // Ambil data percobaan ujian & cek pelanggaran sebelumnya
         const { data: attemptData } = await supabase.from('cbt_attempts').select('violations_count').eq('user_id', parsedUser.nisn || parsedUser.username).single();
         
         if (attemptData) {
           const currentViolations = attemptData.violations_count || 0;
           setViolationCount(currentViolations);
-          
-          // Jika saat buka halaman rupanya dia sudah diblokir sebelumnya, langsung kunci!
-          if (currentViolations >= 3) {
-            setIsBlocked(true);
-          }
+          if (currentViolations >= 3) setIsBlocked(true);
         }
 
-        // 🔥 Catat kehadiran + Alarm Diagnostik
-        const { error: upsertErr } = await supabase.from('cbt_attempts').upsert({
+        // Catat kehadiran & ID Ujian ke CCTV Admin
+        await supabase.from('cbt_attempts').upsert({
           user_id: parsedUser.nisn || parsedUser.username,
-          exam_id: examId,
+          exam_id: examId, 
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
 
-        if (upsertErr) {
-          console.error('[DIAG] DB Upsert Error:', upsertErr);
-          alert('🚨 GAGAL SIMPAN KE DATABASE:\n' + upsertErr.message + '\n\nCode: ' + upsertErr.code);
-        }
-
       } catch (err) {
-        console.error(err);
+        console.error("Gagal memuat data ujian:", err);
       } finally {
         setLoading(false);
       }
@@ -91,33 +80,25 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
     return () => clearInterval(timer);
   }, [loading, timeLeft, isBlocked]);
 
-  // 🔥 PROTOKOL ANTI-CHEAT (THREE STRIKES RULE) 🔥
+  // PROTOKOL ANTI-CHEAT (THREE STRIKES)
   useEffect(() => {
     const handleVisibilityChange = async () => {
-      // Hanya berjalan jika layar ditutup, user ada, dan BELUM diblokir
       if (document.hidden && student && !isBlocked) {
         const newViolationCount = violationCount + 1;
         setViolationCount(newViolationCount);
 
-        // CEK APAKAH INI PELANGGARAN KE-3
         if (newViolationCount >= 3) {
-          setIsBlocked(true); // Langsung kunci layar penuh
-          setShowCheatWarning(false); // Matikan popup biasa
+          setIsBlocked(true);
+          setShowCheatWarning(false);
         } else {
-          setShowCheatWarning(true); // Tampilkan popup peringatan biasa (pelanggaran 1 & 2)
+          setShowCheatWarning(true); 
         }
 
-        // Kirim update ke Database CCTV Admin
         const userId = student.nisn || student.username;
-        const { error: cheatErr } = await supabase.from('cbt_attempts').update({ 
+        await supabase.from('cbt_attempts').update({ 
           violations_count: newViolationCount, 
           updated_at: new Date().toISOString() 
         }).eq('user_id', userId);
-
-        if (cheatErr) {
-          console.error('[DIAG] Cheat Update Error:', cheatErr);
-          alert('🚨 GAGAL KIRIM SINYAL CURANG:\n' + cheatErr.message + '\n\nCode: ' + cheatErr.code);
-        }
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -168,7 +149,6 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
     );
   }
 
-  // 🔥 RENDER HALAMAN BLOKIR JIKA PELANGGARAN >= 3 🔥
   if (isBlocked) {
     return (
       <div className="min-h-screen bg-rose-50 flex items-center justify-center p-6 font-sans">
@@ -178,18 +158,14 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
           </div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight mb-2">SESI UJIAN DIBLOKIR</h1>
           <p className="text-sm font-bold text-gray-500 mb-8 leading-relaxed">
-            Anda telah melanggar protokol integritas ujian sebanyak <span className="text-rose-600 font-black">3 KALI</span> (Keluar dari layar ujian/membuka tab lain). Sistem telah mengunci akses ujian Anda secara permanen.
+            Anda telah melanggar protokol integritas ujian sebanyak <span className="text-rose-600 font-black">3 KALI</span>. Sistem telah mengunci akses ujian Anda secara permanen.
           </p>
           <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 mb-8 text-left space-y-2">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Instruksi Selanjutnya:</p>
             <p className="text-xs font-semibold text-gray-700">1. Segera lapor ke Pengawas/Panitia Pusat NCC.</p>
             <p className="text-xs font-semibold text-gray-700">2. Sebutkan NISN Anda untuk proses verifikasi pembukaan blokir.</p>
-            <p className="text-xs font-semibold text-gray-700">3. Jangan menutup halaman ini sebelum diinstruksikan.</p>
           </div>
-          <button 
-            onClick={() => router.push('/ujian/dashboard')}
-            className="w-full py-4 bg-gray-900 hover:bg-black text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all"
-          >
+          <button onClick={() => router.push('/ujian/dashboard')} className="w-full py-4 bg-gray-900 hover:bg-black text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all">
             Kembali ke Dashboard
           </button>
         </div>
@@ -202,10 +178,10 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
   return (
     <div className="min-h-screen bg-[#f4f7fe] font-sans text-gray-800 select-none pb-10 relative">
       
-      {/* OVERLAY MODAL PERINGATAN KECURANGAN (UNTUK PELANGGARAN KE-1 & KE-2) */}
+      {/* MODAL PERINGATAN KECURANGAN */}
       {showCheatWarning && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[32px] p-8 md:p-10 max-w-md w-full shadow-2xl border-4 border-rose-500 text-center transform scale-100 animate-in zoom-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[32px] p-8 md:p-10 max-w-md w-full shadow-2xl border-4 border-rose-500 text-center">
             <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <ShieldAlert className="w-14 h-14 text-rose-500 animate-pulse" />
             </div>
@@ -220,10 +196,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
                 ⚠️ Peringatan: Pada pelanggaran ke-3, ujian akan diblokir.
               </p>
             </div>
-            <button 
-              onClick={() => setShowCheatWarning(false)}
-              className="w-full mt-8 py-4 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-rose-200"
-            >
+            <button onClick={() => setShowCheatWarning(false)} className="w-full mt-8 py-4 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-rose-200">
               Saya Mengerti & Tidak Akan Mengulangi
             </button>
           </div>
@@ -255,7 +228,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
 
       <div className="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 relative z-10">
         
-        {/* AREA SOAL UTAMA (KIRI) */}
+        {/* AREA SOAL UTAMA */}
         <div className="lg:col-span-3 space-y-4">
           {questions.length === 0 ? (
             <div className="bg-white p-10 rounded-[32px] text-center border border-gray-100 shadow-sm">
@@ -278,9 +251,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
                 <p className="text-lg font-medium text-gray-800 leading-relaxed mb-6 whitespace-pre-wrap">
                   {currentQ.question_text || 'Deskripsi soal tidak tersedia.'}
                 </p>
-                {currentQ.image_url && (
-                  <img src={currentQ.image_url} alt="Ilustrasi Soal" className="max-w-full h-auto rounded-xl border border-gray-100 mb-6 shadow-sm" />
-                )}
+                {currentQ.image_url && <img src={currentQ.image_url} alt="Ilustrasi Soal" className="max-w-full h-auto rounded-xl border border-gray-100 mb-6 shadow-sm" />}
 
                 <div className="space-y-3 mt-8">
                   {currentQ.options && Object.keys(currentQ.options).length > 0 ? (
@@ -316,11 +287,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
               </div>
 
               <div className="flex flex-col md:flex-row justify-between items-center mt-10 pt-6 border-t border-gray-50 gap-4">
-                <button 
-                  onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
-                  disabled={currentIndex === 0}
-                  className="w-full md:w-auto px-6 py-3 bg-white border-2 border-gray-200 text-gray-600 font-black text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-all"
-                >
+                <button onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))} disabled={currentIndex === 0} className="w-full md:w-auto px-6 py-3 bg-white border-2 border-gray-200 text-gray-600 font-black text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-all">
                   Sebelumnya
                 </button>
                 <label className="w-full md:w-auto flex items-center justify-center space-x-3 cursor-pointer bg-amber-50 px-6 py-3 rounded-xl border border-amber-200 hover:bg-amber-100 transition-colors">
@@ -341,7 +308,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
           )}
         </div>
 
-        {/* SIDEBAR NOMOR SOAL (KANAN) */}
+        {/* SIDEBAR PETA SOAL */}
         <div className="lg:col-span-1">
           <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] sticky top-24">
             <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest mb-4 flex items-center">
