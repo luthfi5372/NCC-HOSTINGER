@@ -64,12 +64,17 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
           }
         }
 
-        // Catat kehadiran
-        await supabase.from('cbt_attempts').upsert({
+        // 🔥 Catat kehadiran + Alarm Diagnostik
+        const { error: upsertErr } = await supabase.from('cbt_attempts').upsert({
           user_id: parsedUser.nisn || parsedUser.username,
           exam_id: examId,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
+
+        if (upsertErr) {
+          console.error('[DIAG] DB Upsert Error:', upsertErr);
+          alert('🚨 GAGAL SIMPAN KE DATABASE:\n' + upsertErr.message + '\n\nCode: ' + upsertErr.code);
+        }
 
       } catch (err) {
         console.error(err);
@@ -104,10 +109,15 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
 
         // Kirim update ke Database CCTV Admin
         const userId = student.nisn || student.username;
-        await supabase.from('cbt_attempts').update({ 
+        const { error: cheatErr } = await supabase.from('cbt_attempts').update({ 
           violations_count: newViolationCount, 
           updated_at: new Date().toISOString() 
         }).eq('user_id', userId);
+
+        if (cheatErr) {
+          console.error('[DIAG] Cheat Update Error:', cheatErr);
+          alert('🚨 GAGAL KIRIM SINYAL CURANG:\n' + cheatErr.message + '\n\nCode: ' + cheatErr.code);
+        }
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
