@@ -57,9 +57,10 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
     return () => { supabase.removeChannel(channel); };
   }, [examId]);
 
-  const filteredParticipants = participants.filter(p => 
-    p.user_id.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredParticipants = participants.filter(p => {
+    const uidString = p.user_id ? String(p.user_id).toLowerCase() : '';
+    return uidString.includes(search.toLowerCase());
+  });
 
   return (
     <div className="min-h-screen bg-[#f4f7fe] p-6 md:p-8 font-sans text-gray-800">

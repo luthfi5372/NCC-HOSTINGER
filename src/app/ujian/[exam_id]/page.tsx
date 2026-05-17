@@ -50,20 +50,34 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
           setQuestions(shuffled);
         }
 
-        const { data: attemptData } = await supabase.from('cbt_attempts').select('violations_count').eq('user_id', parsedUser.nisn || parsedUser.username).single();
-        
-        if (attemptData) {
-          const currentViolations = attemptData.violations_count || 0;
-          setViolationCount(currentViolations);
-          if (currentViolations >= 3) setIsBlocked(true);
-        }
+        const userId = parsedUser.nisn || parsedUser.username;
 
-        // Catat kehadiran & ID Ujian ke CCTV Admin
-        await supabase.from('cbt_attempts').upsert({
-          user_id: parsedUser.nisn || parsedUser.username,
-          exam_id: examId, 
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
+        // 🔥 LOGIKA SAPU JAGAT: Cek manual, lalu update atau insert paksa
+        const { data: existingUser } = await supabase
+          .from('cbt_attempts')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+
+        if (existingUser) {
+          // Sudah ada → update exam_id dan timestamp
+          setViolationCount(existingUser.violations_count || 0);
+          if ((existingUser.violations_count || 0) >= 3) setIsBlocked(true);
+
+          await supabase.from('cbt_attempts').update({ 
+            exam_id: examId, 
+            updated_at: new Date().toISOString() 
+          }).eq('user_id', userId);
+        } else {
+          // Belum ada → paksa insert baru
+          const { error: insertErr } = await supabase.from('cbt_attempts').insert({ 
+            user_id: userId, 
+            exam_id: examId, 
+            violations_count: 0,
+            updated_at: new Date().toISOString() 
+          });
+          if (insertErr) console.error('[CCTV] Gagal insert peserta:', insertErr.message);
+        }
 
       } catch (err) {
         console.error("Gagal memuat data ujian:", err);
