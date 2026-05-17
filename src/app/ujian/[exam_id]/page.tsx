@@ -8,7 +8,8 @@ import {
   AlertTriangle, 
   CheckCircle2,
   Menu,
-  Send
+  Send,
+  ShieldAlert
 } from 'lucide-react';
 
 export default function ExamRoom({ params }: { params: { exam_id: string } }) {
@@ -20,12 +21,13 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  
-  // 🔥 STATE BARU: Menyimpan daftar soal yang diragukan
   const [doubtfulAnswers, setDoubtfulAnswers] = useState<Record<string, boolean>>({});
-  
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(5400); 
+
+  // 🔥 STATE BARU: Untuk UI Modal Pelanggaran
+  const [showCheatWarning, setShowCheatWarning] = useState(false);
+  const [violationCount, setViolationCount] = useState(0);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('ncc_user');
@@ -47,6 +49,10 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
           setQuestions(shuffled);
         }
 
+        // Ambil data pelanggaran sebelumnya jika ada
+        const { data: attemptData } = await supabase.from('cbt_attempts').select('violations_count').eq('user_id', parsedUser.nisn || parsedUser.username).single();
+        if (attemptData) setViolationCount(attemptData.violations_count || 0);
+
         await supabase.from('cbt_attempts').upsert({
           user_id: parsedUser.nisn || parsedUser.username,
           updated_at: new Date().toISOString()
@@ -67,26 +73,32 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
     return () => clearInterval(timer);
   }, [loading, timeLeft]);
 
-  // PROTOKOL ANTI-CHEAT (DETEKSI ALT+TAB)
+  // 🔥 PROTOKOL ANTI-CHEAT (DIPERBARUI DENGAN CUSTOM UI)
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.hidden && student) {
-        alert("⚠️ PERINGATAN PELANGGARAN!\nAnda terdeteksi keluar dari layar ujian. Insiden ini dicatat oleh Pusat Komando.");
+        // Tampilkan Custom Modal yang keren, bukan alert() bawaan browser
+        setShowCheatWarning(true);
+        
         const userId = student.nisn || student.username;
-        const { data } = await supabase.from('cbt_attempts').select('violations_count').eq('user_id', userId).single();
-        const currentViolations = data?.violations_count || 0;
-        await supabase.from('cbt_attempts').update({ violations_count: currentViolations + 1, updated_at: new Date().toISOString() }).eq('user_id', userId);
+        const newViolationCount = violationCount + 1;
+        setViolationCount(newViolationCount);
+
+        // Diam-diam kirim sinyal ke CCTV Admin
+        await supabase.from('cbt_attempts').update({ 
+          violations_count: newViolationCount, 
+          updated_at: new Date().toISOString() 
+        }).eq('user_id', userId);
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [student]);
+  }, [student, violationCount]);
 
   const handleSelectOption = async (questionId: string, option: string) => {
     const newAnswers = { ...answers, [questionId]: option };
     setAnswers(newAnswers);
     
-    // Auto hilangkan ragu-ragu saat peserta ganti jawaban (opsional, tapi bagus untuk UX)
     if (doubtfulAnswers[questionId]) {
       setDoubtfulAnswers(prev => ({ ...prev, [questionId]: false }));
     }
@@ -97,14 +109,10 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
     }
   };
 
-  // 🔥 FUNGSI BARU: Toggle Ragu-Ragu
   const handleToggleDoubt = () => {
     if (!questions[currentIndex]) return;
     const qId = questions[currentIndex].id;
-    setDoubtfulAnswers(prev => ({
-      ...prev,
-      [qId]: !prev[qId]
-    }));
+    setDoubtfulAnswers(prev => ({ ...prev, [qId]: !prev[qId] }));
   };
 
   const handleSubmitExam = async () => {
@@ -141,8 +149,33 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
   const currentQ = questions[currentIndex];
 
   return (
-    <div className="min-h-screen bg-[#f4f7fe] font-sans text-gray-800 select-none pb-10">
+    <div className="min-h-screen bg-[#f4f7fe] font-sans text-gray-800 select-none pb-10 relative">
       
+      {/* 🔥 OVERLAY MODAL PERINGATAN KECURANGAN 🔥 */}
+      {showCheatWarning && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] p-8 md:p-10 max-w-md w-full shadow-2xl border-4 border-rose-500 text-center transform scale-100 animate-in zoom-in duration-300">
+            <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <ShieldAlert className="w-14 h-14 text-rose-500 animate-pulse" />
+            </div>
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight">PELANGGARAN TERDETEKSI</h2>
+            <p className="text-sm font-bold text-gray-500 mt-3 leading-relaxed">
+              Sistem keamanan mendeteksi Anda keluar dari layar ujian atau menekan <span className="px-2 py-1 bg-gray-100 rounded text-gray-700 font-mono text-xs">Alt+Tab</span>.
+            </p>
+            <div className="mt-6 p-4 bg-rose-50 rounded-2xl border border-rose-100">
+              <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Status Pusat Komando</p>
+              <p className="text-xs font-bold text-rose-500 mt-1">Sinyal Peringatan ke-{violationCount} Telah Dikirim ke Layar Pengawas!</p>
+            </div>
+            <button 
+              onClick={() => setShowCheatWarning(false)}
+              className="w-full mt-8 py-4 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-rose-200"
+            >
+              Saya Mengerti & Tidak Akan Mengulangi
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* TOP HEADER */}
       <header className="bg-white px-6 py-4 flex items-center justify-between border-b border-gray-100 sticky top-0 z-20 shadow-sm">
         <div className="flex items-center space-x-4">
@@ -167,7 +200,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 relative z-10">
         
         {/* AREA SOAL UTAMA (KIRI) */}
         <div className="lg:col-span-3 space-y-4">
@@ -198,7 +231,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
                   <img src={currentQ.image_url} alt="Ilustrasi Soal" className="max-w-full h-auto rounded-xl border border-gray-100 mb-6 shadow-sm" />
                 )}
 
-                {/* Opsi Jawaban (Mendukung JSONB) */}
+                {/* Opsi Jawaban (JSONB) */}
                 <div className="space-y-3 mt-8">
                   {currentQ.options && Object.keys(currentQ.options).length > 0 ? (
                     ['A', 'B', 'C', 'D', 'E'].map((letter) => {
@@ -237,10 +270,8 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
                 </div>
               </div>
 
-              {/* 🔥 NAVIGASI BAWAH (Diperbarui) 🔥 */}
+              {/* NAVIGASI BAWAH */}
               <div className="flex flex-col md:flex-row justify-between items-center mt-10 pt-6 border-t border-gray-50 gap-4">
-                
-                {/* Tombol Sebelumnya */}
                 <button 
                   onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
                   disabled={currentIndex === 0}
@@ -249,7 +280,6 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
                   Sebelumnya
                 </button>
 
-                {/* Tombol Ragu-Ragu */}
                 <label className="w-full md:w-auto flex items-center justify-center space-x-3 cursor-pointer bg-amber-50 px-6 py-3 rounded-xl border border-amber-200 hover:bg-amber-100 transition-colors">
                   <input
                     type="checkbox"
@@ -260,7 +290,6 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
                   <span className="text-xs font-black text-amber-600 uppercase tracking-widest">Ragu - Ragu</span>
                 </label>
 
-                {/* Tombol Selanjutnya ATAU Kirim Jawaban (Jika Soal Terakhir) */}
                 {currentIndex === questions.length - 1 ? (
                   <button 
                     onClick={handleSubmitExam}
@@ -294,16 +323,14 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
                 const isDoubtful = !!doubtfulAnswers[q.id];
                 const isCurrent = idx === currentIndex;
                 
-                // 🔥 Logika Warna Tombol Peta Soal 🔥
-                let btnStyle = "bg-gray-100 text-gray-500 border-transparent hover:border-indigo-200"; // Default (Belum Jawab)
+                let btnStyle = "bg-gray-100 text-gray-500 border-transparent hover:border-indigo-200"; 
                 if (isDoubtful) {
-                  btnStyle = "bg-amber-400 text-white border-amber-500 shadow-sm"; // Ragu-ragu (Kuning)
+                  btnStyle = "bg-amber-400 text-white border-amber-500 shadow-sm"; 
                 } else if (hasAnswered) {
-                  btnStyle = "bg-[#5145cd] text-white border-[#5145cd] shadow-sm"; // Sudah Jawab (Ungu)
+                  btnStyle = "bg-[#5145cd] text-white border-[#5145cd] shadow-sm"; 
                 }
-
                 if (isCurrent) {
-                  btnStyle += " scale-110 ring-2 ring-offset-1 ring-gray-800 z-10"; // Highlight jika sedang dibuka
+                  btnStyle += " scale-110 ring-2 ring-offset-1 ring-gray-800 z-10"; 
                 }
                 
                 return (
@@ -318,7 +345,6 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
               })}
             </div>
 
-            {/* Keterangan Warna */}
             <div className="mt-6 pt-4 border-t border-gray-50 space-y-2.5">
                <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                  <div className="w-3.5 h-3.5 bg-[#5145cd] rounded-[4px] mr-2 shadow-sm"></div> Telah Dijawab
