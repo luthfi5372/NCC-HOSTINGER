@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   LayoutGrid, Users, BadgeCheck, Megaphone, 
   Calendar, Image as ImageIcon, Server, Settings,
-  LogOut, UserCircle, ShieldCheck, BellRing, Database
+  LogOut, UserCircle, ShieldCheck, BellRing, Database, Clock
 } from 'lucide-react';
 
 export default function SettingsDashboard() {
