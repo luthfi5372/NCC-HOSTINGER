@@ -1,16 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 import { 
   User, 
   Key, 
-  LogIn,
+  ArrowRight,
   ShieldAlert,
-  Loader2,
-  ChevronRight,
-  ShieldCheck
+  BadgeCheck,
+  Loader2
 } from 'lucide-react';
 
 export default function ParticipantLogin() {
@@ -18,7 +17,7 @@ export default function ParticipantLogin() {
   const supabase = createClient();
 
   const [username, setUsername] = useState('');
-  const [pin, setPin] = useState('');
+  const [tokenInput, setTokenInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<{ title: string; desc: string } | null>(null);
 
@@ -28,117 +27,136 @@ export default function ParticipantLogin() {
     setErrorMsg(null);
 
     try {
-      // 1. Verifikasi Kredensial
-      const { data: user, error } = await supabase
+      // 1. Cek Kredensial Username/NISN ke Database
+      const { data: user, error: userError } = await supabase
         .from('cbt_participants')
         .select('*')
         .eq('username', username)
-        .eq('pin', pin)
         .single();
 
-      if (error || !user) {
-        setErrorMsg({
-          title: 'Kredensial Tidak Dikenali',
-          desc: 'Username atau PIN salah. Pastikan Anda mengetik sesuai kartu ujian.'
-        });
-        setLoading(false);
-        return;
+      if (userError || !user) {
+        setErrorMsg({ title: 'Peserta Tidak Ditemukan', desc: 'Username atau NISN tidak terdaftar dalam sistem kami.' });
+        setLoading(false); return;
       }
 
-      // 2. Security Gateway: Branch Locking (MIPA ONLY)
+      // GATEWAY SECURITY: Wajib Cabang MIPA
       if (user.branch !== 'MIPA') {
-        setErrorMsg({
-          title: 'Akses Dibatasi (Beda Cabang)',
-          desc: `Akun Anda terdaftar di cabang ${user.branch}. Portal ini hanya melayani CBT cabang MIPA.`
-        });
-        setLoading(false);
-        return;
+        setErrorMsg({ title: 'Akses Ditolak', desc: `Akun ini terdaftar di cabang ${user.branch}. Portal LLMS eksklusif untuk Olimpiade MIPA.` });
+        setLoading(false); return;
       }
 
-      // 3. Sukses: Simpan Sesi & Redirect
-      localStorage.setItem('ncc_user', JSON.stringify(user));
+      // 2. Ambil Sesi Ujian Aktif dari Database
+      const { data: exams, error: examsError } = await supabase.from('cbt_exams').select('id, title');
       
-      // Beri delay sedikit untuk efek visual sukses
-      setTimeout(() => {
-        router.push('/ujian'); // Redirect ke landing page ujian
-      }, 800);
+      if (examsError || !exams || exams.length === 0) {
+        setErrorMsg({ title: 'Tidak Ada Ujian Aktif', desc: 'Panitia belum membuka sesi ujian apapun saat ini.' });
+        setLoading(false); return;
+      }
+
+      // 3. MESIN VALIDASI ROLLING TOKEN (10 Menit)
+      const now = Math.floor(Date.now() / 1000);
+      const interval10Min = 600;
+      const currentInterval = Math.floor(now / interval10Min);
+      const charPool = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      
+      let matchedExam = null;
+      const userToken = tokenInput.toUpperCase().trim();
+
+      // Cek apakah token yang dimasukkan cocok dengan token dari sesi manapun di interval waktu SEKARANG
+      for (const exam of exams) {
+        let expectedToken = "";
+        let seed = (exam.id.charCodeAt(0) + currentInterval) % 10000;
+        for(let i=0; i<6; i++) {
+           seed = (seed * 9301 + 49297) % 233280;
+           expectedToken += charPool[Math.floor((seed / 233280) * charPool.length)];
+        }
+
+        if (userToken === expectedToken) {
+          matchedExam = exam;
+          break;
+        }
+      }
+
+      if (!matchedExam) {
+        setErrorMsg({ title: 'Token Ujian Tidak Valid', desc: 'Token salah atau sudah kedaluwarsa. Silakan lihat token terbaru (berubah tiap 10 menit) di layar pengawas.' });
+        setLoading(false); return;
+      }
+
+      // 4. Jika Sukses Lewati Semua Gerbang Keamanan!
+      // Simpan data user & ID ujian yang diikutinya ke LocalStorage
+      localStorage.setItem('ncc_user', JSON.stringify({ ...user, active_exam_id: matchedExam.id, active_exam_title: matchedExam.title }));
+      router.push('/ujian/dashboard');
 
     } catch (err) {
-      setErrorMsg({
-        title: 'Koneksi Terputus',
-        desc: 'Gagal terhubung ke Pusat Komando. Silakan lapor ke pengawas ruangan.'
-      });
+      setErrorMsg({ title: 'Gangguan Server', desc: 'Gagal terhubung ke pusat data. Lapor ke panitia.' });
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6 font-sans select-none overflow-hidden relative">
+    <div className="min-h-screen bg-[#f4f7fe] flex items-center justify-center p-6 font-sans">
       
-      {/* 🧬 BACKGROUND ELEMENTS */}
-      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-indigo-100/50 rounded-full blur-3xl -z-10 animate-pulse"></div>
-      <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 bg-emerald-100/50 rounded-full blur-3xl -z-10"></div>
-
-      {/* 🔐 LOGIN CARD */}
-      <div className="w-full max-w-md bg-white p-10 rounded-[3rem] border border-gray-100 shadow-2xl shadow-indigo-100/50 relative overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="w-full max-w-[420px] bg-white p-10 rounded-[40px] shadow-[0_10px_40px_rgb(0,0,0,0.04)] relative">
         
-        {/* Aksen Estetik */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-bl-[4rem] -z-10"></div>
-
-        {/* Logo & Branding */}
-        <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-indigo-600 rounded-[2rem] mx-auto flex items-center justify-center shadow-xl shadow-indigo-200 mb-6 transform rotate-6 hover:rotate-0 transition-transform duration-500">
-             <span className="text-white font-black text-4xl">N</span>
+        {/* Logo & Header */}
+        <div className="text-center mb-10 flex flex-col items-center">
+          <div className="w-20 h-20 bg-[#5145cd] rounded-full mx-auto flex items-center justify-center shadow-lg shadow-indigo-200 mb-5 relative">
+             <span className="text-white font-black text-4xl tracking-tighter">N</span>
+             <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-4 border-white flex items-center justify-center">
+               <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+             </div>
           </div>
-          <h1 className="text-2xl font-black text-gray-800 tracking-tight">Portal Peserta NCC</h1>
-          <p className="text-[10px] text-gray-400 mt-2 font-black uppercase tracking-[0.2em]">National Creativity Competition 13th</p>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Portal Peserta NCC</h1>
+          <p className="text-[9px] text-gray-400 mt-2 font-black uppercase tracking-widest">National Creativity Competition 13th</p>
         </div>
 
-        {/* 🚨 ERROR NOTIFICATION */}
+        {/* Notifikasi Error */}
         {errorMsg && (
-          <div className="mb-8 p-5 bg-rose-50 border border-rose-100 rounded-[2rem] flex items-start space-x-4 animate-in zoom-in-95 duration-300">
-            <div className="bg-rose-100 p-2 rounded-xl">
-              <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />
-            </div>
-            <div className="text-left">
-              <h3 className="text-xs font-black text-rose-800 uppercase tracking-tight">{errorMsg.title}</h3>
-              <p className="text-[10px] text-rose-600/80 mt-1 leading-relaxed font-medium">{errorMsg.desc}</p>
+          <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start space-x-3">
+            <ShieldAlert className="w-6 h-6 text-rose-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-xs font-black text-rose-700">{errorMsg.title}</h3>
+              <p className="text-[10px] text-rose-600/80 mt-1 font-semibold leading-relaxed">{errorMsg.desc}</p>
             </div>
           </div>
         )}
 
-        {/* 📝 LOGIN FORM */}
+        {/* Form Login */}
         <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2 text-left">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-2">Username / NISN</label>
-            <div className="relative group">
+          <div>
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2 ml-2">Username / NISN</label>
+            <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-gray-300 group-focus-within:text-indigo-500 transition-colors" />
+                <User className="h-5 w-5 text-gray-400" />
               </div>
               <input
                 type="text"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="MIPA001..."
-                className="w-full pl-14 pr-6 py-4.5 bg-gray-50/50 border border-gray-100 rounded-[1.5rem] text-sm font-bold text-gray-700 placeholder-gray-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all outline-none"
+                placeholder="Masukkan NISN Anda..."
+                className="w-full pl-12 pr-5 py-4 bg-gray-50 border border-transparent rounded-[20px] text-sm font-bold focus:bg-white focus:ring-2 focus:ring-[#5145cd]/20 focus:border-[#5145cd] transition-all outline-none text-gray-800 placeholder-gray-400 shadow-inner shadow-gray-100/50"
               />
             </div>
           </div>
 
-          <div className="space-y-2 text-left">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-2">PIN Rahasia</label>
-            <div className="relative group">
+          <div>
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2 ml-2 flex items-center justify-between">
+              <span>Token Ujian (Live)</span>
+              <span className="text-[8px] bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-full">Berubah tiap 10 mnt</span>
+            </label>
+            <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                <Key className="h-5 w-5 text-gray-300 group-focus-within:text-indigo-500 transition-colors" />
+                <Key className="h-5 w-5 text-[#5145cd]" />
               </div>
               <input
-                type="password"
+                type="text"
                 required
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
+                maxLength={6}
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value.toUpperCase())}
                 placeholder="••••••"
-                className="w-full pl-14 pr-6 py-4.5 bg-gray-50/50 border border-gray-100 rounded-[1.5rem] text-sm font-bold text-gray-700 placeholder-gray-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all outline-none"
+                className="w-full pl-12 pr-5 py-4 bg-indigo-50/30 border border-indigo-100 rounded-[20px] text-lg tracking-[0.3em] font-black focus:bg-white focus:ring-2 focus:ring-[#5145cd]/20 focus:border-[#5145cd] transition-all outline-none text-[#5145cd] placeholder-indigo-200"
               />
             </div>
           </div>
@@ -146,23 +164,24 @@ export default function ParticipantLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-5 mt-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.97] text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed group"
+            className="w-full py-4 mt-4 bg-[#5145cd] hover:bg-[#3d32a8] active:scale-[0.98] text-white text-xs font-black uppercase tracking-widest rounded-[20px] transition-all shadow-lg shadow-indigo-200 flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed group"
           >
             {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="flex items-center">
+                <Loader2 className="w-5 h-5 animate-spin mr-2" /> Memvalidasi Token...
+              </span>
             ) : (
               <>
                 <span>Masuk Sekarang</span>
-                <LogIn className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </>
             )}
           </button>
         </form>
 
-        {/* Footer Info */}
-        <div className="mt-10 pt-6 border-t border-gray-50 flex items-center justify-center gap-2">
-           <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-           <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Sistem Keamanan Berlapis Aktif</p>
+        <div className="mt-8 flex items-center justify-center text-[9px] font-black text-emerald-500 uppercase tracking-widest">
+           <BadgeCheck className="w-4 h-4 mr-1.5" />
+           Sistem Keamanan Berlapis Aktif
         </div>
 
       </div>
