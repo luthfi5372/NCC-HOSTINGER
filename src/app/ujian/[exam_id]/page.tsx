@@ -126,8 +126,15 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
     const newAnswers = { ...answers, [questionId]: option };
     setAnswers(newAnswers);
     if (doubtfulAnswers[questionId]) setDoubtfulAnswers(prev => ({ ...prev, [questionId]: false }));
+
+    // 🔥 Sync jawaban lengkap ke cloud setiap kali peserta memilih opsi
     const userId = student?.nisn || student?.username;
-    if (userId) await supabase.from('cbt_attempts').update({ updated_at: new Date().toISOString() }).eq('user_id', userId);
+    if (userId) {
+      await supabase.from('cbt_attempts').update({ 
+        answers: newAnswers,
+        updated_at: new Date().toISOString() 
+      }).eq('user_id', userId);
+    }
   };
 
   const handleToggleDoubt = () => {
