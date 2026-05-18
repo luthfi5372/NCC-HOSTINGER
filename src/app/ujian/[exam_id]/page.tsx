@@ -34,6 +34,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
   const [finalScore, setFinalScore] = useState(0);
   const [isAlreadySubmitted, setIsAlreadySubmitted] = useState(false);
   const [savedScore, setSavedScore] = useState(0);
+  const [isSessionClosed, setIsSessionClosed] = useState(false);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('ncc_user');
@@ -46,8 +47,22 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
 
     const loadExamData = async () => {
       try {
-        const { data: examData } = await supabase.from('cbt_exams').select('duration').eq('id', examId).single();
-        if (examData?.duration) setTimeLeft(examData.duration * 60);
+        // Ambil data sesi + status aktif
+        const { data: examData } = await supabase.from('cbt_exams')
+          .select('duration, duration_minutes, is_active')
+          .eq('id', examId)
+          .single();
+
+        // 🔒 Jika sesi dinonaktifkan panitia → blokir masuk
+        if (examData && examData.is_active === false) {
+          setIsSessionClosed(true);
+          setLoading(false);
+          return;
+        }
+
+        if (examData?.duration || examData?.duration_minutes) {
+          setTimeLeft((examData.duration || examData.duration_minutes) * 60);
+        }
 
         const { data: qData } = await supabase.from('cbt_questions').select('*'); 
         if (qData) {
@@ -206,6 +221,29 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
       <div className="min-h-screen bg-[#f4f7fe] flex flex-col items-center justify-center">
         <div className="w-12 h-12 border-4 border-indigo-100 border-t-[#5145cd] rounded-full animate-spin mb-4"></div>
         <p className="text-[10px] font-black text-[#5145cd] uppercase tracking-widest">Membangun Ruang Ujian Enkripsi...</p>
+      </div>
+    );
+  }
+
+  // 🔒 Sesi dinonaktifkan panitia
+  if (isSessionClosed) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 font-sans">
+        <div className="bg-white max-w-sm w-full rounded-[40px] p-10 text-center shadow-2xl">
+          <div className="w-24 h-24 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-12 h-12" />
+          </div>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight mb-2">SESI DITUTUP</h1>
+          <p className="text-sm font-bold text-gray-500 leading-relaxed">
+            Sesi ujian ini sedang <span className="font-black text-slate-700">dinonaktifkan</span> oleh panitia.
+          </p>
+          <div className="mt-5 p-4 bg-amber-50 border border-amber-100 rounded-2xl">
+            <p className="text-xs font-bold text-amber-700">⏳ Harap tunggu atau hubungi pengawas untuk info lebih lanjut.</p>
+          </div>
+          <button onClick={() => window.location.reload()} className="w-full mt-6 py-4 bg-[#5145cd] hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all">
+            🔄 Cek Ulang Status
+          </button>
+        </div>
       </div>
     );
   }

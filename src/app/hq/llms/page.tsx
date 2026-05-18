@@ -61,6 +61,17 @@ export default function IntegratedLLMSDashboard() {
     setIsSavingEdit(false);
   };
 
+  const handleToggleActive = async (sessionId: string, currentStatus: boolean) => {
+    // Optimistic UI: update lokal dulu
+    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, is_active: !currentStatus } : s));
+    // Kirim ke Supabase
+    const { error } = await supabase.from('cbt_exams')
+      .update({ is_active: !currentStatus })
+      .eq('id', sessionId);
+    // Jika gagal, rollback
+    if (error) setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, is_active: currentStatus } : s));
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/login');
@@ -328,12 +339,24 @@ export default function IntegratedLLMSDashboard() {
                       <tr key={session.id} className="hover:bg-indigo-50/30 transition-all border-b border-gray-50 last:border-0">
                         <td className="py-5 px-4">
                           <p className="font-black text-gray-900 flex items-center">
-                            <span className={`w-2 h-2 rounded-full mr-2 ${session.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`}></span>
+                            <span className={`w-2 h-2 rounded-full mr-2 flex-shrink-0 ${session.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`}></span>
                             {session.title || 'Ujian MIPA'}
                           </p>
-                          <div className="flex space-x-2 mt-1.5 pl-4">
+                          <div className="flex space-x-2 mt-2 pl-4 items-center">
                             <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-mono font-bold">ID: {session.id.substring(0,8)}</span>
                             <span className="text-[9px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">{session.duration_minutes || 90} MNT</span>
+                            {/* 🔘 QUICK TOGGLE */}
+                            <button
+                              onClick={() => handleToggleActive(session.id, session.is_active)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-black text-[9px] uppercase tracking-wider transition-all border ${
+                                session.is_active
+                                  ? 'bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-100'
+                                  : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${session.is_active ? 'bg-white' : 'bg-gray-400'}`} />
+                              {session.is_active ? 'Aktif' : 'Nonaktif'}
+                            </button>
                           </div>
                         </td>
                         <td className="py-5 px-4">
