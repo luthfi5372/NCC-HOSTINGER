@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Monitor,
   Lock,
+  LockOpen,
   Users,
   Radio,
   RefreshCw
@@ -71,6 +72,26 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
     if (p.submitted_at) return { label: 'SELESAI', color: 'emerald', icon: BadgeCheck };
     if (p.violations_count > 0) return { label: 'PERINGATAN', color: 'amber', icon: ShieldAlert };
     return { label: 'AKTIF', color: 'indigo', icon: Monitor };
+  };
+
+  // 🔥 TOMBOL AMPUNAN: Reset violations peserta yang diblokir
+  const handleUnlockAccess = async (userId: string) => {
+    const confirmUnlock = window.confirm(
+      `Buka blokir peserta ID: ${userId}?\n\nPeringatan akan direset ke 0. Peserta perlu Refresh (F5) untuk melanjutkan.`
+    );
+    if (!confirmUnlock) return;
+
+    const { error } = await supabase
+      .from('cbt_attempts')
+      .update({ violations_count: 0, updated_at: new Date().toISOString() })
+      .eq('user_id', userId);
+
+    if (error) {
+      alert('Gagal membuka blokir: ' + error.message);
+    } else {
+      alert(`✅ Akses ${userId} berhasil dibuka!\n\nMinta peserta tekan F5 untuk melanjutkan ujian.`);
+      fetchCCTVData();
+    }
   };
 
   return (
@@ -193,9 +214,21 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
                             {status.label}
                           </p>
                         </div>
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg} ${isBlocked ? 'shadow-md shadow-rose-200' : ''}`}>
-                          <status.icon className="w-4 h-4" />
-                        </div>
+                        {isBlocked ? (
+                          // 🔥 TOMBOL UNBLOCK — hover gembok merah → gembok hijau terbuka
+                          <button
+                            onClick={() => handleUnlockAccess(p.user_id)}
+                            title="Klik untuk buka blokir peserta ini"
+                            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-rose-500 text-white hover:bg-emerald-500 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-200 transition-all group"
+                          >
+                            <Lock className="w-4 h-4 group-hover:hidden" />
+                            <LockOpen className="w-4 h-4 hidden group-hover:block" />
+                          </button>
+                        ) : (
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+                            <status.icon className="w-4 h-4" />
+                          </div>
+                        )}
                       </div>
 
                       {/* Stats row */}
