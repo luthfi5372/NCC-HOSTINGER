@@ -76,7 +76,11 @@ export default function ParticipantLogin() {
 
       for (const exam of exams) {
         let expectedToken = "";
-        let seed = (exam.id.charCodeAt(0) + currentInterval) % 10000;
+        let idSum = 0;
+        for (let i = 0; i < exam.id.length; i++) {
+          idSum += exam.id.charCodeAt(i);
+        }
+        let seed = (idSum + currentInterval) % 10000;
         for(let i=0; i<6; i++) {
            seed = (seed * 9301 + 49297) % 233280;
            expectedToken += charPool[Math.floor((seed / 233280) * charPool.length)];
