@@ -68,7 +68,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
           setTimeLeft((examData.duration || examData.duration_minutes) * 60);
         }
 
-        const { data: qData } = await supabase.from('cbt_questions').select('*'); 
+        const { data: qData } = await supabase.from('cbt_questions').select('*').eq('exam_id', examId); 
         if (qData) {
           const shuffled = qData.sort(() => 0.5 - Math.random());
           setQuestions(shuffled);
@@ -81,6 +81,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
           .from('cbt_attempts')
           .select('*')
           .eq('user_id', userId)
+          .eq('exam_id', examId)
           .single();
 
         if (existingUser) {
@@ -97,9 +98,8 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
           if ((existingUser.violations_count || 0) >= 3) setIsBlocked(true);
 
           await supabase.from('cbt_attempts').update({ 
-            exam_id: examId, 
             updated_at: new Date().toISOString() 
-          }).eq('user_id', userId);
+          }).eq('user_id', userId).eq('exam_id', examId);
         } else {
           // Belum ada → paksa insert baru
           const { error: insertErr } = await supabase.from('cbt_attempts').insert({ 
@@ -144,7 +144,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
         await supabase.from('cbt_attempts').update({ 
           violations_count: newViolationCount, 
           updated_at: new Date().toISOString() 
-        }).eq('user_id', userId);
+        }).eq('user_id', userId).eq('exam_id', examId);
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -162,7 +162,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
       await supabase.from('cbt_attempts').update({ 
         answers: newAnswers,
         updated_at: new Date().toISOString() 
-      }).eq('user_id', userId);
+      }).eq('user_id', userId).eq('exam_id', examId);
     }
   };
 
@@ -174,14 +174,13 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
 
   const handleSubmitExam = async () => {
     const userId = student?.nisn || student?.username;
-    const examIdStr = typeof window !== 'undefined' ? window.location.pathname.split('/')[2] : '';
 
     // Ambil konfigurasi poin dari cbt_exams
     let correctPt = 1, penaltyPt = 0, emptyPt = 0;
     const { data: examConfig } = await supabase
       .from('cbt_exams')
       .select('correct_point, penalty_point, empty_point')
-      .eq('id', examIdStr)
+      .eq('id', examId)
       .single();
     if (examConfig) {
       correctPt = examConfig.correct_point ?? 1;
@@ -208,7 +207,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
       submitted_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       current_score: score
-    }).eq('user_id', userId);
+    }).eq('user_id', userId).eq('exam_id', examId);
 
     setShowSubmitConfirm(false);
     setShowSubmitSuccess(true);

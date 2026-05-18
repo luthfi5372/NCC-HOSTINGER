@@ -47,7 +47,8 @@ export default function LiveLeaderboard() {
   const fetchLeaderboardData = async () => {
     const { data, error } = await supabase
       .from('cbt_attempts')
-      .select('*');
+      .select('*')
+      .eq('exam_id', examId);
 
     if (error) { console.error('Gagal:', error); return; }
     if (data) prosesDanUrutkanData(data);
@@ -81,7 +82,8 @@ export default function LiveLeaderboard() {
 
     const { data: qData } = await supabase
       .from('cbt_questions')
-      .select('*');
+      .select('*')
+      .eq('exam_id', examId);
 
     if (qData) setReviewQuestions(qData);
     setReviewLoading(false);
@@ -93,7 +95,8 @@ export default function LiveLeaderboard() {
     const { error } = await supabase
       .from('cbt_attempts')
       .delete()
-      .eq('user_id', deleteTargetUser);
+      .eq('user_id', deleteTargetUser)
+      .eq('exam_id', examId);
     if (!error) {
       setShowDeleteParticipant(false);
       setDeleteTargetUser(null);

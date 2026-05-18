@@ -39,6 +39,7 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
       const { data } = await supabase
         .from('cbt_attempts')
         .select('*')
+        .eq('exam_id', examId)
         .order('updated_at', { ascending: false });
 
       if (data) {
@@ -90,7 +91,8 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
     const { error } = await supabase
       .from('cbt_attempts')
       .update({ violations_count: 0, updated_at: new Date().toISOString() })
-      .eq('user_id', unblockTarget);
+      .eq('user_id', unblockTarget)
+      .eq('exam_id', examId);
 
     if (!error) {
       setUnblockSuccess(true);
@@ -101,7 +103,7 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
   // 🗑️ Hapus semua data CBT (reset ruang ujian)
   const handleDeleteAllData = async () => {
     setIsDeleting(true);
-    const { error } = await supabase.from('cbt_attempts').delete().neq('user_id', '');
+    const { error } = await supabase.from('cbt_attempts').delete().eq('exam_id', examId);
     if (!error) {
       setParticipants([]);
       setStats({ total: 0, working: 0, submitted: 0, cheating: 0, blocked: 0 });
