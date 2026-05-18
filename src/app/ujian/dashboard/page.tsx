@@ -34,7 +34,7 @@ export default function StudentDashboard() {
           // 1. Ambil detail waktu ujian
           const { data } = await supabase
             .from('cbt_exams')
-            .select('duration')
+            .select('duration, is_active')
             .eq('id', parsedUser.active_exam_id)
             .single();
             
@@ -140,7 +140,9 @@ export default function StudentDashboard() {
             <div className="bg-white p-8 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-gray-100">
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[9px] font-black uppercase tracking-widest">Sesi Tersedia</span>
+                  <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${examDetail?.is_active === false ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
+                    {examDetail?.is_active === false ? 'Sesi Ditutup' : 'Sesi Tersedia'}
+                  </span>
                   <h3 className="text-2xl font-black text-gray-900 mt-3 tracking-tight">
                     {student.active_exam_title || 'Sesi Ujian Sedang Disiapkan'}
                   </h3>
@@ -156,13 +158,23 @@ export default function StudentDashboard() {
               </div>
 
               {/* ACTION MULAI UJIAN DINAMIS */}
-              <button
-                onClick={handleStartExam}
-                className="w-full mt-8 py-4 bg-[#5145cd] hover:bg-[#3d32a8] active:scale-[0.99] text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-indigo-200 flex items-center justify-center space-x-2 group"
-              >
-                <span>Masuk Ruang Ujian</span>
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </button>
+              {examDetail?.is_active === false ? (
+                <button
+                  disabled
+                  className="w-full mt-8 py-4 bg-rose-100 text-rose-500 text-xs font-black uppercase tracking-widest rounded-2xl cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  <ShieldAlert className="w-4 h-4 mr-1" />
+                  <span>Sesi Telah Dinonaktifkan Panitia</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleStartExam}
+                  className="w-full mt-8 py-4 bg-[#5145cd] hover:bg-[#3d32a8] active:scale-[0.99] text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-indigo-200 flex items-center justify-center space-x-2 group"
+                >
+                  <span>Masuk Ruang Ujian</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </button>
+              )}
             </div>
 
             {/* KOTAK ATURAN & INTEGRITAS */}

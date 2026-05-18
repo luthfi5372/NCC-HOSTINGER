@@ -356,10 +356,10 @@ export default function IntegratedLLMSDashboard() {
                             {/* 🔘 QUICK TOGGLE */}
                             <button
                               onClick={() => handleToggleActive(session.id, session.is_active)}
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-black text-[9px] uppercase tracking-wider transition-all border ${
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-black text-[9px] uppercase tracking-wider transition-all border ${
                                 session.is_active
                                   ? 'bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-100'
-                                  : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200'
+                                  : 'bg-rose-500 text-white border-rose-600 hover:bg-rose-600 shadow-md shadow-rose-200'
                               }`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${session.is_active ? 'bg-white' : 'bg-gray-400'}`} />
