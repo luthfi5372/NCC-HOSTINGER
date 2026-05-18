@@ -17,7 +17,8 @@ import {
   X,
   CheckCircle2,
   XCircle,
-  MinusCircle
+  MinusCircle,
+  Trash2
 } from 'lucide-react';
 
 export default function LiveLeaderboard() {
@@ -37,6 +38,11 @@ export default function LiveLeaderboard() {
   const [selectedAttempt, setSelectedAttempt] = useState<any>(null);
   const [reviewQuestions, setReviewQuestions] = useState<any[]>([]);
   const [reviewLoading, setReviewLoading] = useState(false);
+
+  // Delete per-participant
+  const [showDeleteParticipant, setShowDeleteParticipant] = useState(false);
+  const [deleteTargetUser, setDeleteTargetUser] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchLeaderboardData = async () => {
     const { data, error } = await supabase
@@ -79,6 +85,21 @@ export default function LiveLeaderboard() {
 
     if (qData) setReviewQuestions(qData);
     setReviewLoading(false);
+  };
+
+  const handleDeleteParticipant = async () => {
+    if (!deleteTargetUser) return;
+    setIsDeleting(true);
+    const { error } = await supabase
+      .from('cbt_attempts')
+      .delete()
+      .eq('user_id', deleteTargetUser);
+    if (!error) {
+      setShowDeleteParticipant(false);
+      setDeleteTargetUser(null);
+      fetchLeaderboardData();
+    }
+    setIsDeleting(false);
   };
 
   useEffect(() => {
@@ -137,6 +158,30 @@ export default function LiveLeaderboard() {
 
   return (
     <div className="min-h-screen bg-[#f4f7fe] font-sans text-gray-800">
+
+      {/* ===== MODAL HAPUS PESERTA ===== */}
+      {showDeleteParticipant && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4">
+          <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl text-center">
+            <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Trash2 className="w-10 h-10 text-rose-500" />
+            </div>
+            <h2 className="text-xl font-black text-gray-900">Hapus Data Peserta?</h2>
+            <p className="text-sm text-gray-500 font-medium mt-2">ID: <span className="font-black text-gray-800">{deleteTargetUser}</span></p>
+            <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+              Semua data (jawaban, skor, submit) peserta ini akan <span className="font-black text-rose-600">dihapus permanen</span>.
+              Peserta akan bisa ikut ujian kembali setelah ini.
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => { setShowDeleteParticipant(false); setDeleteTargetUser(null); }} disabled={isDeleting} className="flex-1 py-3.5 bg-gray-100 text-gray-700 font-black text-xs uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all">Batal</button>
+              <button onClick={handleDeleteParticipant} disabled={isDeleting} className="flex-1 py-3.5 bg-rose-500 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-100 flex items-center justify-center gap-2">
+                {isDeleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {isDeleting ? 'Menghapus...' : 'Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ===== MODAL REVIEW MOODLE-STYLE ===== */}
       {showReview && selectedAttempt && (
@@ -349,6 +394,7 @@ export default function LiveLeaderboard() {
                     <th className="py-4 px-6 text-center">Pelanggaran</th>
                     <th className="py-4 px-6 text-right">Update</th>
                     <th className="py-4 px-6 text-center">Review</th>
+                    <th className="py-4 px-6 text-center">Hapus</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -417,6 +463,17 @@ export default function LiveLeaderboard() {
                             }`}
                           >
                             <BookOpen className="w-3.5 h-3.5" /> Review
+                          </button>
+                        </td>
+
+                        {/* TOMBOL HAPUS PESERTA */}
+                        <td className="py-4 px-6 text-center">
+                          <button
+                            onClick={() => { setDeleteTargetUser(item.user_id); setShowDeleteParticipant(true); }}
+                            title="Hapus data peserta ini"
+                            className="flex items-center gap-1.5 mx-auto px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-rose-50 text-rose-500 border border-rose-100 hover:bg-rose-500 hover:text-white transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Reset
                           </button>
                         </td>
                       </tr>
