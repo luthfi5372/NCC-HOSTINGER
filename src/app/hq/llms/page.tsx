@@ -131,8 +131,16 @@ export default function IntegratedLLMSDashboard() {
       sessions.forEach(s => {
         const charPool = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         let token = "";
-        let seed = (s.id.charCodeAt(0) + currentInterval) % 10000;
-        for(let i=0; i<6; i++) { seed = (seed * 9301 + 49297) % 233280; token += charPool[Math.floor((seed / 233280) * charPool.length)]; }
+        // Gunakan kombinasi dari seluruh ID untuk mencegah bentrok
+        let idSum = 0;
+        for (let i = 0; i < s.id.length; i++) {
+          idSum += s.id.charCodeAt(i);
+        }
+        let seed = (idSum + currentInterval) % 10000;
+        for(let i=0; i<6; i++) { 
+          seed = (seed * 9301 + 49297) % 233280; 
+          token += charPool[Math.floor((seed / 233280) * charPool.length)]; 
+        }
         newTokens[s.id] = token;
       });
       setLiveTokens(newTokens);
