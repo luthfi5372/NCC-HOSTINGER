@@ -14,7 +14,8 @@ import {
   LockOpen,
   Users,
   Radio,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 
 export default function LiveMonitor({ params }: { params: { exam_id: string } }) {
@@ -28,8 +29,12 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
   const [showUnblockModal, setShowUnblockModal] = useState(false);
   const [unblockTarget, setUnblockTarget] = useState<string | null>(null);
   const [unblockSuccess, setUnblockSuccess] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchCCTVData = async () => {
+    setIsRefreshing(true);
     try {
       const { data } = await supabase
         .from('cbt_attempts')
@@ -50,6 +55,8 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
       }
     } catch (err) {
       console.error('Error fetching CCTV:', err);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -91,8 +98,43 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
     }
   };
 
+  // 🗑️ Hapus semua data CBT (reset ruang ujian)
+  const handleDeleteAllData = async () => {
+    setIsDeleting(true);
+    const { error } = await supabase.from('cbt_attempts').delete().neq('user_id', '');
+    if (!error) {
+      setParticipants([]);
+      setStats({ total: 0, working: 0, submitted: 0, cheating: 0, blocked: 0 });
+      setShowDeleteModal(false);
+    }
+    setIsDeleting(false);
+  };
+
   return (
     <div className="min-h-screen bg-[#f4f7fe] font-sans text-gray-800">
+
+      {/* ===== MODAL HAPUS SEMUA DATA ===== */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4">
+          <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl text-center">
+            <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Trash2 className="w-10 h-10 text-rose-500" />
+            </div>
+            <h2 className="text-xl font-black text-gray-900">Hapus Semua Data?</h2>
+            <p className="text-sm text-gray-500 font-medium mt-2 leading-relaxed">
+              Seluruh data submit, jawaban, dan skor peserta akan <span className="font-black text-rose-600">dihapus permanen</span> dari database.
+            </p>
+            <p className="text-xs text-gray-400 mt-2">Lakukan ini hanya untuk mereset ruang ujian sebelum kompetisi dimulai.</p>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowDeleteModal(false)} disabled={isDeleting} className="flex-1 py-3.5 bg-gray-100 text-gray-700 font-black text-xs uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all">Batal</button>
+              <button onClick={handleDeleteAllData} disabled={isDeleting} className="flex-1 py-3.5 bg-rose-500 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-100 flex items-center justify-center gap-2">
+                {isDeleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {isDeleting ? 'Menghapus...' : 'Hapus Semua'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ===== MODAL KONFIRMASI UNBLOCK ===== */}
       {showUnblockModal && !unblockSuccess && (
@@ -150,7 +192,10 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
               />
             </div>
             <button onClick={fetchCCTVData} className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-indigo-50 hover:text-[#5145cd] transition-all flex-shrink-0">
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button onClick={() => setShowDeleteModal(true)} title="Hapus semua data peserta" className="w-9 h-9 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 hover:bg-rose-500 hover:text-white transition-all flex-shrink-0">
+              <Trash2 className="w-4 h-4" />
             </button>
             <div className="flex items-center px-3 py-2 bg-rose-50 border border-rose-100 rounded-full flex-shrink-0">
               <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse mr-2"></span>

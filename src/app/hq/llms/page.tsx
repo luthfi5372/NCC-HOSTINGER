@@ -11,7 +11,7 @@ import {
   LogOut, Play, FileText, ShieldAlert, Plus,
   RotateCcw, Key, Clock, Monitor, Trophy,
   ShieldCheck, AlertTriangle, FileDown, ChevronRight,
-  Loader2, X, Save
+  Loader2, X, Save, Pencil, ToggleLeft, ToggleRight
 } from "lucide-react";
 
 export default function IntegratedLLMSDashboard() {
@@ -32,6 +32,34 @@ export default function IntegratedLLMSDashboard() {
     title: "", token: "", duration_minutes: 90, scoring_system: "Fixed",
     correct_point: 4, penalty_point: 0, empty_point: 0
   });
+
+  // State for Edit Session Modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingSession, setEditingSession] = useState<any>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const openEditModal = (session: any) => {
+    setEditingSession({ ...session });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateSession = async () => {
+    if (!editingSession) return;
+    setIsSavingEdit(true);
+    const { error } = await supabase.from('cbt_exams').update({
+      title: editingSession.title,
+      duration_minutes: editingSession.duration_minutes,
+      correct_point: editingSession.correct_point,
+      penalty_point: editingSession.penalty_point,
+      empty_point: editingSession.empty_point,
+      is_active: editingSession.is_active,
+    }).eq('id', editingSession.id);
+    if (!error) {
+      setShowEditModal(false);
+      fetchTelemetryData();
+    }
+    setIsSavingEdit(false);
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -321,6 +349,12 @@ export default function IntegratedLLMSDashboard() {
                         </td>
                         <td className="py-5 px-4 text-right">
                           <div className="flex items-center justify-end space-x-3">
+                             <button onClick={() => openEditModal(session)} title="Edit Sesi" className="flex flex-col items-center group">
+                                <div className="p-2.5 bg-indigo-50 text-[#5145cd] rounded-lg group-hover:bg-[#5145cd] group-hover:text-white transition-all shadow-sm">
+                                   <Pencil className="w-5 h-5" />
+                                </div>
+                                <span className="text-[9px] font-bold text-[#5145cd] mt-1">EDIT</span>
+                             </button>
                              <Link href={`/hq/llms/${session.id}/questions`} className="flex flex-col items-center group">
                                 <div className="p-2.5 bg-gray-100 text-gray-500 rounded-lg group-hover:bg-[#5145cd] group-hover:text-white transition-all shadow-sm">
                                    <FileText className="w-5 h-5" />
@@ -402,6 +436,68 @@ export default function IntegratedLLMSDashboard() {
           </div>
         </div>
       </main>
+
+      {/* --- MODAL EDIT SESI SCHEDULE --- */}
+      {showEditModal && editingSession && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md">
+          <div className="bg-white w-full max-w-xl rounded-[3rem] p-10 shadow-2xl relative">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h2 className="text-xl font-black text-gray-800">Edit Schedule Sesi</h2>
+                <p className="text-xs text-gray-400 font-bold mt-0.5">ID: {editingSession.id?.substring(0,8)}...</p>
+              </div>
+              <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-all"><X size={24} /></button>
+            </div>
+
+            <div className="space-y-5">
+              {/* Judul */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Judul Sesi</label>
+                <input type="text" value={editingSession.title || ''} onChange={e => setEditingSession({...editingSession, title: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3.5 text-sm font-bold text-gray-700 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all" />
+              </div>
+
+              {/* Durasi + Toggle Aktif */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Durasi (Menit)</label>
+                  <input type="number" value={editingSession.duration_minutes || 90} onChange={e => setEditingSession({...editingSession, duration_minutes: parseInt(e.target.value)||90})} className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3.5 text-sm font-bold text-gray-700 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Status Sesi</label>
+                  <button onClick={() => setEditingSession({...editingSession, is_active: !editingSession.is_active})} className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border-2 ${ editingSession.is_active ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-gray-50 border-gray-200 text-gray-500' }`}>
+                    {editingSession.is_active ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                    {editingSession.is_active ? 'Aktif' : 'Nonaktif'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Scoring Config */}
+              <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                <p className="text-[10px] font-black uppercase text-indigo-400 tracking-widest mb-3">⚙️ Konfigurasi Poin</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black uppercase text-emerald-600 tracking-widest">✓ Benar</label>
+                    <input type="number" value={editingSession.correct_point ?? 4} onChange={e => setEditingSession({...editingSession, correct_point: parseInt(e.target.value)||0})} className="w-full bg-white border border-emerald-200 rounded-xl px-4 py-2.5 text-sm font-black text-gray-700 outline-none focus:ring-2 focus:ring-emerald-300 transition-all text-center" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black uppercase text-rose-600 tracking-widest">✗ Salah</label>
+                    <input type="number" value={editingSession.penalty_point ?? 0} onChange={e => setEditingSession({...editingSession, penalty_point: parseInt(e.target.value)||0})} className="w-full bg-white border border-rose-200 rounded-xl px-4 py-2.5 text-sm font-black text-gray-700 outline-none focus:ring-2 focus:ring-rose-300 transition-all text-center" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">— Kosong</label>
+                    <input type="number" value={editingSession.empty_point ?? 0} onChange={e => setEditingSession({...editingSession, empty_point: parseInt(e.target.value)||0})} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-black text-gray-700 outline-none focus:ring-2 focus:ring-gray-300 transition-all text-center" />
+                  </div>
+                </div>
+                <p className="text-[9px] text-indigo-400 font-bold mt-2 text-center">Contoh UTBK: Benar=4, Salah=1 (penalti), Kosong=0</p>
+              </div>
+
+              <button onClick={handleUpdateSession} disabled={isSavingEdit} className="w-full bg-[#5145cd] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-3">
+                {isSavingEdit ? <Loader2 className="animate-spin" /> : <><Save size={18} /> Simpan Perubahan</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- MODAL TAMBAH SESI (PRESERVED) --- */}
       {showAddModal && (

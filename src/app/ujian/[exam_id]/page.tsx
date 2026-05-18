@@ -144,18 +144,37 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
   };
 
   const handleSubmitExam = async () => {
-    // Hitung skor: tiap jawaban benar = 1 poin (bisa dikustomisasi)
+    const userId = student?.nisn || student?.username;
+    const examIdStr = typeof window !== 'undefined' ? window.location.pathname.split('/')[2] : '';
+
+    // Ambil konfigurasi poin dari cbt_exams
+    let correctPt = 1, penaltyPt = 0, emptyPt = 0;
+    const { data: examConfig } = await supabase
+      .from('cbt_exams')
+      .select('correct_point, penalty_point, empty_point')
+      .eq('id', examIdStr)
+      .single();
+    if (examConfig) {
+      correctPt = examConfig.correct_point ?? 1;
+      penaltyPt = examConfig.penalty_point ?? 0;
+      emptyPt = examConfig.empty_point ?? 0;
+    }
+
+    // Hitung skor berdasarkan konfigurasi dari schedule
     let score = 0;
     questions.forEach(q => {
       const jawaban = answers[q.id];
       const kunci = q.correct_answer || q.answer;
-      if (jawaban && kunci && jawaban.toUpperCase() === kunci.toUpperCase()) {
-        score++;
+      if (!jawaban) {
+        score += emptyPt;
+      } else if (kunci && jawaban.toUpperCase() === kunci.toUpperCase()) {
+        score += correctPt;
+      } else {
+        score -= penaltyPt;
       }
     });
-    setFinalScore(score);
 
-    const userId = student?.nisn || student?.username;
+    setFinalScore(score);
     await supabase.from('cbt_attempts').update({
       submitted_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
