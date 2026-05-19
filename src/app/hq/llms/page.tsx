@@ -43,6 +43,17 @@ export default function IntegratedLLMSDashboard() {
   const [deletingSession, setDeletingSession] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // STATE UNTUK TOAST POP-UP ANIMASI
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' });
+
+  // FUNGSI UNTUK MEMUNCULKAN TOAST
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, 3000);
+  };
+
   const openEditModal = (session: any) => {
     setEditingSession({ ...session });
     setShowEditModal(true);
@@ -62,6 +73,9 @@ export default function IntegratedLLMSDashboard() {
     if (!error) {
       setShowEditModal(false);
       fetchTelemetryData();
+      showToast('Sesi berhasil diperbarui!', 'success');
+    } else {
+      showToast('Gagal memperbarui sesi.', 'error');
     }
     setIsSavingEdit(false);
   };
@@ -82,8 +96,10 @@ export default function IntegratedLLMSDashboard() {
       setShowDeleteModal(false);
       setDeletingSession(null);
       fetchTelemetryData();
+      showToast('Sesi berhasil dihapus permanen.', 'success');
     } catch (err) {
       console.error('Gagal hapus sesi:', err);
+      showToast('Gagal menghapus sesi.', 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -97,7 +113,12 @@ export default function IntegratedLLMSDashboard() {
       .update({ is_active: !currentStatus })
       .eq('id', sessionId);
     // Jika gagal, rollback
-    if (error) setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, is_active: currentStatus } : s));
+    if (error) {
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, is_active: currentStatus } : s));
+      showToast('Gagal mengubah status sesi.', 'error');
+    } else {
+      showToast(`Sesi ${!currentStatus ? 'diaktifkan' : 'dinonaktifkan'}.`, 'success');
+    }
   };
 
   const handleLogout = async () => {
@@ -180,17 +201,46 @@ export default function IntegratedLLMSDashboard() {
   }, [sessions]);
 
   const handleAddSession = async () => {
+    // ─── VALIDASI KETAT ───────────────────────────────────────
+    if (!newSession.title || newSession.title.trim() === '') {
+      return showToast('Judul sesi tidak boleh kosong!', 'error');
+    }
+    if (!newSession.duration_minutes || newSession.duration_minutes <= 0) {
+      return showToast('Durasi ujian harus lebih dari 0 menit!', 'error');
+    }
+
+    // ─── TOKEN: custom atau auto-generate 6 karakter ──────────
+    const finalToken = newSession.token && newSession.token.trim() !== ''
+      ? newSession.token.trim().toUpperCase()
+      : Math.random().toString(36).substring(2, 8).toUpperCase();
+
     setIsSaving(true);
-    const { error } = await supabase.from('cbt_exams').insert([newSession]);
-    if (!error) {
+    try {
+      const { error } = await supabase.from('cbt_exams').insert([{
+        title: newSession.title.trim(),
+        token: finalToken,
+        duration_minutes: newSession.duration_minutes,
+        scoring_system: newSession.scoring_system,
+        correct_point: newSession.correct_point,
+        penalty_point: newSession.penalty_point,
+        empty_point: newSession.empty_point,
+        is_active: false,
+      }]);
+
+      if (error) throw error;
+
       setShowAddModal(false);
       setNewSession({
-        title: "", token: "", duration_minutes: 90, scoring_system: "Fixed",
+        title: '', token: '', duration_minutes: 90, scoring_system: 'Fixed',
         correct_point: 4, penalty_point: 0, empty_point: 0
       });
       fetchTelemetryData();
+      showToast('Sesi ujian baru berhasil dibuat!', 'success');
+    } catch (err: any) {
+      showToast('Gagal membuat sesi: ' + (err?.message || 'Unknown error'), 'error');
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
   };
 
   const downloadSecurityReport = () => {
@@ -381,17 +431,28 @@ export default function IntegratedLLMSDashboard() {
                           <div className="flex space-x-2 mt-2 pl-4 items-center">
                             <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-mono font-bold">ID: {session.id.substring(0,8)}</span>
                             <span className="text-[9px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">{session.duration_minutes || 90} MNT</span>
-                            {/* 🔘 QUICK TOGGLE */}
+                            {/* 🔘 COMMERCIAL TOGGLE SWITCH (iOS Style) */}
                             <button
                               onClick={() => handleToggleActive(session.id, session.is_active)}
-                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-black text-[9px] uppercase tracking-wider transition-all border ${
+                              title={session.is_active ? 'Klik untuk Nonaktifkan' : 'Klik untuk Aktifkan'}
+                              className={`relative inline-flex h-8 w-16 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none ${
                                 session.is_active
-                                  ? 'bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-100'
-                                  : 'bg-rose-500 text-white border-rose-600 hover:bg-rose-600 shadow-md shadow-rose-200'
+                                  ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+                                  : 'bg-gray-300'
                               }`}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${session.is_active ? 'bg-white' : 'bg-gray-400'}`} />
-                              {session.is_active ? 'Aktif' : 'Nonaktif'}
+                              <span className={`absolute left-2 text-[10px] font-black text-white transition-opacity duration-300 ${session.is_active ? 'opacity-100' : 'opacity-0'}`}>
+                                ON
+                              </span>
+                              <span className={`absolute right-1.5 text-[10px] font-black text-gray-500 transition-opacity duration-300 ${!session.is_active ? 'opacity-100' : 'opacity-0'}`}>
+                                OFF
+                              </span>
+                              <span
+                                aria-hidden="true"
+                                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-300 ease-in-out ${
+                                  session.is_active ? 'translate-x-9' : 'translate-x-0.5'
+                                }`}
+                              />
                             </button>
                           </div>
                         </td>
@@ -641,6 +702,30 @@ export default function IntegratedLLMSDashboard() {
            </div>
         </div>
       )}
+      {/* ================= MODAL TOAST POP-UP (JANGAN DIHAPUS) ================= */}
+      <div
+        className={`fixed bottom-8 right-8 z-[200] transition-all duration-500 transform ${
+          toast.visible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className={`flex items-center space-x-4 px-6 py-4 rounded-2xl shadow-2xl border backdrop-blur-md ${
+          toast.type === 'success'
+            ? 'bg-emerald-50/95 border-emerald-200 text-emerald-900'
+            : 'bg-rose-50/95 border-rose-200 text-rose-900'
+        }`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white shadow-inner font-black text-sm ${
+            toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'
+          }`}>
+            {toast.type === 'success' ? '✓' : '✕'}
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-0.5">
+              Notifikasi Sistem
+            </p>
+            <p className="text-sm font-bold">{toast.message}</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
