@@ -92,17 +92,23 @@ export default function LiveLeaderboard() {
   const handleDeleteParticipant = async () => {
     if (!deleteTargetUser) return;
     setIsDeleting(true);
-    const { error } = await supabase
-      .from('cbt_attempts')
-      .delete()
-      .eq('user_id', deleteTargetUser)
-      .eq('exam_id', examId);
-    if (!error) {
+    try {
+      const { error } = await supabase
+        .from('cbt_attempts')
+        .delete()
+        .eq('user_id', deleteTargetUser)
+        .eq('exam_id', examId);
+      if (error) throw error;
+      
       setShowDeleteParticipant(false);
       setDeleteTargetUser(null);
       fetchLeaderboardData();
+      alert("Data peserta berhasil dimusnahkan dari sesi ini!");
+    } catch (err: any) {
+      alert("Gagal menghapus data: " + err.message);
+    } finally {
+      setIsDeleting(false);
     }
-    setIsDeleting(false);
   };
 
   useEffect(() => {

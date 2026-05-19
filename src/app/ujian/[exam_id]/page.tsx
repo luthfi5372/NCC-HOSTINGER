@@ -164,42 +164,48 @@ export default function ExamRoom() {
 
   // 🔥 MESIN SUBMIT & SKOR ULTIMATE
   const confirmSubmitExam = async () => {
-    setLoading(true);
-    
-    // 1. Hitung Skor Otomatis Ekstra Aman
-    let finalScore = 0;
-    if (questions.length > 0) {
-      const pointPerQuestion = 100 / questions.length;
-      questions.forEach(q => {
-        const userAnswer = answers[q.id] || '';
-        const correctAnswer = q.correct_answer || ''; // Pastikan DB punya kolom ini!
-        
-        if (userAnswer && correctAnswer && userAnswer.toUpperCase() === correctAnswer.toUpperCase()) {
-          finalScore += pointPerQuestion;
-        }
-      });
-    }
-    finalScore = Math.round(finalScore);
-
-    // 2. Kirim Data ke Pusat Komando
-    const userId = student?.nisn || student?.username;
-    if (userId && examId && examId !== 'undefined') {
-      await supabase.from('cbt_attempts').update({
-        submitted_at: new Date().toISOString(),
-        score: finalScore,
-        answers: answers, // Kirim juga rekaman jawaban mentah
-        updated_at: new Date().toISOString()
-      }).eq('user_id', userId).eq('exam_id', examId);
-    }
-
-    // 3. Pemicu Animasi Sukses
+    // ❌ HAPUS BARIS INI: setLoading(true); <-- INI BIANG KEROKNYA!
     setShowSubmitModal(false);
-    setIsFinished(true); // Memanggil layar biru "BERHASIL TERKIRIM"
 
-    // 4. Jeda 3 detik agar peserta lega, lalu lempar ke Dashboard dengan "Surat Pengantar" (status=success)
-    setTimeout(() => {
-      router.push('/ujian/dashboard?status=success'); 
-    }, 3000);
+    try {
+      // 1. Hitung Skor Otomatis Ekstra Aman
+      let finalScore = 0;
+      if (questions.length > 0) {
+        const pointPerQuestion = 100 / questions.length;
+        questions.forEach(q => {
+          const userAnswer = answers[q.id] || '';
+          const correct = q.correct_answer || q.kunci_jawaban || q.jawaban_benar || q.answer || ''; // Pastikan DB punya kolom ini!
+          
+          if (userAnswer && correct && String(userAnswer).toUpperCase() === String(correct).toUpperCase()) {
+            finalScore += pointPerQuestion;
+          }
+        });
+      }
+      finalScore = Math.round(finalScore);
+
+      // 2. Kirim Data ke Pusat Komando
+      const userId = student?.nisn || student?.username;
+      if (userId && examId && examId !== 'undefined') {
+        const { error } = await supabase.from('cbt_attempts').update({
+          submitted_at: new Date().toISOString(),
+          score: finalScore,
+          answers: answers, // Kirim juga rekaman jawaban mentah
+          updated_at: new Date().toISOString()
+        }).eq('user_id', userId).eq('exam_id', examId);
+        
+        if (error) throw error;
+      }
+
+      // 3. Pemicu Animasi Sukses
+      setIsFinished(true); // Memanggil layar biru "BERHASIL TERKIRIM"
+
+      // 4. Jeda 4 detik agar peserta lega, lalu lempar ke Dashboard dengan "Surat Pengantar" (status=success)
+      setTimeout(() => {
+        router.push('/ujian/dashboard?status=success'); 
+      }, 4000);
+    } catch (error: any) {
+      alert("GAGAL MENGIRIM DATA: " + error.message);
+    }
   };
 
   const formatTime = (seconds: number) => {
