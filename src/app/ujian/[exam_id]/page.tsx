@@ -35,6 +35,7 @@ export default function ExamRoom() {
   const [showCheatWarning, setShowCheatWarning] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
 
   useEffect(() => {
     // 🔥 PENCEGAHAN ERROR: Jangan jalankan query jika ID ujian masih "undefined"
@@ -184,7 +185,10 @@ export default function ExamRoom() {
       }).eq('user_id', userId).eq('exam_id', examId);
     }
 
-    router.push('/ujian/dashboard');
+    setIsFinished(true);
+    setTimeout(() => {
+      router.push('/ujian/dashboard');
+    }, 4000);
   };
 
   const formatTime = (seconds: number) => {
@@ -274,6 +278,27 @@ export default function ExamRoom() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {isFinished && (
+        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#5145cd] text-white p-4 animate-in fade-in zoom-in duration-500">
+          <CheckCircleIcon className="w-24 h-24 mb-6 text-emerald-300 animate-bounce" />
+          <h1 className="text-4xl font-black tracking-tight mb-2 text-center">Ujian Selesai!</h1>
+          <p className="text-sm font-bold text-indigo-200 text-center max-w-md leading-relaxed mb-8">
+            Terima kasih telah berpartisipasi dengan jujur. Jawaban Anda telah dienkripsi dan diamankan di pangkalan data kami.
+          </p>
+          <div className="w-48 h-2 bg-indigo-900 rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-400 rounded-full animate-[progress_4s_ease-in-out_forwards]" style={{ width: '100%', animationName: 'progress-bar' }}>
+              <style>{`
+                @keyframes progress-bar {
+                  0% { width: 0%; }
+                  100% { width: 100%; }
+                }
+              `}</style>
+            </div>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-widest mt-4 text-indigo-300 animate-pulse">Kembali ke dashboard...</p>
         </div>
       )}
 

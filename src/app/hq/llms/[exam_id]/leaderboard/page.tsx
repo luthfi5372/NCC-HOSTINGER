@@ -57,8 +57,8 @@ export default function LiveLeaderboard() {
 
   const prosesDanUrutkanData = (dataRaw: any[]) => {
     const dataUrut = [...dataRaw].sort((a, b) => {
-      const sA = a.current_score ?? 0;
-      const sB = b.current_score ?? 0;
+      const sA = a.score ?? 0;
+      const sB = b.score ?? 0;
       if (sB !== sA) return sB - sA;
       if (a.violations_count !== b.violations_count) return a.violations_count - b.violations_count;
       return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
@@ -67,7 +67,7 @@ export default function LiveLeaderboard() {
     setAttempts(dataUrut);
 
     if (dataUrut.length > 0) {
-      const skorList = dataUrut.map(p => p.current_score ?? 0);
+      const skorList = dataUrut.map(p => p.score ?? 0);
       setTopScore(Math.max(...skorList));
       setAvgScore(Math.round(skorList.reduce((a, b) => a + b, 0) / skorList.length));
       setTotalCheatAlert(dataUrut.reduce((acc, curr) => acc + (curr.violations_count || 0), 0));
@@ -128,7 +128,7 @@ export default function LiveLeaderboard() {
     if (attempts.length === 0) return;
     const headers = ['Peringkat', 'ID Peserta', 'Skor', 'Jumlah Pelanggaran', 'Terakhir Update\n'];
     const rows = filteredAttempts.map((item, index) => [
-      index + 1, item.user_id, item.current_score ?? 0,
+      index + 1, item.user_id, item.score ?? 0,
       item.violations_count, new Date(item.updated_at).toLocaleTimeString()
     ]);
     const csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + rows.map(e => e.join(",")).join("\n");
@@ -198,7 +198,7 @@ export default function LiveLeaderboard() {
                   <BookOpen className="w-5 h-5 text-[#5145cd]" /> Detail Jawaban Peserta
                 </h2>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-                  ID: {selectedAttempt.user_id} · Skor: {selectedAttempt.current_score ?? 0} poin
+                  ID: {selectedAttempt.user_id} · Skor: {selectedAttempt.score ?? 0} poin
                 </p>
               </div>
               <button onClick={() => setShowReview(false)} className="w-10 h-10 bg-gray-100 hover:bg-rose-100 hover:text-rose-600 text-gray-500 rounded-full flex items-center justify-center transition-all">
@@ -402,7 +402,7 @@ export default function LiveLeaderboard() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filteredAttempts.map((item, index) => {
-                    const score = item.current_score ?? 0;
+                    const score = item.score ?? 0;
                     const hasViolations = item.violations_count > 0;
                     const isDone = !!item.submitted_at;
                     const hasAnswers = item.answers && Object.keys(item.answers).length > 0;
