@@ -25,16 +25,32 @@ export default function StudentDashboard() {
   const [questionCount, setQuestionCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDone, setIsDone] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
+  };
 
   useEffect(() => {
     const savedUser = localStorage.getItem('ncc_user');
     if (!savedUser) {
       router.push('/ujian/login');
-    } else {
-      const parsedUser = JSON.parse(savedUser);
-      setStudent(parsedUser);
+      return;
+    }
+    
+    const parsedUser = JSON.parse(savedUser);
+    setStudent(parsedUser);
 
-      const fetchExamInfoAndReportPresence = async () => {
+    // 1. TANGKAP SURAT PENGANTAR (Notifikasi Sukses)
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('status') === 'success') {
+      showToast("Luar biasa! Ujian berhasil diselesaikan dan skor telah diamankan.", "success");
+      // Bersihkan URL agar rapi kembali
+      window.history.replaceState(null, '', '/ujian/dashboard');
+    }
+
+    const fetchExamInfoAndReportPresence = async () => {
         if (parsedUser.active_exam_id) {
           // 1. Ambil detail waktu ujian
           const { data: exData } = await supabase
@@ -86,7 +102,6 @@ export default function StudentDashboard() {
       };
 
       fetchExamInfoAndReportPresence();
-    }
   }, [router]);
 
   const handleLogout = () => {
@@ -117,7 +132,18 @@ export default function StudentDashboard() {
   const isExamReady = questionCount !== null && questionCount > 0;
 
   return (
-    <div className="min-h-screen bg-[#f4f7fe] p-6 md:p-10 font-sans select-none text-gray-800">
+    <div className="min-h-screen bg-[#f4f7fe] p-6 md:p-10 font-sans select-none text-gray-800 relative">
+      {/* Toast Notification */}
+      {toast.visible && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className={`text-white px-6 py-4 rounded-2xl shadow-xl flex items-center border 
+            ${toast.type === 'success' ? 'bg-emerald-500 border-emerald-400 shadow-emerald-200' : 'bg-rose-500 border-rose-400 shadow-rose-200'}`}>
+            <ShieldCheckIcon className="w-5 h-5 mr-3" />
+            <p className="text-sm font-black tracking-wide">{toast.message}</p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* TOP BAR / NAVIGASI */}

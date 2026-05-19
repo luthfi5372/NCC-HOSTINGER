@@ -106,31 +106,35 @@ export default function ExamRoom() {
     return () => clearInterval(timer);
   }, [loading, timeLeft, isBlocked]);
 
-  // PROTOKOL ANTI-CHEAT
+  // 🔥 RADAR SENSITIVITAS TINGGI
   useEffect(() => {
-    const handleVisibilityChange = async () => {
-      // Pastikan examId juga valid sebelum mencatat pelanggaran
-      if (document.hidden && student && !isBlocked && examId && examId !== 'undefined') {
-        const newViolationCount = violationCount + 1;
-        setViolationCount(newViolationCount);
-
-        if (newViolationCount >= 3) {
-          setIsBlocked(true);
-          setShowCheatWarning(false);
-        } else {
-          setShowCheatWarning(true); 
-        }
-
-        const userId = student.nisn || student.username;
+    const handleCheat = async () => {
+      // Jika tab tidak aktif / pindah aplikasi
+      if (!isFinished && !isBlocked && student) {
+        const newCount = violationCount + 1;
+        setViolationCount(newCount);
+        
         await supabase.from('cbt_attempts').update({ 
-          violations_count: newViolationCount, 
+          violations_count: newCount,
           updated_at: new Date().toISOString() 
-        }).eq('user_id', userId).eq('exam_id', examId);
+        }).eq('user_id', student.nisn || student.username).eq('exam_id', examId);
+
+        if (newCount >= 3) setIsBlocked(true);
+        else setShowCheatWarning(true); 
       }
     };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [student, violationCount, isBlocked, examId]);
+
+    const onVisibilityChange = () => { if (document.hidden) handleCheat(); };
+    const onWindowBlur = () => { handleCheat(); };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("blur", onWindowBlur); // Deteksi saat klik luar browser
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("blur", onWindowBlur);
+    };
+  }, [violationCount, student, isFinished, isBlocked, examId]);
 
   const handleSelectOption = async (questionId: string, option: string) => {
     const newAnswers = { ...answers, [questionId]: option };
@@ -158,37 +162,44 @@ export default function ExamRoom() {
     setShowSubmitModal(true);
   };
 
-  // 2. Fungsi proses kirim jawaban & Hitung Skor Otomatis
+  // 🔥 MESIN SUBMIT & SKOR ULTIMATE
   const confirmSubmitExam = async () => {
     setLoading(true);
-    setShowSubmitModal(false);
-
-    // 🔥 MESIN HITUNG SKOR OTOMATIS
+    
+    // 1. Hitung Skor Otomatis Ekstra Aman
     let finalScore = 0;
     if (questions.length > 0) {
-      const pointPerQuestion = 100 / questions.length; // Bobot nilai merata (total 100)
+      const pointPerQuestion = 100 / questions.length;
       questions.forEach(q => {
-        // Cocokkan jawaban peserta dengan kunci jawaban (correct_answer) di database
-        if (answers[q.id] && q.correct_answer && answers[q.id].toUpperCase() === q.correct_answer.toUpperCase()) {
+        const userAnswer = answers[q.id] || '';
+        const correctAnswer = q.correct_answer || ''; // Pastikan DB punya kolom ini!
+        
+        if (userAnswer && correctAnswer && userAnswer.toUpperCase() === correctAnswer.toUpperCase()) {
           finalScore += pointPerQuestion;
         }
       });
     }
-    finalScore = Math.round(finalScore); // Bulatkan nilai (misal 33.33 jadi 33)
+    finalScore = Math.round(finalScore);
 
+    // 2. Kirim Data ke Pusat Komando
     const userId = student?.nisn || student?.username;
     if (userId && examId && examId !== 'undefined') {
       await supabase.from('cbt_attempts').update({
         submitted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        score: finalScore // 👈 SIMPAN SKOR KE DATABASE
+        score: finalScore,
+        answers: answers, // Kirim juga rekaman jawaban mentah
+        updated_at: new Date().toISOString()
       }).eq('user_id', userId).eq('exam_id', examId);
     }
 
-    setIsFinished(true);
+    // 3. Pemicu Animasi Sukses
+    setShowSubmitModal(false);
+    setIsFinished(true); // Memanggil layar biru "BERHASIL TERKIRIM"
+
+    // 4. Jeda 3 detik agar peserta lega, lalu lempar ke Dashboard dengan "Surat Pengantar" (status=success)
     setTimeout(() => {
-      router.push('/ujian/dashboard');
-    }, 4000);
+      router.push('/ujian/dashboard?status=success'); 
+    }, 3000);
   };
 
   const formatTime = (seconds: number) => {
