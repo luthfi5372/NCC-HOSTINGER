@@ -42,7 +42,6 @@ export default function IntegratedLLMSDashboard() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingSession, setDeletingSession] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   const openEditModal = (session: any) => {
     setEditingSession({ ...session });
@@ -69,12 +68,11 @@ export default function IntegratedLLMSDashboard() {
 
   const openDeleteModal = (session: any) => {
     setDeletingSession(session);
-    setDeleteConfirmText('');
     setShowDeleteModal(true);
   };
 
   const handleDeleteSession = async () => {
-    if (!deletingSession || deleteConfirmText !== 'HAPUS') return;
+    if (!deletingSession) return;
     setIsDeleting(true);
     try {
       // Hapus cascade: attempts → questions → exam
@@ -590,19 +588,6 @@ export default function IntegratedLLMSDashboard() {
                 </ul>
               </div>
 
-              <div className="w-full mt-5 space-y-1.5">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                  Ketik <span className="text-rose-600">HAPUS</span> untuk konfirmasi
-                </label>
-                <input
-                  type="text"
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
-                  placeholder="HAPUS"
-                  className="w-full bg-gray-50 border-2 border-gray-200 focus:border-rose-400 rounded-2xl px-5 py-3.5 text-sm font-black text-gray-700 outline-none text-center tracking-widest transition-all"
-                />
-              </div>
-
               <div className="flex gap-3 w-full mt-6">
                 <button
                   onClick={() => { setShowDeleteModal(false); setDeletingSession(null); }}
@@ -613,7 +598,7 @@ export default function IntegratedLLMSDashboard() {
                 </button>
                 <button
                   onClick={handleDeleteSession}
-                  disabled={isDeleting || deleteConfirmText !== 'HAPUS'}
+                  disabled={isDeleting}
                   className="flex-1 py-4 bg-rose-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
