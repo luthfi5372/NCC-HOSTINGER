@@ -32,8 +32,15 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [examInfo, setExamInfo] = useState({ title: 'Memuat Ruangan...', token: '' });
 
   const fetchCCTVData = async () => {
+    const loadTitle = async () => {
+      const { data } = await supabase.from('cbt_exams').select('title, token').eq('id', examId).single();
+      if (data) setExamInfo(data);
+    };
+    loadTitle();
+
     setIsRefreshing(true);
     try {
       const { data } = await supabase
@@ -177,8 +184,10 @@ export default function LiveMonitor({ params }: { params: { exam_id: string } })
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div>
-              <h1 className="text-lg font-black text-gray-900 tracking-tight leading-none">Live Monitor CCTV</h1>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">NCC 13th · Sistem Pengawasan Real-Time</p>
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight">CCTV: {examInfo.title}</h1>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                Sesi aktif dengan TOKEN: <span className="text-[#5145cd] font-black">{examInfo.token}</span>
+              </p>
             </div>
           </div>
 

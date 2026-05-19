@@ -1,24 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { 
-  Clock, 
-  AlertTriangle, 
-  CheckCircle2,
-  Menu,
-  Send,
-  ShieldAlert,
-  Lock,
-  X,
-  Bell
-} from 'lucide-react';
+  ClockIcon, 
+  ExclamationTriangleIcon, 
+  CheckCircleIcon,
+  Bars3Icon,
+  PaperAirplaneIcon,
+  ShieldExclamationIcon,
+  LockClosedIcon
+} from '@heroicons/react/24/outline';
 
 export default function ExamRoom({ params }: { params: { exam_id: string } }) {
   const examId = params.exam_id;
   const router = useRouter();
-  const supabase = createClient();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   const [student, setStudent] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -31,14 +31,6 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
   const [showCheatWarning, setShowCheatWarning] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
-  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [showSubmitSuccess, setShowSubmitSuccess] = useState(false);
-  const [finalScore, setFinalScore] = useState(0);
-  const [isAlreadySubmitted, setIsAlreadySubmitted] = useState(false);
-  const [savedScore, setSavedScore] = useState(0);
-  const [isSessionClosed, setIsSessionClosed] = useState(false);
-  // Broadcast toasts dari panitia
-  const [activeToasts, setActiveToasts] = useState<Array<{id: string; message: string; type: string}>>([]);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('ncc_user');
@@ -51,50 +43,31 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
 
     const loadExamData = async () => {
       try {
-        // Ambil data sesi + status aktif
-        const { data: examData } = await supabase.from('cbt_exams')
-          .select('duration, duration_minutes, is_active')
-          .eq('id', examId)
-          .single();
+        // 1. Ambil durasi
+        const { data: examData } = await supabase.from('cbt_exams').select('duration').eq('id', examId).maybeSingle();
+        if (examData?.duration) setTimeLeft(examData.duration * 60);
 
-        // 🔒 Jika sesi dinonaktifkan panitia → blokir masuk
-        if (examData && examData.is_active === false) {
-          setIsSessionClosed(true);
-          setLoading(false);
-          return;
-        }
-
-        if (examData?.duration || examData?.duration_minutes) {
-          setTimeLeft((examData.duration || examData.duration_minutes) * 60);
-        }
-
-        // Tambahkan filter dinamis (neq timestamp) untuk memaksa browser bypass cache
-        const { data: qData } = await supabase.from('cbt_questions').select('*').eq('exam_id', examId).neq('created_at', new Date().toISOString());
-        if (qData) {
+        // 2. Ambil soal
+        const { data: qData, error: qErr } = await supabase.from('cbt_questions').select('*').eq('exam_id', examId);
+        if (qErr) console.error("Error ambil soal:", qErr);
+        if (qData && qData.length > 0) {
           const shuffled = qData.sort(() => 0.5 - Math.random());
           setQuestions(shuffled);
         }
 
         const userId = parsedUser.nisn || parsedUser.username;
 
-        // 🔥 LOGIKA SAPU JAGAT: Cek manual, lalu update atau insert paksa
-        const { data: existingUser } = await supabase
+        // 3. 🔥 KUNCI SOLUSI: Gunakan maybeSingle() agar tidak crash saat peserta baru pertama masuk
+        const { data: existingUser, error: checkErr } = await supabase
           .from('cbt_attempts')
           .select('*')
           .eq('user_id', userId)
           .eq('exam_id', examId)
-          .single();
+          .maybeSingle();
+
+        if (checkErr) console.error("Error cek user:", checkErr);
 
         if (existingUser) {
-          // ✅ CEK: Sudah submit sebelumnya → BLOKIR masuk lagi
-          if (existingUser.submitted_at) {
-            setSavedScore(existingUser.current_score ?? 0);
-            setIsAlreadySubmitted(true);
-            setLoading(false);
-            return;
-          }
-
-          // Belum submit → update exam_id dan timestamp
           setViolationCount(existingUser.violations_count || 0);
           if ((existingUser.violations_count || 0) >= 3) setIsBlocked(true);
 
@@ -102,18 +75,17 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
             updated_at: new Date().toISOString() 
           }).eq('user_id', userId).eq('exam_id', examId);
         } else {
-          // Belum ada → paksa insert baru
           const { error: insertErr } = await supabase.from('cbt_attempts').insert({ 
             user_id: userId, 
             exam_id: examId, 
             violations_count: 0,
             updated_at: new Date().toISOString() 
           });
-          if (insertErr) console.error('[CCTV] Gagal insert peserta:', insertErr.message);
+          if (insertErr) console.error("Gagal buat CCTV:", insertErr);
         }
 
-      } catch (err) {
-        console.error("Gagal memuat data ujian:", err);
+      } catch (err: any) {
+        console.error("CRASH SISTEM:", err);
       } finally {
         setLoading(false);
       }
@@ -127,7 +99,7 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
     return () => clearInterval(timer);
   }, [loading, timeLeft, isBlocked]);
 
-  // PROTOKOL ANTI-CHEAT (THREE STRIKES)
+  // PROTOKOL ANTI-CHEAT
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.hidden && student && !isBlocked) {
@@ -150,14 +122,12 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [student, violationCount, isBlocked]);
+  }, [student, violationCount, isBlocked, examId]);
 
   const handleSelectOption = async (questionId: string, option: string) => {
     const newAnswers = { ...answers, [questionId]: option };
     setAnswers(newAnswers);
     if (doubtfulAnswers[questionId]) setDoubtfulAnswers(prev => ({ ...prev, [questionId]: false }));
-
-    // 🔥 Sync jawaban lengkap ke cloud setiap kali peserta memilih opsi
     const userId = student?.nisn || student?.username;
     if (userId) {
       await supabase.from('cbt_attempts').update({ 
@@ -174,44 +144,18 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
   };
 
   const handleSubmitExam = async () => {
+    const confirmSubmit = confirm("Apakah Anda yakin ingin menyelesaikan ujian? Anda tidak bisa kembali setelah ini.");
+    if (!confirmSubmit) return;
+
+    setLoading(true);
     const userId = student?.nisn || student?.username;
-
-    // Ambil konfigurasi poin dari cbt_exams
-    let correctPt = 1, penaltyPt = 0, emptyPt = 0;
-    const { data: examConfig } = await supabase
-      .from('cbt_exams')
-      .select('correct_point, penalty_point, empty_point')
-      .eq('id', examId)
-      .single();
-    if (examConfig) {
-      correctPt = examConfig.correct_point ?? 1;
-      penaltyPt = examConfig.penalty_point ?? 0;
-      emptyPt = examConfig.empty_point ?? 0;
-    }
-
-    // Hitung skor berdasarkan konfigurasi dari schedule
-    let score = 0;
-    questions.forEach(q => {
-      const jawaban = answers[q.id];
-      const kunci = q.correct_answer || q.answer;
-      if (!jawaban) {
-        score += emptyPt;
-      } else if (kunci && jawaban.toUpperCase() === kunci.toUpperCase()) {
-        score += correctPt;
-      } else {
-        score -= penaltyPt;
-      }
-    });
-
-    setFinalScore(score);
     await supabase.from('cbt_attempts').update({
       submitted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      current_score: score
+      updated_at: new Date().toISOString()
     }).eq('user_id', userId).eq('exam_id', examId);
 
-    setShowSubmitConfirm(false);
-    setShowSubmitSuccess(true);
+    alert("Ujian Selesai! Jawaban berhasil diamankan di cloud.");
+    router.push('/ujian/dashboard');
   };
 
   const formatTime = (seconds: number) => {
@@ -220,21 +164,6 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
     return `${m}:${s}`;
   };
 
-  // 📡 LISTENER BROADCAST dari panitia — hanya aktif saat peserta mengerjakan soal
-  useEffect(() => {
-    if (loading) return;
-    const channel = supabase
-      .channel('exam-live-announcements')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'announcements' }, (payload) => {
-        const ann = payload.new as any;
-        const toastId = String(ann.id || Date.now());
-        setActiveToasts(prev => [...prev, { id: toastId, message: ann.message, type: ann.type || 'info' }]);
-        // Auto-dismiss 15 detik
-        setTimeout(() => setActiveToasts(prev => prev.filter(t => t.id !== toastId)), 15000);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [loading]);
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f4f7fe] flex flex-col items-center justify-center">
@@ -244,35 +173,12 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
     );
   }
 
-  // 🔒 Sesi dinonaktifkan panitia
-  if (isSessionClosed) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 font-sans">
-        <div className="bg-white max-w-sm w-full rounded-[40px] p-10 text-center shadow-2xl">
-          <div className="w-24 h-24 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Lock className="w-12 h-12" />
-          </div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight mb-2">SESI DITUTUP</h1>
-          <p className="text-sm font-bold text-gray-500 leading-relaxed">
-            Sesi ujian ini sedang <span className="font-black text-slate-700">dinonaktifkan</span> oleh panitia.
-          </p>
-          <div className="mt-5 p-4 bg-amber-50 border border-amber-100 rounded-2xl">
-            <p className="text-xs font-bold text-amber-700">⏳ Harap tunggu atau hubungi pengawas untuk info lebih lanjut.</p>
-          </div>
-          <button onClick={() => window.location.reload()} className="w-full mt-6 py-4 bg-[#5145cd] hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all">
-            🔄 Cek Ulang Status
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (isBlocked) {
     return (
       <div className="min-h-screen bg-rose-50 flex items-center justify-center p-6 font-sans">
         <div className="bg-white max-w-lg w-full rounded-[40px] p-10 text-center shadow-2xl border border-rose-100">
           <div className="w-24 h-24 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Lock className="w-12 h-12" />
+            <LockClosedIcon className="w-12 h-12" />
           </div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight mb-2">SESI UJIAN DIBLOKIR</h1>
           <p className="text-sm font-bold text-gray-500 mb-8 leading-relaxed">
@@ -291,123 +197,16 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
     );
   }
 
-  // 🔒 Layar penjaga: sudah submit sebelumnya
-  if (isAlreadySubmitted) {
-    return (
-      <div className="min-h-screen bg-emerald-50 flex items-center justify-center p-6 font-sans">
-        <div className="bg-white max-w-sm w-full rounded-[40px] p-10 text-center shadow-2xl border border-emerald-100">
-          <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 relative">
-            <CheckCircle2 className="w-12 h-12" />
-            <div className="absolute inset-0 rounded-full border-4 border-emerald-200 animate-ping opacity-30" />
-          </div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight mb-2">UJIAN SUDAH SELESAI</h1>
-          <p className="text-sm font-bold text-gray-500 leading-relaxed">
-            Kamu sudah mengumpulkan jawaban sebelumnya. Jawaban tidak bisa dikumpulkan dua kali.
-          </p>
-          <div className="mt-6 p-5 bg-gradient-to-br from-[#5145cd] to-indigo-400 rounded-2xl text-white">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Skor Kamu</p>
-            <p className="text-5xl font-black mt-1">{savedScore}</p>
-            <p className="text-xs font-bold opacity-70 mt-1">poin</p>
-          </div>
-          <p className="text-[10px] text-gray-400 font-bold mt-4">Hubungi panitia jika ada kesalahan.</p>
-          <button onClick={() => router.push('/ujian/dashboard')} className="w-full mt-5 py-4 bg-gray-900 hover:bg-black text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all">
-            Kembali ke Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const currentQ = questions[currentIndex];
 
   return (
     <div className="min-h-screen bg-[#f4f7fe] font-sans text-gray-800 select-none pb-10 relative">
-
-      {/* ===== FLOATING TOAST BROADCAST PANITIA ===== */}
-      <div className="fixed top-4 right-4 z-[500] space-y-3 max-w-sm w-full pointer-events-none">
-        {activeToasts.map(toast => {
-          const isWarning = toast.type === 'warning';
-          const isDanger = toast.type === 'danger';
-          return (
-            <div key={toast.id} className={`pointer-events-auto w-full rounded-2xl shadow-2xl border p-4 flex items-start gap-3 animate-in slide-in-from-right duration-300 ${
-              isDanger ? 'bg-rose-600 border-rose-700 text-white shadow-rose-200' :
-              isWarning ? 'bg-amber-500 border-amber-600 text-white shadow-amber-200' :
-              'bg-[#5145cd] border-indigo-700 text-white shadow-indigo-200'
-            }`}>
-              <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                {isDanger ? <ShieldAlert className="w-4 h-4" /> : isWarning ? <AlertTriangle className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[9px] font-black uppercase tracking-widest opacity-80 mb-1">
-                  📢 {isDanger ? 'DARURAT' : isWarning ? 'PERINGATAN' : 'INFO PANITIA'}
-                </p>
-                <p className="text-sm font-bold leading-snug">{toast.message}</p>
-              </div>
-              <button
-                onClick={() => setActiveToasts(prev => prev.filter(t => t.id !== toast.id))}
-                className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center flex-shrink-0 transition-all"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ===== MODAL KONFIRMASI SUBMIT ===== */}
-      {showSubmitConfirm && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4">
-          <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl text-center">
-            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Send className="w-10 h-10 text-emerald-500" />
-            </div>
-            <h2 className="text-xl font-black text-gray-900 tracking-tight">Kirim Jawaban?</h2>
-            <p className="text-sm text-gray-500 font-medium mt-2 leading-relaxed">
-              Setelah ujian diselesaikan, <span className="font-black text-gray-800">kamu tidak bisa kembali</span> ke soal-soal.
-            </p>
-            <div className="mt-5 p-3 bg-indigo-50 rounded-2xl text-xs font-bold text-indigo-600">
-              📋 {Object.keys(answers).length} dari {questions.length} soal telah dijawab
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowSubmitConfirm(false)} className="flex-1 py-3.5 bg-gray-100 text-gray-700 font-black text-xs uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all">
-                Batal
-              </button>
-              <button onClick={handleSubmitExam} className="flex-1 py-3.5 bg-emerald-500 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100">
-                Ya, Kirim!
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===== LAYAR SUKSES SUBMIT ===== */}
-      {showSubmitSuccess && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-emerald-900/80 backdrop-blur-md p-4">
-          <div className="bg-white rounded-[40px] p-10 max-w-sm w-full shadow-2xl text-center">
-            <div className="w-28 h-28 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner relative">
-              <CheckCircle2 className="w-16 h-16 text-emerald-500" />
-              <div className="absolute inset-0 rounded-full border-4 border-emerald-200 animate-ping opacity-40" />
-            </div>
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Selesai! 🎉</h2>
-            <p className="text-sm text-gray-400 font-bold mt-2">Jawaban berhasil dikumpulkan</p>
-            <div className="mt-6 p-5 bg-gradient-to-br from-[#5145cd] to-indigo-400 rounded-2xl text-white">
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Skor Kamu</p>
-              <p className="text-5xl font-black mt-1">{finalScore}</p>
-              <p className="text-xs font-bold opacity-70 mt-1">dari {questions.length} soal</p>
-            </div>
-            <button onClick={() => router.push('/ujian/dashboard')} className="w-full mt-6 py-4 bg-gray-900 hover:bg-black text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all">
-              Kembali ke Dashboard
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL PERINGATAN KECURANGAN */}
+      
       {showCheatWarning && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[32px] p-8 md:p-10 max-w-md w-full shadow-2xl border-4 border-rose-500 text-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] p-8 md:p-10 max-w-md w-full shadow-2xl border-4 border-rose-500 text-center transform scale-100 animate-in zoom-in duration-300">
             <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-              <ShieldAlert className="w-14 h-14 text-rose-500 animate-pulse" />
+              <ShieldExclamationIcon className="w-14 h-14 text-rose-500 animate-pulse" />
             </div>
             <h2 className="text-2xl font-black text-gray-900 tracking-tight">PELANGGARAN TERDETEKSI</h2>
             <p className="text-sm font-bold text-gray-500 mt-3 leading-relaxed">
@@ -427,7 +226,6 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
         </div>
       )}
 
-      {/* TOP HEADER */}
       <header className="bg-white px-6 py-4 flex items-center justify-between border-b border-gray-100 sticky top-0 z-20 shadow-sm">
         <div className="flex items-center space-x-4">
           <div className="w-10 h-10 bg-[#5145cd] text-white rounded-xl flex items-center justify-center font-black text-lg shadow-inner">N</div>
@@ -439,35 +237,29 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
 
         <div className="flex items-center space-x-4 md:space-x-8">
           <div className="flex items-center px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-full">
-            <Clock className={`w-5 h-5 mr-2 ${timeLeft < 300 ? 'text-rose-500 animate-pulse' : 'text-[#5145cd]'}`} />
+            <ClockIcon className={`w-5 h-5 mr-2 ${timeLeft < 300 ? 'text-rose-500 animate-pulse' : 'text-[#5145cd]'}`} />
             <span className={`font-mono font-black text-lg tracking-widest ${timeLeft < 300 ? 'text-rose-600' : 'text-[#5145cd]'}`}>
               {formatTime(timeLeft)}
             </span>
           </div>
-          <button onClick={() => setShowSubmitConfirm(true)} className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center">
-            <CheckCircle2 className="w-4 h-4 mr-2" /> Selesai
+          <button onClick={handleSubmitExam} className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center">
+            <CheckCircleIcon className="w-4 h-4 mr-2" /> Selesai
           </button>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 relative z-10">
-        
-        {/* AREA SOAL UTAMA */}
         <div className="lg:col-span-3 space-y-4">
           {questions.length === 0 ? (
             <div className="bg-white p-10 rounded-[32px] text-center border border-gray-100 shadow-sm">
-              <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto mb-3" />
+              <ExclamationTriangleIcon className="w-12 h-12 text-amber-400 mx-auto mb-3" />
               <h2 className="text-lg font-black text-gray-800">Bank Soal Kosong</h2>
-              <p className="text-sm text-gray-500 mt-2">Panitia belum memasukkan soal ke dalam sistem. Silakan lapor pengawas.</p>
             </div>
           ) : (
             <div className="bg-white p-6 md:p-10 rounded-[32px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] min-h-[500px] flex flex-col relative">
               <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
                  <span className="px-4 py-1.5 bg-gray-100 text-gray-600 rounded-full text-xs font-black tracking-widest">
                    SOAL NO. {currentIndex + 1}
-                 </span>
-                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center">
-                   <CheckCircle2 className="w-4 h-4 text-emerald-500 mr-1" /> Auto-Save Aktif
                  </span>
               </div>
 
@@ -500,10 +292,9 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
                     })
                   ) : (
                     <div className="w-full p-5 bg-amber-50 border-2 border-amber-200 border-dashed rounded-2xl flex items-center text-amber-600">
-                      <AlertTriangle className="w-6 h-6 mr-3 flex-shrink-0" />
+                      <ExclamationTriangleIcon className="w-6 h-6 mr-3 flex-shrink-0" />
                       <div>
                         <p className="text-xs font-black uppercase tracking-widest">Opsi Kosong</p>
-                        <p className="text-[10px] font-bold mt-0.5">Data JSON opsi belum diinput panitia.</p>
                       </div>
                     </div>
                   )}
@@ -519,8 +310,8 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
                   <span className="text-xs font-black text-amber-600 uppercase tracking-widest">Ragu - Ragu</span>
                 </label>
                 {currentIndex === questions.length - 1 ? (
-                  <button onClick={() => setShowSubmitConfirm(true)} className="w-full md:w-auto px-6 py-3 bg-emerald-500 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-emerald-600 transition-all shadow-md shadow-emerald-200 flex items-center justify-center">
-                    Kirim & Selesai <Send className="w-4 h-4 ml-2" />
+                  <button onClick={handleSubmitExam} className="w-full md:w-auto px-6 py-3 bg-emerald-500 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-emerald-600 transition-all shadow-md shadow-emerald-200 flex items-center justify-center">
+                    Kirim & Selesai <PaperAirplaneIcon className="w-4 h-4 ml-2" />
                   </button>
                 ) : (
                   <button onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))} className="w-full md:w-auto px-6 py-3 bg-[#5145cd] text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-[#3d32a8] transition-all shadow-md shadow-indigo-200">
@@ -532,11 +323,10 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
           )}
         </div>
 
-        {/* SIDEBAR PETA SOAL */}
         <div className="lg:col-span-1">
           <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] sticky top-24">
             <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest mb-4 flex items-center">
-              <Menu className="w-5 h-5 mr-2" /> Peta Soal
+              <Bars3Icon className="w-5 h-5 mr-2" /> Peta Soal
             </h3>
             <div className="grid grid-cols-5 gap-2">
               {questions.map((q, idx) => {
@@ -556,14 +346,8 @@ export default function ExamRoom({ params }: { params: { exam_id: string } }) {
                 );
               })}
             </div>
-            <div className="mt-6 pt-4 border-t border-gray-50 space-y-2.5">
-               <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest"><div className="w-3.5 h-3.5 bg-[#5145cd] rounded-[4px] mr-2 shadow-sm"></div> Telah Dijawab</div>
-               <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest"><div className="w-3.5 h-3.5 bg-amber-400 rounded-[4px] mr-2 shadow-sm"></div> Ragu - Ragu</div>
-               <div className="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest"><div className="w-3.5 h-3.5 bg-gray-100 border border-gray-200 rounded-[4px] mr-2"></div> Belum Dijawab</div>
-            </div>
           </div>
         </div>
-
       </div>
     </div>
   );
