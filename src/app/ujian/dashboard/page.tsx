@@ -24,6 +24,7 @@ export default function StudentDashboard() {
   const [examDetail, setExamDetail] = useState<any>(null);
   const [questionCount, setQuestionCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDone, setIsDone] = useState(false);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('ncc_user');
@@ -57,6 +58,18 @@ export default function StudentDashboard() {
             exam_id: parsedUser.active_exam_id,
             updated_at: new Date().toISOString()
           }, { onConflict: 'user_id' });
+
+          // 🔥 CEK APAKAH PESERTA SUDAH SELESAI UJIAN
+          const { data: attemptData } = await supabase
+            .from('cbt_attempts')
+            .select('submitted_at')
+            .eq('user_id', userId)
+            .eq('exam_id', parsedUser.active_exam_id)
+            .maybeSingle();
+            
+          if (attemptData && attemptData.submitted_at) {
+            setIsDone(true);
+          }
         }
         setLoading(false);
       };
@@ -167,18 +180,24 @@ export default function StudentDashboard() {
                 </div>
               )}
 
-              {/* ACTION MULAI UJIAN */}
-              <button
-                onClick={handleStartExam}
-                disabled={!isExamReady}
-                className={`w-full mt-6 py-4 text-xs font-black uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center space-x-2 group
-                  ${isExamReady 
-                    ? 'bg-[#5145cd] hover:bg-[#3d32a8] active:scale-[0.99] text-white shadow-lg shadow-indigo-200' 
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-              >
-                <span>{isExamReady ? 'Masuk Ruang Ujian' : 'Akses Terkunci'}</span>
-                {isExamReady && <ArrowRightIcon className="w-4 h-4 transition-transform group-hover:translate-x-1" />}
-              </button>
+              {/* JIKA SUDAH SELESAI, TAMPILKAN BADGE HIJAU. JIKA BELUM, TAMPILKAN TOMBOL MASUK */}
+              {isDone ? (
+                <div className="mt-6 py-4 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-2xl flex items-center justify-center font-black text-xs uppercase tracking-widest shadow-sm">
+                  <ShieldCheckIcon className="w-5 h-5 mr-2" /> Ujian Telah Diselesaikan
+                </div>
+              ) : (
+                <button
+                  onClick={handleStartExam}
+                  disabled={!isExamReady}
+                  className={`w-full mt-6 py-4 text-xs font-black uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center space-x-2 group
+                    ${isExamReady 
+                      ? 'bg-[#5145cd] hover:bg-[#3d32a8] active:scale-[0.99] text-white shadow-lg shadow-indigo-200' 
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                >
+                  <span>{isExamReady ? 'Masuk Ruang Ujian' : 'Akses Terkunci'}</span>
+                  {isExamReady && <ArrowRightIcon className="w-4 h-4 transition-transform group-hover:translate-x-1" />}
+                </button>
+              )}
             </div>
 
             {/* ATURAN */}
