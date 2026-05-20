@@ -146,12 +146,23 @@ export default function UserDashboard() {
         const { data: announcementsData } = await supabase
           .from('announcements')
           .select('*')
-          .or(`target_audience.eq.All,target_audience.eq.${userStatus},target_audience.eq.specific`)
           .order('created_at', { ascending: false });
 
-        // Filter: hapus pengumuman sistem, dan untuk pengumuman 'specific', cek apakah user.id ada di content JSON
+        // Filter client-side: hapus pengumuman sistem, dan filter berdasarkan target
         const filteredAnnouncements = (announcementsData || []).filter((item: any) => {
+          // Hapus data sistem internal
           if (item.title === 'SYS_PORTAL_SETTINGS' || item.title === 'SYSTEM_TIMELINE_CONFIG') return false;
+          
+          // Jika target_audience kosong/null, tampilkan (broadcast LLMS lama)
+          if (!item.target_audience) return true;
+          
+          // Jika target semua orang
+          if (item.target_audience === 'All') return true;
+          
+          // Jika target berdasarkan status user (Verified/Pending)
+          if (item.target_audience === userStatus) return true;
+          
+          // Jika target spesifik, cek apakah user.id ada di content JSON
           if (item.target_audience === 'specific') {
             try {
               const parsed = JSON.parse(item.content);
@@ -160,7 +171,7 @@ export default function UserDashboard() {
               return false;
             }
           }
-          return true;
+          return false;
         });
         setAnnouncements(filteredAnnouncements);
         
