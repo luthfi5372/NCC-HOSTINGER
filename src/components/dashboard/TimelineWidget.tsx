@@ -75,9 +75,10 @@ interface TimelineProps {
   userStatus?: string;
   notes?: string;
   globalTimeline?: any[];
+  portalWaves?: any[];
 }
 
-export default function TimelineWidget({ userCategory, userStatus, notes, globalTimeline }: TimelineProps) {
+export default function TimelineWidget({ userCategory, userStatus, notes, globalTimeline, portalWaves }: TimelineProps) {
   // --- STATE LOADING INTERNAL ---
   const [isInitializing, setIsInitializing] = React.useState(true);
   
@@ -122,17 +123,29 @@ export default function TimelineWidget({ userCategory, userStatus, notes, global
     ? globalTimeline.map(cat => ({
         category: cat.category,
         color: getCategoryColor(cat.category),
-        waves: cat.waves.map((wave: any) => ({
-          label: wave.label,
-          active: true,
-          items: wave.items.map((item: any) => ({
-            icon: getIcon(item.label),
-            label: item.label,
-            start: item.start || "",
-            end: item.end || "",
-            date: item.date || ""
-          }))
-        }))
+        waves: cat.waves.map((wave: any) => {
+          // Cari wave yang cocok di portalWaves (misal wave.label berisi 'I' cocok dengan Gelombang 1)
+          const isGel1 = wave.label.includes('I') && !wave.label.includes('II');
+          const matchedPortalWave = portalWaves && portalWaves.length > 0
+            ? portalWaves.find((w: any) => isGel1 ? w.name.includes('1') : w.name.includes('2'))
+            : null;
+          // Set active jika statusnya 'Aktif' di admin panel
+          const isActive = matchedPortalWave 
+            ? matchedPortalWave.status === 'Aktif'
+            : true; // default fallback ke true jika tidak ditemukan
+
+          return {
+            label: wave.label,
+            active: isActive,
+            items: wave.items.map((item: any) => ({
+              icon: getIcon(item.label),
+              label: item.label,
+              start: item.start || "",
+              end: item.end || "",
+              date: item.date || ""
+            }))
+          };
+        })
       }))
     : TIMELINE_DATA;
 

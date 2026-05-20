@@ -20,7 +20,8 @@ export default function UserDashboard() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userEntry, setUserEntry] = useState<any>(null);
-  const [globalTimeline, setGlobalTimeline] = useState<any[]>([]);
+   const [globalTimeline, setGlobalTimeline] = useState<any[]>([]);
+  const [portalWaves, setPortalWaves] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const router = useRouter();
 
@@ -119,6 +120,7 @@ export default function UserDashboard() {
         if (portalData && portalData.content) {
           try {
             const parsed = JSON.parse(portalData.content);
+            if (parsed.waves) setPortalWaves(parsed.waves);
             const userCategory = entry?.competition_type; 
             
             let matchingKeyPrefix = "";
@@ -208,12 +210,12 @@ export default function UserDashboard() {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'announcements'
         },
         (payload) => {
-          const updated = payload.new as any;
+          const updated = (payload.new || payload.old) as any;
           if (updated.title === 'SYSTEM_TIMELINE_CONFIG') {
             try {
               setGlobalTimeline(JSON.parse(updated.content));
@@ -222,6 +224,7 @@ export default function UserDashboard() {
           if (updated.title === 'SYS_PORTAL_SETTINGS') {
             try {
               const parsed = JSON.parse(updated.content);
+              if (parsed.waves) setPortalWaves(parsed.waves);
               // Update status pendaftaran secara real-time
               const userCategory = userEntry?.competition_type; 
               let matchingKeyPrefix = "";
@@ -355,6 +358,7 @@ export default function UserDashboard() {
               userStatus={userEntry?.payment_status}
               notes={userEntry?.notes}
               globalTimeline={globalTimeline}
+              portalWaves={portalWaves}
             />
             
             {/* KARTU AKSES PORTAL UJIAN LLMS (KHUSUS MIPA) */}
