@@ -96,6 +96,12 @@ const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick }
            <div className="text-[11px] text-slate-500 mt-0.5">
              {entry.email || "Email tidak ada"} <span className="mx-1 text-slate-300">|</span> NISN: <span className="font-medium text-slate-600">{entry.nisn || "-"}</span>
            </div>
+           <div className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded border border-indigo-100 w-max mt-1.5 flex items-center gap-1">
+             <span>Login &rarr;</span>
+             <span>U: <span className="font-mono select-all">{entry.email || "-"}</span></span>
+             <span className="text-indigo-300">|</span>
+             <span>P: <span className="font-mono select-all">{entry.nisn || "-"}</span></span>
+           </div>
          </div>
       </td>
       <td className="py-4 px-6">
@@ -1279,7 +1285,7 @@ export default function ModernHQDashboard() {
     if (dataToExport.length === 0) return alert("Tidak ada data peserta terverifikasi untuk di-ekspor.");
 
     // 2. Tentukan Header Kolom
-    const headers = ["ID Tiket", "Nama Lengkap", "Email", "NISN", "Sekolah", "Provinsi", "Kategori", "Pembina", "Waktu Daftar"];
+    const headers = ["ID Tiket", "Nama Lengkap", "Email", "NISN", "Sekolah", "Provinsi", "Kategori", "Pembina", "Waktu Daftar", "Username Login", "Password Login"];
     
     // 3. Susun Baris Data
     const rows = dataToExport.map(e => [
@@ -1291,7 +1297,9 @@ export default function ModernHQDashboard() {
       e.province || e.city || "-",
       e.competition_type || e.category || "-",
       e.mentor_name || "-",
-      new Date(e.created_at).toLocaleString('id-ID')
+      new Date(e.created_at).toLocaleString('id-ID'),
+      e.email || "-",
+      e.nisn || "-"
     ]);
 
     // 4. Gabungkan menjadi format CSV
