@@ -40,7 +40,7 @@ export function useLiveStats() {
       // 1. Fetch from Supabase (Only verified participants)
       const { data: supabaseEntries, error } = await supabase
         .from("competition_entries")
-        .select("category, city, province, payment_status");
+        .select("category, competition_type, city, province, payment_status");
 
       if (error) console.warn("Supabase stats fetch error:", error);
 
@@ -53,17 +53,27 @@ export function useLiveStats() {
       const activeProvinces = new Set<string>();
 
       allEntries.forEach(entry => {
-        if ((breakdown as any)[entry.category] !== undefined) (breakdown as any)[entry.category]++;
+        // Normalisasi Kategori Bidang Lomba
+        let cat = (entry.competition_type || entry.category || "")?.trim();
+        if (cat === "MTQ") cat = "MTQ Nasional";
+        if (cat === "LKTI") cat = "LKTI Nasional";
+        if (cat === "MIPA") cat = "Olimpiade MIPA";
+
+        if ((breakdown as any)[cat] !== undefined) (breakdown as any)[cat]++;
         
         // Normalisasi Nama Provinsi agar sinkron dengan ID Map
         let prov = (entry.province || entry.city)?.toUpperCase()?.trim();
         
         if (prov) {
-          // Fallback mapping untuk variasi nama
-          if (prov === "DAERAH ISTIMEWA YOGYAKARTA") prov = "DI YOGYAKARTA";
+          // Fallback mapping untuk variasi nama provinsi ke ID Map D3
+          if (prov === "ACEH") prov = "DI. ACEH";
+          if (prov === "DI YOGYAKARTA" || prov === "YOGYAKARTA") prov = "DAERAH ISTIMEWA YOGYAKARTA";
           if (prov === "KEPULAUAN BANGKA BELITUNG") prov = "BANGKA BELITUNG";
-          if (prov === "PROVINSI BANTEN") prov = "PROBANTEN";
-          if (prov === "BANTEN") prov = "PROBANTEN";
+          if (prov === "PROVINSI BANTEN" || prov === "BANTEN") prov = "PROBANTEN";
+          if (prov === "NUSA TENGGARA BARAT") prov = "NUSATENGGARA BARAT";
+          if (prov === "PAPUA BARAT" || prov === "PAPUA BARAT DAYA") prov = "IRIAN JAYA BARAT";
+          if (prov === "PAPUA TENGAH" || prov === "PAPUA PEGUNUNGAN") prov = "IRIAN JAYA TENGAH";
+          if (prov === "PAPUA" || prov === "PAPUA SELATAN") prov = "IRIAN JAYA TIMUR";
           
           activeProvinces.add(prov);
           detailedStats[prov] = (detailedStats[prov] || 0) + 1;

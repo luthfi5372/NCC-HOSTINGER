@@ -41,6 +41,13 @@ export default function ExamRoom() {
     // 🔥 PENCEGAHAN ERROR: Jangan jalankan query jika ID ujian masih "undefined"
     if (!examId || examId === 'undefined') return;
 
+    // 🔥 PENGUNCI INSTAN LOKAL: Deteksi cache lokal pengerjaan selesai sebelum panggil jaringan
+    const isLocalSubmitted = localStorage.getItem(`cbt_submitted_${examId}`) === 'true';
+    if (isLocalSubmitted) {
+      router.replace('/ujian/dashboard');
+      return;
+    }
+
     const savedUser = localStorage.getItem('ncc_user');
     if (!savedUser) {
       router.push('/ujian/login');
@@ -82,6 +89,18 @@ export default function ExamRoom() {
           .maybeSingle();
 
         if (existingUser) {
+          // 🔥 PROTOKOL PENGUNCI KETAT: Cek status selesai pengerjaan di database
+          if (existingUser.submitted_at || existingUser.status === 'submitted') {
+            localStorage.setItem(`cbt_submitted_${examId}`, 'true');
+            router.replace('/ujian/dashboard');
+            return; // Hentikan inisialisasi agar UI tetap loading / redirect instan
+          }
+
+          // Restorasi jawaban tersimpan jika terputus/refresh halaman
+          if (existingUser.answers) {
+            setAnswers(existingUser.answers);
+          }
+
           setViolationCount(existingUser.violations_count || 0);
           if ((existingUser.violations_count || 0) >= 3) setIsBlocked(true);
           await supabase.from('cbt_attempts').update({ updated_at: new Date().toISOString() }).eq('user_id', userId).eq('exam_id', examId);
@@ -188,12 +207,16 @@ export default function ExamRoom() {
       if (userId && examId && examId !== 'undefined') {
         const { error } = await supabase.from('cbt_attempts').update({
           submitted_at: new Date().toISOString(),
+          status: 'submitted', // Set status secara eksplisit
           score: finalScore,
           answers: answers, // Kirim juga rekaman jawaban mentah
           updated_at: new Date().toISOString()
         }).eq('user_id', userId).eq('exam_id', examId);
         
         if (error) throw error;
+
+        // Simpan status submit secara lokal agar cepat terdeteksi tanpa kueri jaringan
+        localStorage.setItem(`cbt_submitted_${examId}`, 'true');
       }
 
       // 3. Pemicu Animasi Sukses
@@ -201,7 +224,7 @@ export default function ExamRoom() {
 
       // 4. Jeda 4 detik agar peserta lega, lalu lempar ke Dashboard dengan "Surat Pengantar" (status=success)
       setTimeout(() => {
-        router.push('/ujian/dashboard?status=success'); 
+        router.replace('/ujian/dashboard?status=success'); 
       }, 4000);
     } catch (error: any) {
       alert("GAGAL MENGIRIM DATA: " + error.message);

@@ -11,7 +11,7 @@ import {
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
   Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight, Save,
-  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck, Pencil
+  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck, Pencil, History, MegaphoneOff
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import Papa from "papaparse";
 
 // --- ⚡ COMPONENT SINKRONISASI & OPTIMASI KINERJA TINGGI ---
 
@@ -276,11 +277,25 @@ const VerificationCard = memo(({ entry, onUpdateStatus, onDeleteClick }: Verific
 
 export default function ModernHQDashboard() {
   const router = useRouter();
+  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(true);
   const [realEntries, setRealEntries] = useState<any[]>([]);
   const [dynamicChartData, setDynamicChartData] = useState<any[]>([]);
   const [dynamicBarData, setDynamicBarData] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('Dashboard');
+  
+  // Fitur Tambah Peserta & Import CSV
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [newParticipant, setNewParticipant] = useState({
+    full_name: "", email: "", nisn: "", school_name: "", province: "", city: "",
+    category: "", mentor_name: "", phone_number: ""
+  });
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [activeCsvTab, setActiveCsvTab] = useState<'upload' | 'guide'>('upload');
+  
   const [timelineData, setTimelineData] = useState<any[]>([
     {
       category: "LKTI Nasional",
@@ -429,6 +444,76 @@ export default function ModernHQDashboard() {
   const [broadcastTarget, setBroadcastTarget] = useState("All");
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const [broadcasts, setBroadcasts] = useState<any[]>([]);
+  const [isFetchingBroadcasts, setIsFetchingBroadcasts] = useState(true);
+
+  const fetchBroadcasts = async () => {
+    setIsFetchingBroadcasts(true);
+    try {
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .not('title', 'in', '("SYS_PORTAL_SETTINGS","SYSTEM_TIMELINE_CONFIG")')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBroadcasts(data || []);
+    } catch (err: any) {
+      console.error("Gagal menarik data siaran:", err);
+      showToast(`Gagal memuat riwayat siaran: ${err.message}`, "error");
+    } finally {
+      setIsFetchingBroadcasts(false);
+    }
+  };
+
+  const handleDeleteBroadcast = async (id: any) => {
+    setConfirmModal({
+      show: true,
+      title: "Hapus Siaran Komando",
+      message: "Apakah Anda yakin ingin menghapus pengumuman ini secara permanen dari database? Tindakan ini tidak dapat dibatalkan.",
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, show: false }));
+        try {
+          const { error } = await supabase
+            .from('announcements')
+            .delete()
+            .eq('id', id);
+
+          if (error) throw error;
+
+          showToast("Pengumuman berhasil dihapus!", "success");
+          fetchBroadcasts();
+        } catch (error: any) {
+          showToast(`Gagal menghapus pengumuman: ${error.message}`, "error");
+        }
+      }
+    });
+  };
+
+  const formatBroadcastDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()} • ${hours}:${minutes}`;
+  };
+
+  const getAudienceLabelAndStyle = (target: string) => {
+    switch (target) {
+      case "All":
+        return { label: "Massal", style: "bg-blue-50 text-blue-700 border-blue-200" };
+      case "Verified":
+        return { label: "Lolos (Verified)", style: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+      case "Pending":
+        return { label: "Belum Lolos (Pending)", style: "bg-amber-50 text-amber-700 border-amber-200" };
+      case "specific":
+        return { label: "Spesifik (Manual)", style: "bg-purple-50 text-purple-700 border-purple-200" };
+      default:
+        return { label: target, style: "bg-slate-50 text-slate-700 border-slate-200" };
+    }
+  };
 
 
   // --- FUNGSI FORMAT TANGGAL INDONESIA ---
@@ -591,10 +676,6 @@ export default function ModernHQDashboard() {
       setIsUploadingAsset(null);
     }
   };
-
-
-
-  const supabase = createClient();
 
   // --- 📡 REAL-TIME PORTAL SYNC ENGINE ---
   useEffect(() => {
@@ -913,6 +994,7 @@ export default function ModernHQDashboard() {
       setBroadcastTitle("");
       setBroadcastMessage("");
       setSelectedUserIds([]);
+      fetchBroadcasts();
     } catch (error: any) {
       showToast(`Gagal menyiarkan: ${error.message}`, "error");
     } finally {
@@ -952,6 +1034,114 @@ export default function ModernHQDashboard() {
       console.error("Gagal update tahap:", err);
       showToast("Gagal memperbarui tahap peserta", "error");
     }
+  };
+
+  const handleAddParticipant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAdding(true);
+    try {
+      const entryId = crypto.randomUUID();
+      const insertData = {
+        id: entryId,
+        user_id: crypto.randomUUID(), // fake user_id for manual entry
+        full_name: newParticipant.full_name,
+        email: newParticipant.email,
+        nisn: newParticipant.nisn,
+        school_name: newParticipant.school_name,
+        province: newParticipant.province,
+        city: newParticipant.city,
+        competition_type: newParticipant.category,
+        mentor_name: newParticipant.mentor_name,
+        phone_number: newParticipant.phone_number,
+        payment_status: 'Verified'
+      };
+      
+      const { error } = await supabase.from('competition_entries').insert([insertData]);
+      if (error) throw error;
+      
+      showToast("Peserta berhasil ditambahkan ke Buku Induk!", "success");
+      setShowAddModal(false);
+      setNewParticipant({full_name: "", email: "", nisn: "", school_name: "", province: "", city: "", category: "", mentor_name: "", phone_number: ""});
+      
+      // Refresh Data
+      const { data } = await supabase.from('competition_entries').select('*').neq('email', 'admin1@ncc.id').order('created_at', { ascending: false });
+      if (data) setRealEntries(data);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || "Gagal menambahkan peserta", "error");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      ["nama_lengkap", "email", "nisn", "asal_sekolah", "provinsi", "kota", "kategori_lomba", "nama_pembina", "no_wa"],
+      ["Budi Santoso", "budi@gmail.com", "12345678", "SMA Negeri 1 Jakarta", "DKI Jakarta", "Jakarta Selatan", "LKTI Nasional", "Pak Guru", "08123456789"]
+    ];
+    const csv = Papa.unparse(templateData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "template_data_peserta_ncc.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportCSV = () => {
+    if (!csvFile) return showToast("Silakan pilih file CSV terlebih dahulu", "error");
+    setIsImporting(true);
+    
+    Papa.parse(csvFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const rows = results.data as any[];
+          if (!rows || rows.length === 0) {
+            throw new Error("File CSV kosong atau tidak valid");
+          }
+          
+          const insertArray = rows.map((row) => ({
+            id: crypto.randomUUID(),
+            user_id: crypto.randomUUID(),
+            full_name: row.nama_lengkap || "-",
+            email: row.email || "no-email@ncc.id",
+            nisn: row.nisn || "-",
+            school_name: row.asal_sekolah || "-",
+            province: row.provinsi || "-",
+            city: row.kota || "-",
+            competition_type: row.kategori_lomba || "-",
+            mentor_name: row.nama_pembina || "-",
+            phone_number: row.no_wa || "-",
+            payment_status: 'Verified'
+          }));
+          
+          const { error } = await supabase.from('competition_entries').insert(insertArray);
+          if (error) throw error;
+          
+          showToast(`Berhasil mengimpor ${insertArray.length} peserta!`, "success");
+          setShowImportModal(false);
+          setCsvFile(null);
+          
+          // Refresh Data
+          const { data } = await supabase.from('competition_entries').select('*').neq('email', 'admin1@ncc.id').order('created_at', { ascending: false });
+          if (data) setRealEntries(data);
+        } catch (err: any) {
+          console.error(err);
+          showToast(err.message || "Gagal impor CSV", "error");
+        } finally {
+          setIsImporting(false);
+        }
+      },
+      error: (error: any) => {
+        setIsImporting(false);
+        showToast(`Gagal membaca CSV: ${error.message}`, "error");
+      }
+    });
   };
 
   // --- MESIN PENGUMPUL DATA & RADAR REAL-TIME ---
@@ -1003,6 +1193,7 @@ export default function ModernHQDashboard() {
     // 1. Tarik data saat Markas Besar pertama kali dibuka
     fetchRealData();
     fetchPortalSettings();
+    fetchBroadcasts();
 
     // 2. 📡 AKTIFKAN SENSOR RADAR (Supabase WebSockets)
     const radarSubscription = supabase
@@ -1238,11 +1429,31 @@ export default function ModernHQDashboard() {
             </p>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 shadow-sm cursor-pointer hover:bg-slate-50">
               <Calendar size={16} className="text-slate-400" />
               April 2026
             </div>
+            
+            {activeTab === "Peserta" && (
+              <>
+                <button 
+                  onClick={() => setShowAddModal(true)}
+                  className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shadow-emerald-200 active:scale-95 shrink-0"
+                >
+                  <Users size={16} />
+                  + Tambah Manual
+                </button>
+                <button 
+                  onClick={() => setShowImportModal(true)}
+                  className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md active:scale-95 shrink-0"
+                >
+                  <FileText size={16} />
+                  Import CSV
+                </button>
+              </>
+            )}
+
             <button 
               onClick={handleExportCSV}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shadow-blue-200"
@@ -1348,14 +1559,17 @@ export default function ModernHQDashboard() {
         {activeTab === "Peserta" && (
           <div className="bg-white border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.02)] rounded-2xl overflow-hidden flex flex-col">
             <div className="p-6 border-b border-slate-100">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
                 <div>
                   <h3 className="font-bold text-slate-800">Buku Induk Peserta Resmi</h3>
                   <p className="text-xs text-slate-500 mt-1">Database lengkap peserta terverifikasi NCC 13th.</p>
                 </div>
-                <span className="bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-xs font-bold border border-blue-200 shadow-sm">
-                  Total Tiket Aktif: {realEntries.filter(e => e.payment_status === 'Verified').length}
-                </span>
+                
+                <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-start lg:justify-end">
+                  <span className="bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-xs font-bold border border-blue-200 shadow-sm shrink-0">
+                    Total Tiket Aktif: {realEntries.filter(e => e.payment_status === 'Verified').length}
+                  </span>
+                </div>
               </div>
 
               {/* 🔍 BARIS MESIN PENCARI & FILTER */}
@@ -1497,136 +1711,208 @@ export default function ModernHQDashboard() {
         {/* 🎛️ KONTEN TAB: PENGUMUMAN (BROADCAST CENTER) */}
         {activeTab === "Pengumuman" && (
           <div className="bg-white border border-slate-200/80 shadow-[0_4px_25px_rgba(0,0,0,0.02)] rounded-2xl p-8 md:p-12 min-h-[500px]">
-            <div className="max-w-3xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
-              {/* Header Ruangan */}
-              <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-200/50">
-                <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
-                  <Megaphone size={28} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Pusat Siaran Komando</h2>
-                  <p className="text-slate-500 text-sm mt-1">Transmisikan pemberitahuan ke seluruh atau sebagian peserta.</p>
-                </div>
-              </div>
-
-              {/* Form Pengumuman */}
-              <div className="space-y-6 bg-white/60 p-6 rounded-2xl border border-slate-100 shadow-sm">
+              {/* Kolom Kiri: Form Siaran Baru */}
+              <div className="lg:col-span-7 space-y-6">
                 
-                {/* Opsi Target & Radar */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">Target Penerima</label>
-                    <select 
-                      value={broadcastTarget}
-                      onChange={(e) => {
-                        setBroadcastTarget(e.target.value);
-                        if (e.target.value !== 'specific') setSelectedUserIds([]); 
-                      }}
-                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium text-slate-700 shadow-sm"
-                    >
-                      <option value="All">Semua Peserta (Massal)</option>
-                      <option value="Verified">Hanya Peserta Lolos (Verified)</option>
-                      <option value="Pending">Hanya Peserta Belum Lolos (Pending)</option>
-                      <option value="specific">Peserta Tertentu (Pilih Manual)</option>
-                    </select>
+                {/* Header Ruangan */}
+                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-200/50">
+                  <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
+                    <Megaphone size={28} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Pusat Siaran Komando</h2>
+                    <p className="text-slate-500 text-sm mt-1">Transmisikan pemberitahuan ke seluruh atau sebagian peserta.</p>
+                  </div>
+                </div>
+
+                {/* Form Pengumuman */}
+                <div className="space-y-6 bg-white/60 p-6 rounded-2xl border border-slate-100 shadow-sm">
+                  
+                  {/* Opsi Target & Radar */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">Target Penerima</label>
+                      <select 
+                        value={broadcastTarget}
+                        onChange={(e) => {
+                          setBroadcastTarget(e.target.value);
+                          if (e.target.value !== 'specific') setSelectedUserIds([]); 
+                        }}
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium text-slate-700 shadow-sm"
+                      >
+                        <option value="All">Semua Peserta (Massal)</option>
+                        <option value="Verified">Hanya Peserta Lolos (Verified)</option>
+                        <option value="Pending">Hanya Peserta Belum Lolos (Pending)</option>
+                        <option value="specific">Peserta Tertentu (Pilih Manual)</option>
+                      </select>
+                    </div>
+
+                    {/* Panel Centang Nama (ANTI-CRASH VERSION) */}
+                    {broadcastTarget === 'specific' && (
+                      <div className="mt-2 border border-blue-200 bg-blue-50/50 rounded-xl p-4">
+                        <div className="flex justify-between items-center mb-3">
+                          <label className="text-xs font-bold text-blue-800 uppercase tracking-wider">
+                            Pilih Sasaran ({(selectedUserIds || []).length} Terpilih)
+                          </label>
+                          <button 
+                            onClick={() => {
+                              const entries = realEntries || [];
+                              if ((selectedUserIds || []).length === entries.length && entries.length > 0) {
+                                setSelectedUserIds([]); // Hapus Semua
+                              } else {
+                                setSelectedUserIds(entries.map((e: any) => e.user_id).filter((id: any) => id)); // Pilih Semua
+                              }
+                            }}
+                            className="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-1 rounded hover:bg-blue-200 transition-colors"
+                          >
+                            Pilih Semua / Hapus
+                          </button>
+                        </div>
+
+                        <div className="max-h-48 overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
+                          {(!realEntries || realEntries.length === 0) ? (
+                            <p className="text-xs text-slate-500 text-center py-4">Belum ada data peserta di sistem.</p>
+                          ) : (
+                            realEntries.map((entry: any, idx: number) => {
+                              // Gunakan OR fallback agar aman dari undefined
+                              const currentSelected = selectedUserIds || [];
+                              const isChecked = currentSelected.includes(entry.user_id);
+                              
+                              return (
+                                <label key={entry.id || idx} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all ${isChecked ? 'bg-blue-100/50 border-blue-300' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedUserIds([...currentSelected, entry.user_id]);
+                                      } else {
+                                        setSelectedUserIds(currentSelected.filter((id: any) => id !== entry.user_id));
+                                      }
+                                    }}
+                                    className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                                  />
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-bold text-slate-800">{entry.full_name || entry.email || "Peserta Anonim"}</span>
+                                    <span className="text-[10px] text-slate-500 font-medium">NCC-{entry.id ? generateTicketCode(entry.id) : "-"} • {entry.competition_type || entry.category || "Belum Pilih"}</span>
+                                  </div>
+                                </label>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Panel Centang Nama (ANTI-CRASH VERSION) */}
-                  {broadcastTarget === 'specific' && (
-                    <div className="mt-2 border border-blue-200 bg-blue-50/50 rounded-xl p-4">
-                      <div className="flex justify-between items-center mb-3">
-                        <label className="text-xs font-bold text-blue-800 uppercase tracking-wider">
-                          Pilih Sasaran ({(selectedUserIds || []).length} Terpilih)
-                        </label>
-                        <button 
-                          onClick={() => {
-                            const entries = realEntries || [];
-                            if ((selectedUserIds || []).length === entries.length && entries.length > 0) {
-                              setSelectedUserIds([]); // Hapus Semua
-                            } else {
-                              setSelectedUserIds(entries.map((e: any) => e.user_id).filter((id: any) => id)); // Pilih Semua
-                            }
-                          }}
-                          className="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-1 rounded hover:bg-blue-200 transition-colors"
-                        >
-                          Pilih Semua / Hapus
-                        </button>
-                      </div>
+                  {/* Judul Pesan */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">Subjek / Judul Pengumuman</label>
+                    <input 
+                      type="text" 
+                      value={broadcastTitle}
+                      onChange={(e) => setBroadcastTitle(e.target.value)}
+                      placeholder="Contoh: Perbaikan Bukti Transfer" 
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium text-slate-800 placeholder:text-slate-400 shadow-sm"
+                    />
+                  </div>
 
-                      <div className="max-h-48 overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
-                        {(!realEntries || realEntries.length === 0) ? (
-                          <p className="text-xs text-slate-500 text-center py-4">Belum ada data peserta di sistem.</p>
-                        ) : (
-                          realEntries.map((entry: any, idx: number) => {
-                            // Gunakan OR fallback agar aman dari undefined
-                            const currentSelected = selectedUserIds || [];
-                            const isChecked = currentSelected.includes(entry.user_id);
-                            
-                            return (
-                              <label key={entry.id || idx} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all ${isChecked ? 'bg-blue-100/50 border-blue-300' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
-                                <input 
-                                  type="checkbox" 
-                                  checked={isChecked}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setSelectedUserIds([...currentSelected, entry.user_id]);
-                                    } else {
-                                      setSelectedUserIds(currentSelected.filter((id: any) => id !== entry.user_id));
-                                    }
-                                  }}
-                                  className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-                                />
-                                <div className="flex flex-col">
-                                  <span className="text-sm font-bold text-slate-800">{entry.full_name || entry.email || "Peserta Anonim"}</span>
-                                  <span className="text-[10px] text-slate-500 font-medium">NCC-{entry.id ? generateTicketCode(entry.id) : "-"} • {entry.competition_type || entry.category || "Belum Pilih"}</span>
-                                </div>
-                              </label>
-                            );
-                          })
-                        )}
-                      </div>
+                  {/* Isi Pesan */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">Isi Pesan Siaran</label>
+                    <textarea 
+                      rows={5}
+                      value={broadcastMessage}
+                      onChange={(e) => setBroadcastMessage(e.target.value)}
+                      placeholder="Ketik instruksi atau pengumuman Anda di sini..." 
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-700 placeholder:text-slate-400 leading-relaxed shadow-sm"
+                    ></textarea>
+                  </div>
+
+                  {/* Tombol Eksekusi */}
+                  <button 
+                    onClick={handleSendClick}
+                    disabled={isSending}
+                    className={`w-full mt-4 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/20 active:scale-[0.99]
+                      ${isSending ? 'bg-slate-500 cursor-not-allowed' : 'bg-slate-900 hover:bg-slate-800'}
+                    `}
+                  >
+                    <Send size={18} className={isSending ? 'animate-pulse' : ''} /> 
+                    {isSending ? 'Menyiarkan Pesan...' : 'Siarkan Pesan Sekarang'}
+                  </button>
+
+                </div>
+              </div>
+
+              {/* Kolom Kanan: Riwayat Siaran */}
+              <div className="lg:col-span-5 space-y-6 lg:border-l lg:border-slate-100 lg:pl-8">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                    <History size={20} className="text-slate-500" />
+                    Riwayat Siaran Komando
+                    {broadcasts.length > 0 && (
+                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">
+                        {broadcasts.length}
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-slate-400 text-xs mt-1">Daftar pesan resmi yang telah disiarkan sebelumnya.</p>
+                </div>
+
+                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                  {isFetchingBroadcasts ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-3">
+                      <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-800 rounded-full animate-spin"></div>
+                      <span className="text-xs font-medium">Memuat riwayat siaran...</span>
                     </div>
+                  ) : broadcasts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-slate-400 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                      <MegaphoneOff size={36} className="text-slate-300 mb-3" />
+                      <span className="text-xs font-semibold text-slate-600">Belum Ada Riwayat</span>
+                      <span className="text-[10px] text-slate-400 mt-1">Semua siaran baru akan tercatat di sini.</span>
+                    </div>
+                  ) : (
+                    broadcasts.map((broadcast) => {
+                      const { label, style } = getAudienceLabelAndStyle(broadcast.target_audience);
+                      return (
+                        <div 
+                          key={broadcast.id} 
+                          className="bg-white/80 backdrop-blur-md border border-slate-200/60 p-4 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.01)] hover:shadow-md hover:border-slate-300/80 transition-all duration-300 relative group"
+                        >
+                          <div className="flex justify-between items-start gap-4 mb-2">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${style}`}>
+                              {label}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              {formatBroadcastDate(broadcast.created_at)}
+                            </span>
+                          </div>
+                          
+                          <h4 className="text-sm font-bold text-slate-800 leading-snug pr-8 group-hover:text-blue-600 transition-colors">
+                            {broadcast.title}
+                          </h4>
+                          
+                          <p className="text-slate-600 text-xs mt-1.5 leading-relaxed whitespace-pre-wrap line-clamp-4">
+                            {broadcast.message}
+                          </p>
+
+                          {/* Tombol Hapus */}
+                          <button
+                            onClick={() => handleDeleteBroadcast(broadcast.id)}
+                            className="absolute right-3 top-3 lg:opacity-0 group-hover:opacity-100 transition-opacity p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Hapus Siaran"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
-
-                {/* Judul Pesan */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">Subjek / Judul Pengumuman</label>
-                  <input 
-                    type="text" 
-                    value={broadcastTitle}
-                    onChange={(e) => setBroadcastTitle(e.target.value)}
-                    placeholder="Contoh: Perbaikan Bukti Transfer" 
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium text-slate-800 placeholder:text-slate-400 shadow-sm"
-                  />
-                </div>
-
-                {/* Isi Pesan */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">Isi Pesan Siaran</label>
-                  <textarea 
-                    rows={5}
-                    value={broadcastMessage}
-                    onChange={(e) => setBroadcastMessage(e.target.value)}
-                    placeholder="Ketik instruksi atau pengumuman Anda di sini..." 
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-700 placeholder:text-slate-400 leading-relaxed shadow-sm"
-                  ></textarea>
-                </div>
-
-                {/* Tombol Eksekusi */}
-                <button 
-                  onClick={handleSendClick}
-                  disabled={isSending}
-                  className={`w-full mt-4 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/20 active:scale-[0.99]
-                    ${isSending ? 'bg-slate-500 cursor-not-allowed' : 'bg-slate-900 hover:bg-slate-800'}
-                  `}
-                >
-                  <Send size={18} className={isSending ? 'animate-pulse' : ''} /> 
-                  {isSending ? 'Menyiarkan Pesan...' : 'Siarkan Pesan Sekarang'}
-                </button>
-
               </div>
+
             </div>
           </div>
         )}
@@ -2623,6 +2909,232 @@ export default function ModernHQDashboard() {
             >
               Ya, Hapus Permanen
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* MODAL TAMBAH MANUAL */}
+      <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-300 ${showAddModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => !isAdding && setShowAddModal(false)}></div>
+        <div className={`bg-white rounded-3xl p-6 md:p-8 w-full max-w-2xl relative transition-all duration-500 transform overflow-y-auto max-h-[90vh] ${showAddModal ? 'scale-100 translate-y-0' : 'scale-95 translate-y-8'}`}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <Users className="text-blue-600" size={20} /> Tambah Peserta Manual
+            </h3>
+            <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:bg-slate-100 p-2 rounded-full transition-colors"><X size={20} /></button>
+          </div>
+          
+          <form onSubmit={handleAddParticipant} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Nama Lengkap</label>
+                <input required type="text" value={newParticipant.full_name} onChange={e => setNewParticipant({...newParticipant, full_name: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-slate-50" placeholder="Masukkan nama" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Email</label>
+                <input required type="email" value={newParticipant.email} onChange={e => setNewParticipant({...newParticipant, email: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-slate-50" placeholder="Email aktif" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">NISN</label>
+                <input required type="text" value={newParticipant.nisn} onChange={e => setNewParticipant({...newParticipant, nisn: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-slate-50" placeholder="NISN" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Asal Sekolah</label>
+                <input required type="text" value={newParticipant.school_name} onChange={e => setNewParticipant({...newParticipant, school_name: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-slate-50" placeholder="Nama sekolah" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Provinsi</label>
+                <input required type="text" value={newParticipant.province} onChange={e => setNewParticipant({...newParticipant, province: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-slate-50" placeholder="Provinsi" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Kabupaten/Kota</label>
+                <input required type="text" value={newParticipant.city} onChange={e => setNewParticipant({...newParticipant, city: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-slate-50" placeholder="Kota/Kabupaten" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Kategori Lomba</label>
+                <select required value={newParticipant.category} onChange={e => setNewParticipant({...newParticipant, category: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-slate-50">
+                  <option value="">Pilih Kategori</option>
+                  <option value="Olimpiade MIPA">Olimpiade MIPA</option>
+                  <option value="Speech Contest">Speech Contest</option>
+                  <option value="LKTI Nasional">LKTI Nasional</option>
+                  <option value="MTQ Nasional">MTQ Nasional</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Nama Pembina (Opsional)</label>
+                <input type="text" value={newParticipant.mentor_name} onChange={e => setNewParticipant({...newParticipant, mentor_name: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-slate-50" placeholder="Nama Pembina" />
+              </div>
+            </div>
+            
+            <div className="pt-4">
+              <button disabled={isAdding} type="submit" className={`w-full py-4 rounded-xl font-bold text-white transition-all shadow-md ${isAdding ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 active:scale-95 shadow-blue-200'}`}>
+                {isAdding ? "Menyimpan Data..." : "Tambahkan ke Buku Induk"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* MODAL IMPORT CSV */}
+      <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-300 ${showImportModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => !isImporting && setShowImportModal(false)}></div>
+        <div className={`bg-white rounded-3xl p-6 md:p-8 w-full max-w-2xl relative transition-all duration-500 transform overflow-y-auto max-h-[90vh] ${showImportModal ? 'scale-100 translate-y-0' : 'scale-95 translate-y-8'}`}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <FolderOpen className="text-blue-600" size={20} /> Import Data CSV
+            </h3>
+            <button onClick={() => setShowImportModal(false)} className="text-slate-400 hover:bg-slate-100 p-2 rounded-full transition-colors"><X size={20} /></button>
+          </div>
+
+          {/* Custom Modern Tabs */}
+          <div className="flex border-b border-slate-100 mb-6">
+            <button
+              onClick={() => setActiveCsvTab('upload')}
+              className={`flex-1 pb-3 text-sm font-bold text-center border-b-2 transition-all flex items-center justify-center gap-2 ${
+                activeCsvTab === 'upload'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <FileText size={16} /> Unggah Berkas CSV
+            </button>
+            <button
+              onClick={() => setActiveCsvTab('guide')}
+              className={`flex-1 pb-3 text-sm font-bold text-center border-b-2 transition-all flex items-center justify-center gap-2 ${
+                activeCsvTab === 'guide'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <AlertCircle size={16} /> Panduan Format & Kolom
+            </button>
+          </div>
+          
+          <div className="space-y-6">
+            {activeCsvTab === 'upload' ? (
+              <div className="space-y-6">
+                <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 flex items-start gap-4">
+                  <div className="p-2 bg-blue-100 text-blue-600 rounded-xl shrink-0 mt-0.5">
+                    <AlertCircle size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-blue-800 text-sm">Siap untuk Mengunggah?</h4>
+                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                      Pastikan format kolom berkas CSV Anda sudah sesuai dengan panduan. Jika belum yakin, Anda dapat melihat panduan kolom lengkap di tab sebelah atau mengunduh template resmi di bawah ini.
+                    </p>
+                    <button onClick={handleDownloadTemplate} className="mt-3 flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-3.5 py-1.5 rounded-xl text-xs font-bold border border-blue-200 transition-colors shadow-sm">
+                      <Download size={13} /> Download Template CSV
+                    </button>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-bold text-slate-700 mb-2 block">Unggah File CSV</label>
+                  <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center hover:bg-slate-50 transition-colors relative overflow-hidden">
+                    <input 
+                      type="file" 
+                      accept=".csv" 
+                      onChange={(e) => setCsvFile(e.target.files ? e.target.files[0] : null)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                      id="csv-upload"
+                    />
+                    <div className="pointer-events-none flex flex-col items-center justify-center">
+                      <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3">
+                        <FileText size={24} />
+                      </div>
+                      <span className="font-bold text-slate-700 mb-1">{csvFile ? csvFile.name : "Pilih atau Seret file CSV ke sini"}</span>
+                      <span className="text-xs text-slate-500">Maksimal 1000 baris direkomendasikan per upload</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button disabled={isImporting || !csvFile} onClick={handleImportCSV} className={`w-full py-4 rounded-xl font-bold text-white transition-all shadow-md ${isImporting || !csvFile ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-900 hover:bg-slate-800 active:scale-95 shadow-slate-900/20'}`}>
+                  {isImporting ? "Memproses Import Data..." : "Jalankan Import CSV Sekarang"}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl p-5 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h4 className="font-bold text-base flex items-center gap-2">
+                      <Sparkles size={18} className="text-yellow-300 animate-pulse shrink-0" />
+                      Format Database NCC 13th
+                    </h4>
+                    <p className="text-xs text-blue-100 mt-1 leading-relaxed">
+                      Silakan gunakan tata letak kolom di bawah ini. Unduh template resmi kami untuk kemudahan pengisian data.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDownloadTemplate}
+                    className="shrink-0 flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-4 py-2.5 rounded-xl text-xs font-black border border-transparent shadow-sm transition-all duration-200 active:scale-95"
+                  >
+                    <Download size={14} /> Download Template
+                  </button>
+                </div>
+
+                {/* Table Guideline */}
+                <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto max-h-[350px]">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
+                          <th className="py-3 px-4 text-xs font-black text-slate-500 uppercase tracking-wider bg-slate-50">Kolom (Header)</th>
+                          <th className="py-3 px-4 text-xs font-black text-slate-500 uppercase tracking-wider bg-slate-50">Status</th>
+                          <th className="py-3 px-4 text-xs font-black text-slate-500 uppercase tracking-wider bg-slate-50">Aturan & Contoh</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs">
+                        <tr>
+                          <td className="py-3 px-4 font-mono font-bold text-blue-600">nama_lengkap</td>
+                          <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">Wajib</span></td>
+                          <td className="py-3 px-4 text-slate-600">Nama lengkap peserta (Contoh: <code className="bg-slate-100 px-1 py-0.5 rounded">Budi Santoso</code>)</td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-mono font-bold text-blue-600">email</td>
+                          <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">Wajib</span></td>
+                          <td className="py-3 px-4 text-slate-600">Email unik aktif (Contoh: <code className="bg-slate-100 px-1 py-0.5 rounded">budi@gmail.com</code>)</td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-mono font-bold text-blue-600">nisn</td>
+                          <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">Wajib</span></td>
+                          <td className="py-3 px-4 text-slate-600">10 digit Nomor Induk Siswa Nasional</td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-mono font-bold text-blue-600">asal_sekolah</td>
+                          <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">Wajib</span></td>
+                          <td className="py-3 px-4 text-slate-600">Nama sekolah asal peserta</td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-mono font-bold text-blue-600">provinsi</td>
+                          <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">Wajib</span></td>
+                          <td className="py-3 px-4 text-slate-600">Nama Provinsi di Indonesia (Contoh: <code className="bg-slate-100 px-1 py-0.5 rounded">Jawa Timur</code>)</td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-mono font-bold text-blue-600">kota</td>
+                          <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">Wajib</span></td>
+                          <td className="py-3 px-4 text-slate-600">Kota/Kabupaten domisili (Contoh: <code className="bg-slate-100 px-1 py-0.5 rounded">Surabaya</code>)</td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-mono font-bold text-blue-600">kategori_lomba</td>
+                          <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">Wajib</span></td>
+                          <td className="py-3 px-4 text-slate-600">Pilihan: <code className="bg-blue-50 text-blue-600 px-1 py-0.5 rounded">Olimpiade MIPA</code>, <code className="bg-blue-50 text-blue-600 px-1 py-0.5 rounded">Speech Contest</code>, <code className="bg-blue-50 text-blue-600 px-1 py-0.5 rounded">LKTI Nasional</code>, <code className="bg-blue-50 text-blue-600 px-1 py-0.5 rounded">MTQ Nasional</code></td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-mono font-bold text-blue-600">nama_pembina</td>
+                          <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200">Opsional</span></td>
+                          <td className="py-3 px-4 text-slate-600">Nama guru pembimbing / mentor pendamping</td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-mono font-bold text-blue-600">no_wa</td>
+                          <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">Wajib</span></td>
+                          <td className="py-3 px-4 text-slate-600">Nomor WhatsApp aktif peserta</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

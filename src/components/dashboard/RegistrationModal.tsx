@@ -63,7 +63,7 @@ export default function RegistrationModal({
                 <option value="Olimpiade MIPA">Olimpiade MIPA</option>
                 <option value="Speech Contest">Speech Contest</option>
                 <option value="LKTI Nasional">LKTI Nasional</option>
-                <option value="MTQ">MTQ</option>
+                <option value="MTQ Nasional">MTQ Nasional</option>
               </select>
             </div>
             <div>

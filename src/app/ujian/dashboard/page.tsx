@@ -85,6 +85,10 @@ export default function StudentDashboard() {
             // Cek apakah di SESI INI dia sudah selesai?
             if (existingAttempt.submitted_at) {
               setIsDone(true);
+              localStorage.setItem(`cbt_submitted_${parsedUser.active_exam_id}`, 'true');
+            } else {
+              setIsDone(false);
+              localStorage.removeItem(`cbt_submitted_${parsedUser.active_exam_id}`);
             }
           } else {
             // Jika ini PERTAMA KALINYA masuk ke SESI INI, buatkan KERTAS KOSONG BARU!
@@ -96,6 +100,7 @@ export default function StudentDashboard() {
               updated_at: new Date().toISOString()
             });
             setIsDone(false);
+            localStorage.removeItem(`cbt_submitted_${parsedUser.active_exam_id}`);
           }
         }
         setLoading(false);

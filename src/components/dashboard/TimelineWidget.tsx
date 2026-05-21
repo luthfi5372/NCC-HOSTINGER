@@ -115,7 +115,8 @@ export default function TimelineWidget({ userCategory, userStatus, notes, global
     "LKTI Nasional": "LKTI – Lomba Karya Tulis Ilmiah",
     "Olimpiade MIPA": "Olimpiade MIPA",
     "Speech Contest": "Speech Contest",
-    "MTQ": "MTQ"
+    "MTQ": "MTQ",
+    "MTQ Nasional": "MTQ"
   };
 
   // Gunakan globalTimeline jika ada, jika tidak fallback ke TIMELINE_DATA

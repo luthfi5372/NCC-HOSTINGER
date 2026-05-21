@@ -204,3 +204,25 @@ CREATE TRIGGER set_timestamp_cbt_attempts
 BEFORE UPDATE ON public.cbt_attempts
 FOR EACH ROW
 EXECUTE PROCEDURE update_modified_column();
+
+-- ============================================================================
+-- OTOMATISASI: FUNGSI PROTEKSI ATTEMPTS SETELAH SUBMIT
+-- Mencegah update data apapun pada tabel cbt_attempts setelah status disubmit
+-- ============================================================================
+CREATE OR REPLACE FUNCTION protect_submitted_attempts()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Jika data lama (OLD) sudah memiliki submitted_at, tolak segala bentuk UPDATE
+    IF OLD.submitted_at IS NOT NULL THEN
+        RAISE EXCEPTION 'Sesi ujian ini telah disubmit dan tidak dapat diubah lagi secara ilegal.';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_protect_submitted_attempts ON cbt_attempts;
+CREATE TRIGGER trigger_protect_submitted_attempts
+    BEFORE UPDATE ON cbt_attempts
+    FOR EACH ROW
+    EXECUTE FUNCTION protect_submitted_attempts();
+

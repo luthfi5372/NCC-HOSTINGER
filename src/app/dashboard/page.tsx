@@ -127,7 +127,7 @@ export default function UserDashboard() {
             if (userCategory === "Olimpiade MIPA") matchingKeyPrefix = "mipa";
             else if (userCategory === "Speech Contest") matchingKeyPrefix = "speech";
             else if (userCategory === "LKTI Nasional") matchingKeyPrefix = "lkti";
-            else if (userCategory === "MTQ") matchingKeyPrefix = "mtq";
+            else if (userCategory === "MTQ" || userCategory === "MTQ Nasional") matchingKeyPrefix = "mtq";
 
             if (matchingKeyPrefix && parsed.submissionStatus) {
               const isGel1Open = parsed.submissionStatus.find((item: any) => item.id === `${matchingKeyPrefix}_g1`)?.isOpen;
@@ -231,7 +231,7 @@ export default function UserDashboard() {
               if (userCategory === "Olimpiade MIPA") matchingKeyPrefix = "mipa";
               else if (userCategory === "Speech Contest") matchingKeyPrefix = "speech";
               else if (userCategory === "LKTI Nasional") matchingKeyPrefix = "lkti";
-              else if (userCategory === "MTQ") matchingKeyPrefix = "mtq";
+              else if (userCategory === "MTQ" || userCategory === "MTQ Nasional") matchingKeyPrefix = "mtq";
 
               if (matchingKeyPrefix && parsed.submissionStatus) {
                 const isGel1Open = parsed.submissionStatus.find((item: any) => item.id === `${matchingKeyPrefix}_g1`)?.isOpen;
