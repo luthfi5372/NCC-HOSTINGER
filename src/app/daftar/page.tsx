@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Mail, Lock, Type, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { User, Mail, Lock, Type, ArrowRight, AlertCircle, CheckCircle2, Building2 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,8 @@ export default function DaftarPage() {
     fullName: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    npsn: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +36,12 @@ export default function DaftarPage() {
     setError(null);
 
     // 1. Validasi Keamanan Dasar
-    if (!formData.username || !formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.username || !formData.fullName || !formData.email || !formData.password || !formData.confirmPassword || !formData.npsn) {
       setError("⚠️ Semua kolom wajib diisi, Komandan!");
+      return;
+    }
+    if (formData.npsn.length !== 8 || isNaN(Number(formData.npsn))) {
+      setError("⚠️ NPSN Sekolah harus berupa 8 digit angka!");
       return;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -58,6 +63,7 @@ export default function DaftarPage() {
           data: {
             full_name: formData.fullName,
             username: formData.username,
+            npsn: formData.npsn,
           }
         }
       });
@@ -144,7 +150,7 @@ export default function DaftarPage() {
                 </div>
                 <input 
                   type="text" 
-                  placeholder="luthfi5372" 
+                  placeholder="username_peserta" 
                   className="w-full pl-10 pr-4 py-3 bg-white/60 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-slate-700 placeholder:text-slate-400 shadow-sm"
                   value={formData.username}
                   onChange={(e) => setFormData({...formData, username: e.target.value})}
@@ -169,20 +175,39 @@ export default function DaftarPage() {
             </div>
           </div>
 
-          {/* Baris 2: Email */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1">Alamat Email Aktif</label>
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <Mail size={16} className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+          {/* Baris 2: Email & NPSN Sekolah */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1">Alamat Email Aktif</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Mail size={16} className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                </div>
+                <input 
+                  type="email" 
+                  placeholder="admin1@ncc.id" 
+                  className="w-full pl-10 pr-4 py-3 bg-white/60 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-slate-700 placeholder:text-slate-400 shadow-sm"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                />
               </div>
-              <input 
-                type="email" 
-                placeholder="admin1@ncc.id" 
-                className="w-full pl-10 pr-4 py-3 bg-white/60 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-slate-700 placeholder:text-slate-400 shadow-sm"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1">NPSN Sekolah</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Building2 size={16} className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="12345678" 
+                  maxLength={8}
+                  className="w-full pl-10 pr-4 py-3 bg-white/60 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-slate-700 placeholder:text-slate-400 shadow-sm"
+                  value={formData.npsn}
+                  onChange={(e) => setFormData({...formData, npsn: e.target.value.replace(/\D/g, "")})}
+                />
+              </div>
             </div>
           </div>
 
