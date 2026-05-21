@@ -2754,6 +2754,49 @@ export default function ModernHQDashboard() {
                   <p className="font-semibold text-slate-800 mb-1">{selectedParticipant.email || "Email tidak ada"}</p>
                   <p className="font-semibold text-slate-800">{selectedParticipant.whatsapp_number || selectedParticipant.phone || "No. HP tidak ada"}</p>
                 </div>
+
+                {/* Informasi Pembina */}
+                {selectedParticipant.mentor_name && (
+                  <div className="p-4 bg-emerald-50/40 border border-emerald-100/70 rounded-xl shadow-sm space-y-2">
+                    <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                      <GraduationCap size={13} className="shrink-0" />
+                      Informasi Pembina / Guru Pendamping
+                    </p>
+                    {(() => {
+                      const rawMentor = selectedParticipant.mentor_name || "";
+                      if (rawMentor.includes(" | ")) {
+                        const [name, email, phone] = rawMentor.split(" | ");
+                        return (
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-[10px] text-slate-400 font-medium">Nama Pembina</p>
+                              <p className="font-semibold text-slate-800">{name || "-"}</p>
+                            </div>
+                            {email && (
+                              <div>
+                                <p className="text-[10px] text-slate-400 font-medium">Email Pembina</p>
+                                <p className="font-mono text-xs text-slate-700 select-all bg-emerald-100/30 px-1.5 py-0.5 rounded border border-emerald-100/40 w-max">{email}</p>
+                              </div>
+                            )}
+                            {phone && (
+                              <div>
+                                <p className="text-[10px] text-slate-400 font-medium">No. HP Pembina</p>
+                                <p className="font-mono text-xs text-slate-700 select-all bg-emerald-100/30 px-1.5 py-0.5 rounded border border-emerald-100/40 w-max">{phone}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div>
+                          <p className="text-[10px] text-slate-400 font-medium">Nama Pembina</p>
+                          <p className="font-semibold text-slate-800">{rawMentor || "-"}</p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
                 <div className="p-4 bg-white/60 border border-slate-100 rounded-xl shadow-sm">
                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Institusi / Sekolah</p>
                   <p className="font-semibold text-slate-800 mb-1">{selectedParticipant.school_name || selectedParticipant.school || "Data Kosong"}</p>
