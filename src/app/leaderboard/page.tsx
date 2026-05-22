@@ -79,7 +79,7 @@ export default function LeaderboardPage() {
   const [hasilCek, setHasilCek] = useState<HasilCek | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [cekError, setCekError] = useState("");
-  // Status sistem dari admin
+  // Status sistem dari admin — default TRUE (tampilkan form)
   const [resultVisible, setResultVisible] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -91,12 +91,22 @@ export default function LeaderboardPage() {
   }, []);
 
   async function checkResultVisible() {
-    const { data } = await supabase
-      .from("site_settings")
-      .select("result_visible")
-      .eq("id", 1)
-      .single();
-    setResultVisible(data?.result_visible ?? false);
+    try {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("result_visible")
+        .eq("id", 1)
+        .single();
+      // Jika kolom belum ada atau query gagal → tampilkan form (default true)
+      if (error || data === null) {
+        setResultVisible(true);
+        return;
+      }
+      // Jika kolom ada tapi nilainya null → tampilkan form
+      setResultVisible(data.result_visible ?? true);
+    } catch {
+      setResultVisible(true);
+    }
   }
 
   async function loadLeaderboard() {
