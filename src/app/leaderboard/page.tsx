@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   Trophy, Search, TrendingUp, Clock, ShieldCheck,
   Medal, Activity, ArrowLeft, X, CheckCircle2,
@@ -11,9 +11,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { generateTicketCode } from "@/lib/utils";
 import { fetchPublicLeaderboard } from "@/lib/supabase/service";
-import dynamic from "next/dynamic";
-
-const Confetti = dynamic(() => import("react-confetti"), { ssr: false });
 
 const CATEGORIES = [
   "SEMUA",
@@ -34,6 +31,43 @@ interface HasilCek {
   statusPassing: "PASSED" | "FAILED" | "PENDING" | null;
 }
 
+// ── Konfetti murni Canvas — tanpa package eksternal ─────────────────────
+function ConfettiBlast() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const colors = ['#6366f1','#10b981','#f59e0b','#ec4899','#3b82f6','#a855f7','#14b8a6'];
+    const particles = Array.from({ length: 200 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      w: Math.random() * 10 + 5, h: Math.random() * 6 + 3,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vx: Math.random() * 2 - 1, vy: Math.random() * 3 + 2,
+      angle: Math.random() * Math.PI * 2, spin: (Math.random() - 0.5) * 0.15,
+    }));
+    let frame = 0; let raf: number;
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        ctx.save(); ctx.translate(p.x + p.w/2, p.y + p.h/2); ctx.rotate(p.angle);
+        ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, 1 - frame/220);
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h); ctx.restore();
+        p.x += p.vx; p.y += p.vy; p.angle += p.spin;
+      });
+      frame++;
+      if (frame < 260) raf = requestAnimationFrame(draw);
+    };
+    raf = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 10000 }} />;
+}
+
 export default function LeaderboardPage() {
   const supabase = createClient();
 
@@ -49,13 +83,11 @@ export default function LeaderboardPage() {
   const [hasilCek, setHasilCek] = useState<HasilCek | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [cekError, setCekError] = useState("");
-  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     loadLeaderboard();
     const interval = setInterval(loadLeaderboard, 30000);
-    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    const onResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    const onResize = () => {};
     window.addEventListener("resize", onResize);
     return () => { clearInterval(interval); window.removeEventListener("resize", onResize); };
   }, []);
@@ -140,17 +172,8 @@ export default function LeaderboardPage() {
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-indigo-500/30 overflow-x-hidden">
 
-      {/* ── Confetti saat PASSED ───────────────────────────── */}
-      {showPopup && hasilCek?.statusPassing === "PASSED" && (
-        <Confetti
-          width={windowSize.width}
-          height={windowSize.height}
-          recycle={false}
-          numberOfPieces={500}
-          gravity={0.12}
-          style={{ zIndex: 10000 }}
-        />
-      )}
+      {/* ── Konfetti saat PASSED ───────────────── */}
+      {showPopup && hasilCek?.statusPassing === "PASSED" && <ConfettiBlast />}
 
       {/* ── POP-UP HASIL CEK ──────────────────────────────── */}
       <AnimatePresence>
