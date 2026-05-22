@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { 
   LayoutGrid, Users, BadgeCheck, Megaphone, 
   Calendar, Image as ImageIcon, Server, Settings,
-  LogOut, UserCircle, ShieldCheck, BellRing, Database, Clock, Loader2
+  LogOut, UserCircle, ShieldCheck, BellRing, Database, Clock, Loader2, Trophy
 } from 'lucide-react';
 
 export default function SettingsDashboard() {
@@ -16,35 +16,57 @@ export default function SettingsDashboard() {
   const [strictMode, setStrictMode] = useState(true);
   const [autoSave, setAutoSave] = useState(true);
   const [maintenance, setMaintenance] = useState(false);
+  const [resultVisible, setResultVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const { data } = await supabase.from('cbt_settings').select('*').eq('id', 1).single();
-      if (data) {
-        setStrictMode(data.strict_mode);
-        setAutoSave(data.auto_save);
-        setMaintenance(data.maintenance_mode);
+      const { data: cbtData } = await supabase.from('cbt_settings').select('*').eq('id', 1).single();
+      if (cbtData) {
+        setStrictMode(cbtData.strict_mode);
+        setAutoSave(cbtData.auto_save);
+        setMaintenance(cbtData.maintenance_mode);
       }
+      // Ambil status result dari site_settings
+      const { data: siteData } = await supabase.from('site_settings').select('result_visible').eq('id', 1).single();
+      if (siteData) setResultVisible(siteData.result_visible ?? false);
     };
     fetchSettings();
   }, []);
 
   const handleSave = async () => {
     setIsSaving(true);
-    const { error } = await supabase.from('cbt_settings').upsert({
+    // Simpan pengaturan CBT
+    await supabase.from('cbt_settings').upsert({
       id: 1,
       strict_mode: strictMode,
       auto_save: autoSave,
       maintenance_mode: maintenance,
       updated_at: new Date().toISOString()
     });
+    // Simpan status result ke site_settings (langsung, tanpa tunggu save button)
+    const { error } = await supabase.from('site_settings').upsert({
+      id: 1,
+      result_visible: resultVisible,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'id' });
     setIsSaving(false);
     if (!error) {
-      setToastMessage("Pengaturan infrastruktur berhasil disinkronisasi ke server!");
+      setToastMessage("Pengaturan berhasil disinkronisasi ke server!");
       setTimeout(() => setToastMessage(""), 3000);
     }
+  };
+
+  // Toggle result langsung tanpa perlu klik Simpan
+  const handleToggleResult = async (newValue: boolean) => {
+    setResultVisible(newValue);
+    await supabase.from('site_settings').upsert(
+      { id: 1, result_visible: newValue, updated_at: new Date().toISOString() },
+      { onConflict: 'id' }
+    );
+    setToastMessage(newValue ? "Sistem hasil kelulusan AKTIF — peserta dapat melihat status." : "Sistem hasil kelulusan DIMATIKAN — pengumuman disembunyikan.");
+    setTimeout(() => setToastMessage(""), 3000);
   };
 
   const handleLogout = async () => {
@@ -239,6 +261,53 @@ export default function SettingsDashboard() {
                    </select>
                  </div>
               </div>
+            </div>
+          </div>
+          </div>
+
+          {/* ── Toggle Sistem Hasil Kelulusan ─────────────────────────────── */}
+          <div className={`rounded-[24px] border-2 p-8 transition-all ${
+            resultVisible
+              ? 'bg-emerald-50 border-emerald-200'
+              : 'bg-white border-gray-100 shadow-sm'
+          }`}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className={`p-3 rounded-xl flex-shrink-0 ${
+                  resultVisible ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'
+                }`}>
+                  <Trophy className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-gray-800">Portal Pengumuman Hasil Kelulusan</h3>
+                  <p className="text-xs text-gray-500 font-medium mt-1 max-w-lg leading-relaxed">
+                    Kontrol visibilitas halaman <strong>Live Ranking &amp; Cek Kelulusan</strong> untuk peserta.
+                    Saat <span className="text-emerald-600 font-bold">AKTIF</span>, peserta dapat memasukkan NISN dan melihat status kelulusan mereka.
+                    Saat <span className="text-rose-500 font-bold">MATI</span>, halaman menampilkan pesan bahwa pengumuman belum tersedia.
+                  </p>
+                  <div className={`mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                    resultVisible
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    <div className={`w-2 h-2 rounded-full ${
+                      resultVisible ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'
+                    }`} />
+                    {resultVisible ? 'Sistem Aktif — Peserta Dapat Cek Status' : 'Sistem Mati — Pengumuman Disembunyikan'}
+                  </div>
+                </div>
+              </div>
+              {/* Toggle Switch besar */}
+              <button
+                onClick={() => handleToggleResult(!resultVisible)}
+                className={`relative flex-shrink-0 w-16 h-8 rounded-full transition-all duration-300 focus:outline-none ${
+                  resultVisible ? 'bg-emerald-500 shadow-lg shadow-emerald-200' : 'bg-gray-200'
+                }`}
+              >
+                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
+                  resultVisible ? 'translate-x-9' : 'translate-x-1'
+                }`} />
+              </button>
             </div>
           </div>
 

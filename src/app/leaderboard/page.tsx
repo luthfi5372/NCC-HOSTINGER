@@ -5,7 +5,7 @@ import {
   Trophy, Search, TrendingUp, Clock, ShieldCheck,
   Medal, Activity, ArrowLeft, X, CheckCircle2,
   XCircle, Loader2, Ticket, School, User, MapPin,
-  AlertCircle
+  AlertCircle, Users, GraduationCap, EyeOff
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -14,6 +14,8 @@ import { generateTicketCode } from "@/lib/utils";
 import { fetchPublicLeaderboard } from "@/lib/supabase/service";
 
 const CATEGORIES = ["SEMUA", "Olimpiade MIPA", "Speech Contest", "LKTI Nasional", "MTQ Nasional"];
+// Kategori yang merupakan tim (bisa punya anggota 2 + pembina)
+const TEAM_CATEGORIES = ["LKTI Nasional", "Olimpiade MIPA"];
 
 interface HasilCek {
   nama: string;
@@ -22,6 +24,10 @@ interface HasilCek {
   provinsi: string;
   kategori: string;
   idTiket: string;
+  teamName?: string;
+  participant2Name?: string;
+  participant2Nisn?: string;
+  mentorName?: string;
   statusPassing: "PASSED" | "FAILED" | "PENDING" | null;
 }
 
@@ -73,12 +79,25 @@ export default function LeaderboardPage() {
   const [hasilCek, setHasilCek] = useState<HasilCek | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [cekError, setCekError] = useState("");
+  // Status sistem dari admin
+  const [resultVisible, setResultVisible] = useState<boolean | null>(null);
 
   useEffect(() => {
     loadLeaderboard();
     const interval = setInterval(loadLeaderboard, 30000);
+    // Cek status sistem pengumuman dari site_settings
+    checkResultVisible();
     return () => clearInterval(interval);
   }, []);
+
+  async function checkResultVisible() {
+    const { data } = await supabase
+      .from("site_settings")
+      .select("result_visible")
+      .eq("id", 1)
+      .single();
+    setResultVisible(data?.result_visible ?? false);
+  }
 
   async function loadLeaderboard() {
     const { data: d } = await fetchPublicLeaderboard();
@@ -109,13 +128,26 @@ export default function LeaderboardPage() {
           .from("cbt_attempts").select("status_passing").eq("user_id", entry.nisn).maybeSingle();
         if (a2?.status_passing) statusPassing = a2.status_passing as any;
       }
-      setHasilCek({ nama: entry.full_name || "—", sekolah: entry.school_name || entry.school || "—",
-        nisn: entry.nisn || "—", provinsi: entry.province || "—",
-        kategori: entry.competition_type || "—", idTiket: ticketCode, statusPassing });
+      setHasilCek({
+        nama: entry.full_name || "—",
+        sekolah: entry.school_name || entry.school || "—",
+        nisn: entry.nisn || "—",
+        provinsi: entry.province || "—",
+        kategori: entry.competition_type || "—",
+        idTiket: ticketCode,
+        teamName: entry.team_name || undefined,
+        participant2Name: entry.participant2_name || undefined,
+        participant2Nisn: entry.participant2_nisn || undefined,
+        mentorName: entry.mentor_name || entry.teacher_name || undefined,
+        statusPassing
+      });
       setShowPopup(true);
     } catch { setCekError("Terjadi kesalahan. Coba lagi."); }
     finally { setIsCekLoading(false); }
   };
+
+  const isTeamCategory = (kategori: string) =>
+    TEAM_CATEGORIES.some(t => kategori?.toLowerCase().includes(t.toLowerCase()));
 
   const filteredData = data
     .filter(i => selectedCategory === "SEMUA" || i.category === selectedCategory)
@@ -141,7 +173,7 @@ export default function LeaderboardPage() {
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ type: "spring", stiffness: 320, damping: 28 }}
               onClick={e => e.stopPropagation()}
-              className="bg-white rounded-3xl shadow-2xl shadow-slate-200 max-w-sm w-full relative overflow-hidden border border-slate-100"
+              className="bg-white rounded-3xl shadow-2xl shadow-slate-200 max-w-md w-full relative overflow-hidden border border-slate-100"
             >
               {/* Stripe warna status */}
               <div className={`h-1.5 w-full ${
@@ -188,22 +220,71 @@ export default function LeaderboardPage() {
 
                 {/* Data peserta */}
                 <div className="bg-slate-50 rounded-2xl p-4 space-y-2.5 text-sm border border-slate-100">
+                  
+                  {/* ── Info Utama ── */}
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Data Peserta</p>
+                  
                   {[
                     { icon: User, label: "Nama", value: hasilCek.nama },
                     { icon: School, label: "Sekolah", value: hasilCek.sekolah },
                     { icon: MapPin, label: "Provinsi", value: hasilCek.provinsi },
                     { icon: Trophy, label: "Kategori", value: hasilCek.kategori },
                   ].map(({ icon: Icon, label, value }) => (
-                    <div key={label} className="flex items-center gap-2.5">
-                      <Icon size={13} className="text-indigo-400 shrink-0" />
+                    <div key={label} className="flex items-start gap-2.5">
+                      <Icon size={13} className="text-indigo-400 shrink-0 mt-0.5" />
                       <span className="text-slate-400 font-medium w-20 shrink-0">{label}</span>
-                      <span className="font-bold text-slate-800 text-right flex-1 truncate">{value}</span>
+                      <span className="font-bold text-slate-800 flex-1 text-right leading-snug">{value}</span>
                     </div>
                   ))}
+
+                  {/* ── Nama Tim (jika ada) ── */}
+                  {hasilCek.teamName && (
+                    <div className="flex items-start gap-2.5">
+                      <Users size={13} className="text-indigo-400 shrink-0 mt-0.5" />
+                      <span className="text-slate-400 font-medium w-20 shrink-0">Nama Tim</span>
+                      <span className="font-bold text-indigo-600 flex-1 text-right">{hasilCek.teamName}</span>
+                    </div>
+                  )}
+
+                  {/* ── Anggota 2 (khusus kategori tim) ── */}
+                  {isTeamCategory(hasilCek.kategori) && (hasilCek.participant2Name || hasilCek.participant2Nisn) && (
+                    <>
+                      <div className="pt-2 border-t border-slate-200">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Anggota Tim</p>
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2.5">
+                            <User size={13} className="text-violet-400 shrink-0 mt-0.5" />
+                            <span className="text-slate-400 font-medium w-20 shrink-0">Anggota 2</span>
+                            <span className="font-bold text-slate-800 flex-1 text-right leading-snug">
+                              {hasilCek.participant2Name || "—"}
+                            </span>
+                          </div>
+                          {hasilCek.participant2Nisn && (
+                            <div className="flex items-start gap-2.5">
+                              <span className="w-3.5 shrink-0" />
+                              <span className="text-slate-400 font-medium w-20 shrink-0">NISN</span>
+                              <span className="font-mono text-xs font-bold text-slate-500 flex-1 text-right">{hasilCek.participant2Nisn}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* ── Nama Pembina ── */}
+                  {hasilCek.mentorName && (
+                    <div className={`flex items-start gap-2.5 ${!isTeamCategory(hasilCek.kategori) ? 'pt-2 border-t border-slate-200' : ''}`}>
+                      <GraduationCap size={13} className="text-amber-500 shrink-0 mt-0.5" />
+                      <span className="text-slate-400 font-medium w-20 shrink-0">Pembina</span>
+                      <span className="font-bold text-slate-800 flex-1 text-right">{hasilCek.mentorName}</span>
+                    </div>
+                  )}
+
+                  {/* ── ID Tiket ── */}
                   <div className="pt-2 border-t border-slate-200 flex items-center gap-2.5">
                     <Ticket size={13} className="text-indigo-400 shrink-0" />
                     <span className="text-slate-400 font-medium w-20 shrink-0">ID Tiket</span>
-                    <span className="font-mono font-black text-indigo-600 tracking-widest">{hasilCek.idTiket}</span>
+                    <span className="font-mono font-black text-indigo-600 tracking-widest flex-1 text-right">{hasilCek.idTiket}</span>
                   </div>
                 </div>
 
@@ -264,54 +345,77 @@ export default function LeaderboardPage() {
             </p>
           </div>
 
-          {/* Form */}
-          <div className="max-w-xl mx-auto">
-            <form onSubmit={handleCekKelulusan} className="flex gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                <input
-                  type="text"
-                  value={nisnInput}
-                  onChange={e => { setNisnInput(e.target.value); setCekError(""); }}
-                  placeholder="Masukkan NISN kamu..."
-                  className="w-full bg-slate-50 border border-slate-200 hover:border-indigo-300 focus:border-indigo-500 outline-none rounded-2xl py-4 pl-11 pr-4 text-sm font-medium text-slate-800 transition-all placeholder:text-slate-300"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isCekLoading || !nisnInput.trim()}
-                className="px-6 py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap shadow-md shadow-indigo-200"
-              >
-                {isCekLoading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-                {isCekLoading ? "Mencari..." : "Cek"}
-              </button>
-            </form>
-
-            {/* Error */}
-            <AnimatePresence>
-              {cekError && (
-                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  className="mt-3 flex items-center gap-2 text-rose-500 text-xs font-semibold bg-rose-50 border border-rose-100 rounded-xl px-4 py-2.5">
-                  <AlertCircle size={14} className="shrink-0" /> {cekError}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* 3 status cards */}
-            <div className="grid grid-cols-3 gap-3 mt-5">
-              {[
-                { icon: CheckCircle2, label: "PASSED", desc: "Lanjut babak berikutnya", color: "emerald", iconColor: "text-emerald-500" },
-                { icon: Clock, label: "PENDING", desc: "Masih proses penilaian", color: "amber", iconColor: "text-amber-500" },
-                { icon: XCircle, label: "FAILED", desc: "Tetap semangat berkarya", color: "rose", iconColor: "text-rose-500" },
-              ].map(({ icon: Icon, label, desc, color, iconColor }) => (
-                <div key={label} className={`bg-${color}-50 border border-${color}-100 rounded-2xl p-4 text-center`}>
-                  <Icon size={22} className={`${iconColor} mx-auto mb-2`} />
-                  <div className={`text-[10px] font-black text-${color}-600 uppercase tracking-widest`}>{label}</div>
-                  <div className="text-[9px] text-slate-400 mt-0.5 leading-tight">{desc}</div>
+          {/* Sistem dimatikan admin */}
+          {resultVisible === false && (
+            <div className="max-w-xl mx-auto">
+              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-10 text-center">
+                <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <EyeOff size={26} className="text-slate-400" />
                 </div>
-              ))}
+                <h3 className="font-black text-slate-700 text-lg mb-2">Pengumuman Belum Tersedia</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  Hasil kelulusan belum dirilis oleh panitia.<br />Pantau terus halaman ini untuk informasi terbaru.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Form aktif */}
+          {resultVisible === true && (
+            <div className="max-w-xl mx-auto">
+              <form onSubmit={handleCekKelulusan} className="flex gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                  <input
+                    type="text"
+                    value={nisnInput}
+                    onChange={e => { setNisnInput(e.target.value); setCekError(""); }}
+                    placeholder="Masukkan NISN kamu..."
+                    className="w-full bg-slate-50 border border-slate-200 hover:border-indigo-300 focus:border-indigo-500 outline-none rounded-2xl py-4 pl-11 pr-4 text-sm font-medium text-slate-800 transition-all placeholder:text-slate-300"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isCekLoading || !nisnInput.trim()}
+                  className="px-6 py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap shadow-md shadow-indigo-200"
+                >
+                  {isCekLoading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+                  {isCekLoading ? "Mencari..." : "Cek"}
+                </button>
+              </form>
+
+              <AnimatePresence>
+                {cekError && (
+                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className="mt-3 flex items-center gap-2 text-rose-500 text-xs font-semibold bg-rose-50 border border-rose-100 rounded-xl px-4 py-2.5">
+                    <AlertCircle size={14} className="shrink-0" /> {cekError}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* 3 status cards */}
+              <div className="grid grid-cols-3 gap-3 mt-5">
+                {[
+                  { icon: CheckCircle2, label: "PASSED", desc: "Lanjut babak berikutnya", color: "emerald", iconColor: "text-emerald-500" },
+                  { icon: Clock, label: "PENDING", desc: "Masih proses penilaian", color: "amber", iconColor: "text-amber-500" },
+                  { icon: XCircle, label: "FAILED", desc: "Tetap semangat berkarya", color: "rose", iconColor: "text-rose-500" },
+                ].map(({ icon: Icon, label, desc, color, iconColor }) => (
+                  <div key={label} className={`bg-${color}-50 border border-${color}-100 rounded-2xl p-4 text-center`}>
+                    <Icon size={22} className={`${iconColor} mx-auto mb-2`} />
+                    <div className={`text-[10px] font-black text-${color}-600 uppercase tracking-widest`}>{label}</div>
+                    <div className="text-[9px] text-slate-400 mt-0.5 leading-tight">{desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Loading state */}
+          {resultVisible === null && (
+            <div className="flex justify-center py-10">
+              <Loader2 size={24} className="animate-spin text-slate-300" />
+            </div>
+          )}
         </section>
 
         {/* Divider */}
@@ -334,7 +438,6 @@ export default function LeaderboardPage() {
             <p className="text-slate-400 text-sm">Diperbarui otomatis setiap 30 detik</p>
           </div>
 
-          {/* Filter & Search */}
           <div className="flex flex-col sm:flex-row gap-4 mb-8 items-center justify-between">
             <div className="flex flex-wrap gap-2 justify-center">
               {CATEGORIES.map(cat => (
@@ -358,7 +461,6 @@ export default function LeaderboardPage() {
             </div>
           </div>
 
-          {/* List */}
           <div className="space-y-3">
             {isLoading ? (
               [...Array(5)].map((_, i) => (
