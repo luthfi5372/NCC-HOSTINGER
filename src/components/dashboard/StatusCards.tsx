@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AlertCircle, CheckCircle2, Clock, User, IdCard, ImageIcon, FolderOpen, BookOpen, MessageCircle, Target, Sparkles, ChevronRight, Ticket } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, User, IdCard, ImageIcon, FolderOpen, BookOpen, MessageCircle, Target, Sparkles, ChevronRight, Ticket, Copy, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { generateTicketCode } from "@/lib/utils";
@@ -29,6 +29,7 @@ export default function StatusCards({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const [isSavingUrl, setIsSavingUrl] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const [submissionUrl, setSubmissionUrl] = useState(() => {
     let parsedNotes: any = {};
     if (userEntry?.notes) {
@@ -258,24 +259,43 @@ export default function StatusCards({
             <div className="space-y-3 text-xs">
 
               {/* ── ID TIKET CBT ─────────────────────────────── */}
-              {userEntry.id && (
-                <div className="mb-3 p-3 bg-gradient-to-r from-indigo-600 to-[#5145cd] rounded-2xl text-white relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full blur-xl -translate-y-4 translate-x-4 pointer-events-none" />
-                  <div className="flex items-center gap-2 mb-1 relative z-10">
-                    <Ticket size={13} className="text-indigo-200" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">ID Tiket Login CBT</span>
+              {userEntry.id && (() => {
+                const ticketCode = `NCC-${generateTicketCode(userEntry.id)}`;
+                const handleCopy = () => {
+                  navigator.clipboard.writeText(ticketCode).then(() => {
+                    setIsCopied(true);
+                    setTimeout(() => setIsCopied(false), 2000);
+                  });
+                };
+                return (
+                  <div className="mb-4 rounded-2xl border border-indigo-100 bg-indigo-50 overflow-hidden">
+                    {/* Label baris atas */}
+                    <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-1">
+                      <Ticket size={11} className="text-indigo-400 shrink-0" />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400">ID Tiket Login CBT</span>
+                    </div>
+                    {/* Kode + tombol salin */}
+                    <div className="flex items-center justify-between gap-2 px-3 pb-2.5">
+                      <span className="font-mono font-black text-lg tracking-[0.15em] text-indigo-700 whitespace-nowrap select-all">
+                        {ticketCode}
+                      </span>
+                      <button
+                        onClick={handleCopy}
+                        title="Salin ID Tiket"
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black transition-all shrink-0 ${
+                          isCopied
+                            ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-200'
+                            : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
+                        }`}
+                      >
+                        {isCopied
+                          ? <><Check size={12} /> Tersalin!</>
+                          : <><Copy size={12} /> Salin</>}
+                      </button>
+                    </div>
                   </div>
-                  <div className="relative z-10 flex items-center justify-between">
-                    <span className="font-mono font-black text-xl tracking-[0.18em] text-white select-all">
-                      NCC-{generateTicketCode(userEntry.id)}
-                    </span>
-                    <span className="text-[9px] text-indigo-200 font-bold">Salin & ingat kode ini</span>
-                  </div>
-                  <p className="text-[9px] text-indigo-200/80 font-medium mt-1 relative z-10">
-                    Gunakan kode ini saat masuk Portal Ujian CBT.
-                  </p>
-                </div>
-              )}
+                );
+              })()}
 
               {[
                 { label: "Nama Lengkap", value: userEntry.full_name },
