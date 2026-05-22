@@ -263,7 +263,6 @@ export default function SettingsDashboard() {
               </div>
             </div>
           </div>
-          </div>
 
           {/* ── Toggle Sistem Hasil Kelulusan ─────────────────────────────── */}
           <div className={`rounded-[24px] border-2 p-8 transition-all ${
