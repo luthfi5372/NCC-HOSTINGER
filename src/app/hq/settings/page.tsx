@@ -107,35 +107,46 @@ export default function SettingsDashboard() {
   };
 
   const handleUpdatePaymentStage = async (newStage: string) => {
-    if (portalSettingsData) {
-      try {
-        const parsed = JSON.parse(portalSettingsData.content);
-        parsed.paymentRequirementStage = newStage;
-        const newContent = JSON.stringify(parsed);
-        const { error } = await supabase
-          .from('announcements')
-          .update({ content: newContent })
-          .eq('title', 'SYS_PORTAL_SETTINGS');
-        
-        if (error) {
-          console.error("Gagal menyimpan tahap pembayaran:", error);
-          setToastMessage(`Gagal menyimpan: ${error.message}`);
-          setTimeout(() => setToastMessage(""), 4000);
-        } else {
-          setPaymentRequirementStage(newStage);
-          setPortalSettingsData({ ...portalSettingsData, content: newContent });
-          setToastMessage(`Kewajiban Pembayaran diatur ke: ${
-            newStage === 'registration' ? 'Awal Pendaftaran' :
-            newStage === 'tahap1' ? 'Lolos Tahap 1' :
-            newStage === 'tahap2' ? 'Lolos Tahap 2' : 'Bebas Biaya'
-          }`);
-          setTimeout(() => setToastMessage(""), 3000);
-        }
-      } catch (e: any) {
-        console.error(e);
-        setToastMessage(`Gagal memproses data: ${e.message}`);
-        setTimeout(() => setToastMessage(""), 4000);
+    // 1. Optimistic UI update
+    setPaymentRequirementStage(newStage);
+    setToastMessage(`Kewajiban Pembayaran diatur ke: ${
+      newStage === 'registration' ? 'Awal Pendaftaran' :
+      newStage === 'tahap1' ? 'Lolos Tahap 1' :
+      newStage === 'tahap2' ? 'Lolos Tahap 2' : 'Bebas Biaya'
+    }`);
+    setTimeout(() => setToastMessage(""), 3000);
+
+    try {
+      let parsed = { isRegistrationOpen: isRegistrationOpen, waves: [], paymentRequirementStage: newStage };
+      if (portalSettingsData) {
+        try {
+          parsed = { ...parsed, ...JSON.parse(portalSettingsData.content) };
+          parsed.paymentRequirementStage = newStage;
+        } catch(e) {}
       }
+      
+      const newContent = JSON.stringify(parsed);
+      const { data: updatedData, error } = await supabase
+        .from('announcements')
+        .upsert({
+          title: 'SYS_PORTAL_SETTINGS',
+          content: newContent,
+          target_audience: 'All'
+        }, { onConflict: 'title' })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("Gagal menyimpan tahap pembayaran:", error);
+        setToastMessage(`Gagal menyimpan ke database: ${error.message}`);
+        setTimeout(() => setToastMessage(""), 4000);
+      } else if (updatedData) {
+        setPortalSettingsData(updatedData);
+      }
+    } catch (e: any) {
+      console.error(e);
+      setToastMessage(`Gagal memproses: ${e.message}`);
+      setTimeout(() => setToastMessage(""), 4000);
     }
   };
 
@@ -163,31 +174,45 @@ export default function SettingsDashboard() {
 
   // Toggle Gerbang Pendaftaran langsung
   const handleToggleRegistration = async (newValue: boolean) => {
-    if (portalSettingsData) {
-      try {
-        const parsed = JSON.parse(portalSettingsData.content);
-        parsed.isRegistrationOpen = newValue;
-        const newContent = JSON.stringify(parsed);
-        const { error } = await supabase
-          .from('announcements')
-          .update({ content: newContent })
-          .eq('title', 'SYS_PORTAL_SETTINGS');
-        
-        if (error) {
-          console.error("Gagal menyimpan gerbang pendaftaran:", error);
-          setToastMessage(`Gagal menyimpan: ${error.message}`);
-          setTimeout(() => setToastMessage(""), 4000);
-        } else {
-          setIsRegistrationOpen(newValue);
-          setPortalSettingsData({ ...portalSettingsData, content: newContent });
-          setToastMessage(newValue ? "Gerbang pendaftaran BERHASIL DIBUKA!" : "Gerbang pendaftaran DITUTUP SEMENTARA.");
-          setTimeout(() => setToastMessage(""), 3000);
-        }
-      } catch (e: any) {
-        console.error(e);
-        setToastMessage(`Gagal memproses data: ${e.message}`);
-        setTimeout(() => setToastMessage(""), 4000);
+    // 1. Optimistic UI update
+    setIsRegistrationOpen(newValue);
+    setToastMessage(newValue ? "Gerbang pendaftaran BERHASIL DIBUKA!" : "Gerbang pendaftaran DITUTUP SEMENTARA.");
+    setTimeout(() => setToastMessage(""), 3000);
+
+    try {
+      let parsed = { isRegistrationOpen: newValue, waves: [], paymentRequirementStage: paymentRequirementStage };
+      if (portalSettingsData) {
+        try {
+          parsed = { ...parsed, ...JSON.parse(portalSettingsData.content) };
+          parsed.isRegistrationOpen = newValue;
+        } catch(e) {}
       }
+      
+      const newContent = JSON.stringify(parsed);
+      const { data: updatedData, error } = await supabase
+        .from('announcements')
+        .upsert({
+          title: 'SYS_PORTAL_SETTINGS',
+          content: newContent,
+          target_audience: 'All'
+        }, { onConflict: 'title' })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("Gagal menyimpan gerbang pendaftaran:", error);
+        // Revert on error
+        setIsRegistrationOpen(!newValue);
+        setToastMessage(`Gagal menyimpan ke database: ${error.message}`);
+        setTimeout(() => setToastMessage(""), 4000);
+      } else if (updatedData) {
+        setPortalSettingsData(updatedData);
+      }
+    } catch (e: any) {
+      console.error(e);
+      setIsRegistrationOpen(!newValue);
+      setToastMessage(`Gagal memproses: ${e.message}`);
+      setTimeout(() => setToastMessage(""), 4000);
     }
   };
 
