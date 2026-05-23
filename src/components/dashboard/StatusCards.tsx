@@ -14,6 +14,7 @@ interface StatusCardsProps {
   showToast: (msg: string, type: "success" | "error") => void;
   progress: number;
   paymentRequirementStage?: string;
+  isRegistrationOpen?: boolean;
 }
 
 export default function StatusCards({
@@ -25,7 +26,8 @@ export default function StatusCards({
   setShowIdCard,
   showToast,
   progress,
-  paymentRequirementStage = 'registration'
+  paymentRequirementStage = 'registration',
+  isRegistrationOpen = true
 }: StatusCardsProps) {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -274,8 +276,22 @@ export default function StatusCards({
               <span className="font-medium text-amber-800">Unggah Bukti Transfer</span>
             </div>
           </div>
-          <button onClick={() => setShowForm(true)} className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-blue-200 text-sm">
-            Lengkapi Berkas Sekarang
+          <button 
+            onClick={() => {
+              if (isRegistrationOpen) {
+                setShowForm(true);
+              } else {
+                showToast("Pendaftaran ditutup sementara oleh Admin.", "error");
+              }
+            }}
+            disabled={!isRegistrationOpen}
+            className={`w-full mt-6 font-bold py-3 rounded-xl transition-all shadow-md text-sm ${
+              isRegistrationOpen 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200' 
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+            }`}
+          >
+            {isRegistrationOpen ? "Lengkapi Berkas Sekarang" : "Pendaftaran Ditutup Sementara"}
           </button>
         </div>
       )}
@@ -456,7 +472,7 @@ export default function StatusCards({
       )}
 
       {userEntry && (
-        <div className="bg-white border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-6">
+        <div id="profile-preview-card" className="bg-white border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-6 transition-all duration-500">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-slate-800 flex items-center gap-2">
               <User size={18} className="text-indigo-500" />
@@ -626,6 +642,67 @@ export default function StatusCards({
             </div>
           </a>
         ))}
+
+        {/* ── DYNAMIC REGISTRATION CARD INTEGRATED WITH ADMIN GATE ── */}
+        {!userEntry ? (
+          isRegistrationOpen ? (
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center text-left gap-4 p-5 bg-gradient-to-r from-[#5145cd] to-[#372b9c] border border-transparent hover:from-[#4338ca] hover:to-[#2e2285] text-white rounded-2xl transition-all shadow-lg hover:shadow-indigo-200/50 shadow-indigo-100 group relative overflow-hidden w-full"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-xl transform translate-x-5 -translate-y-5"></div>
+              <div className="w-12 h-12 bg-white/15 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all shrink-0">
+                <Target size={24} className="animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-extrabold text-sm flex items-center gap-1.5">
+                  Pendaftaran Kompetisi <Sparkles size={14} className="text-amber-300" />
+                </h4>
+                <p className="text-[11px] text-indigo-100 mt-0.5 font-medium">Pilih bidang lomba & lengkapi berkas sekarang</p>
+              </div>
+              <ChevronRight size={18} className="text-white/80 group-hover:translate-x-1 transition-transform shrink-0" />
+            </button>
+          ) : (
+            <div
+              className="flex items-center text-left gap-4 p-5 bg-slate-100 border border-slate-200 text-slate-500 rounded-2xl cursor-not-allowed select-none opacity-80 w-full"
+              title="Pendaftaran ditutup sementara oleh admin"
+            >
+              <div className="w-12 h-12 bg-slate-200 text-slate-400 rounded-2xl flex items-center justify-center shrink-0">
+                <AlertCircle size={24} />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-extrabold text-sm text-slate-700">Pendaftaran Ditutup</h4>
+                <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Gerbang pendaftaran dinonaktifkan sementara</p>
+              </div>
+            </div>
+          )
+        ) : (
+          <button
+            onClick={() => {
+              setIsEditingProfile(true);
+              const element = document.getElementById("profile-preview-card");
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+                // Flash highlight effect
+                element.classList.add("ring-4", "ring-indigo-500/50");
+                setTimeout(() => element.classList.remove("ring-4", "ring-indigo-500/50"), 2000);
+              }
+            }}
+            className="flex items-center text-left gap-4 p-5 bg-white border border-emerald-200 hover:border-emerald-300 rounded-2xl transition-all shadow-sm group relative overflow-hidden w-full"
+          >
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-green-500"></div>
+            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all shrink-0">
+              <CheckCircle2 size={24} />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
+                Status: Terdaftar <span className="inline-block px-1.5 py-0.5 rounded text-[8px] font-black tracking-wider bg-emerald-100 text-emerald-700 uppercase">{userEntry.payment_status}</span>
+              </h4>
+              <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Terdaftar di bidang: <span className="font-bold text-slate-600">{userEntry.competition_type}</span></p>
+            </div>
+            <ChevronRight size={18} className="text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />
+          </button>
+        )}
       </div>
     </div>
   );

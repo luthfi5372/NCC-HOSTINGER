@@ -24,6 +24,7 @@ export default function UserDashboard() {
   const [portalWaves, setPortalWaves] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [paymentRequirementStage, setPaymentRequirementStage] = useState('registration');
+  const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -137,6 +138,7 @@ export default function UserDashboard() {
             const parsed = JSON.parse(portalData.content);
             if (parsed.waves) setPortalWaves(parsed.waves);
             if (parsed.paymentRequirementStage) setPaymentRequirementStage(parsed.paymentRequirementStage);
+            if (parsed.isRegistrationOpen !== undefined) setIsRegistrationOpen(parsed.isRegistrationOpen);
             const userCategory = entry?.competition_type; 
             
             let matchingKeyPrefix = "";
@@ -242,6 +244,7 @@ export default function UserDashboard() {
               const parsed = JSON.parse(updated.content);
               if (parsed.waves) setPortalWaves(parsed.waves);
               if (parsed.paymentRequirementStage) setPaymentRequirementStage(parsed.paymentRequirementStage);
+              if (parsed.isRegistrationOpen !== undefined) setIsRegistrationOpen(parsed.isRegistrationOpen);
               // Update status pendaftaran secara real-time
               const userCategory = userEntry?.competition_type; 
               let matchingKeyPrefix = "";
@@ -363,6 +366,7 @@ export default function UserDashboard() {
             showToast={showToast}
             progress={progress}
             paymentRequirementStage={paymentRequirementStage}
+            isRegistrationOpen={isRegistrationOpen}
           />
 
           {/* Kolom Kanan */}
