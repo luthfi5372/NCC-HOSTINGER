@@ -2811,28 +2811,29 @@ function ModernHQDashboardContent() {
                   <p className="font-semibold text-slate-800">{selectedParticipant.nisn || "Data Kosong"}</p>
                 </div>
 
-                {/* Informasi Login Akun CBT */}
+                {/* Informasi Login Akun Portal Peserta */}
                 <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl shadow-sm space-y-3">
-                  <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                    <IdCard size={13} className="shrink-0" />
-                    Informasi Akun Login CBT
+                  <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-1 flex items-center gap-1.5 font-black">
+                    <ShieldCheck size={13} className="shrink-0 text-indigo-500" fill="currentColor" />
+                    Informasi Login Akun Peserta
                   </p>
                   <div>
-                    <p className="text-[10px] text-slate-400 font-medium">Username / ID Tiket</p>
-                    <p className="font-mono text-sm font-bold text-indigo-700 select-all bg-indigo-100/30 px-2.5 py-0.5 rounded border border-indigo-100/40 w-max tracking-wider">
-                      NCC-{selectedParticipant.id ? generateTicketCode(selectedParticipant.id) : "XXXXXX"}
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Username / Email</p>
+                    <p className="font-mono text-xs font-bold text-indigo-700 select-all bg-indigo-100/30 px-2.5 py-1 rounded border border-indigo-100/40 w-max tracking-wide mt-1">
+                      {selectedParticipant.email || "—"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-400 font-medium">Password / Token Akses (10 Menit)</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Password / Kata Sandi (NISN)</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <p className="font-mono text-sm font-black text-slate-800 tracking-widest bg-slate-100/60 px-2.5 py-1 rounded border border-slate-200/40 select-all">
-                        {showToken ? activeToken : "••••••"}
+                      <p className="font-mono text-xs font-black text-slate-800 tracking-wider bg-slate-100/60 px-2.5 py-1 rounded border border-slate-200/40 select-all">
+                        {showToken ? (selectedParticipant.nisn || "—") : "•••••"}
                       </p>
                       <button 
+                        type="button"
                         onClick={() => setShowToken(!showToken)}
                         className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors border border-transparent hover:border-slate-200 flex items-center justify-center shrink-0"
-                        title={showToken ? "Sembunyikan" : "Tampilkan"}
+                        title={showToken ? "Sembunyikan Kata Sandi" : "Tampilkan Kata Sandi"}
                       >
                         {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
