@@ -34,63 +34,9 @@ export function useLiveStats() {
   const fetchStats = useCallback(async () => {
     if (typeof window === "undefined") return;
     try {
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-      
-      // 1. Fetch from Supabase (Only verified participants)
-      const { data: supabaseEntries, error } = await supabase
-        .from("competition_entries")
-        .select("category, competition_type, city, province, payment_status");
-
-      if (error) console.warn("Supabase stats fetch error:", error);
-
-      // 3. Use only verified database entries for accurate stats
-      const allEntries = (supabaseEntries || []).filter(e => e.payment_status === 'Verified');
-
-      const breakdown = { "Olimpiade MIPA": 0, "Speech Contest": 0, "LKTI Nasional": 0, "MTQ Nasional": 0 };
-      const regionStats = { "Sumatera": 0, "Jawa": 0, "Kalimantan": 0, "Sulawesi": 0, "Papua": 0, "Bali & Nusa Tenggara": 0 };
-      const detailedStats: Record<string, number> = {};
-      const activeProvinces = new Set<string>();
-
-      allEntries.forEach(entry => {
-        // Normalisasi Kategori Bidang Lomba
-        let cat = (entry.competition_type || entry.category || "")?.trim();
-        if (cat === "MTQ") cat = "MTQ Nasional";
-        if (cat === "LKTI") cat = "LKTI Nasional";
-        if (cat === "MIPA") cat = "Olimpiade MIPA";
-
-        if ((breakdown as any)[cat] !== undefined) (breakdown as any)[cat]++;
-        
-        // Normalisasi Nama Provinsi agar sinkron dengan ID Map
-        let prov = (entry.province || entry.city)?.toUpperCase()?.trim();
-        
-        if (prov) {
-          // Fallback mapping untuk variasi nama provinsi ke ID Map D3
-          if (prov === "ACEH") prov = "DI. ACEH";
-          if (prov === "DI YOGYAKARTA" || prov === "YOGYAKARTA") prov = "DAERAH ISTIMEWA YOGYAKARTA";
-          if (prov === "KEPULAUAN BANGKA BELITUNG") prov = "BANGKA BELITUNG";
-          if (prov === "PROVINSI BANTEN" || prov === "BANTEN") prov = "PROBANTEN";
-          if (prov === "NUSA TENGGARA BARAT") prov = "NUSATENGGARA BARAT";
-          if (prov === "PAPUA BARAT" || prov === "PAPUA BARAT DAYA") prov = "IRIAN JAYA BARAT";
-          if (prov === "PAPUA TENGAH" || prov === "PAPUA PEGUNUNGAN") prov = "IRIAN JAYA TENGAH";
-          if (prov === "PAPUA" || prov === "PAPUA SELATAN") prov = "IRIAN JAYA TIMUR";
-          
-          activeProvinces.add(prov);
-          detailedStats[prov] = (detailedStats[prov] || 0) + 1;
-          const region = PROVINCE_TO_REGION[prov] || "Jawa";
-          if ((regionStats as any)[region] !== undefined) (regionStats as any)[region]++;
-        }
-      });
-
-
-      setStats({
-        totalParticipants: allEntries.length || 0,
-        provinces: activeProvinces.size,
-        categories: 4,
-        categoryBreakdown: breakdown,
-        regionStats,
-        detailedProvinceStats: detailedStats
-      });
+      const { getLiveStatsAction } = await import("@/app/actions/stats");
+      const liveStats = await getLiveStatsAction();
+      setStats(liveStats);
     } catch (err) {
       console.error("useLiveStats error:", err);
     } finally {
