@@ -2770,6 +2770,26 @@ function ModernHQDashboardContent() {
                   <p className="font-semibold text-slate-800">{selectedParticipant.nisn || "Data Kosong"}</p>
                 </div>
 
+                {/* Informasi Login Akun CBT */}
+                <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl shadow-sm space-y-3">
+                  <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <IdCard size={13} className="shrink-0" />
+                    Informasi Akun Login CBT
+                  </p>
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-medium">Username / ID Tiket</p>
+                    <p className="font-mono text-sm font-bold text-indigo-700 select-all bg-indigo-100/30 px-2.5 py-0.5 rounded border border-indigo-100/40 w-max tracking-wider">
+                      NCC-{selectedParticipant.id ? generateTicketCode(selectedParticipant.id) : "XXXXXX"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-medium">Password / Token Akses</p>
+                    <p className="text-slate-700 text-xs font-semibold">
+                      Live (10 mnt) / Cukup menggunakan ID Tiket di atas
+                    </p>
+                  </div>
+                </div>
+
                 {/* Tambahan Data Anggota 2 jika kategori Tim */}
                 {(selectedParticipant.competition_type === "LKTI Nasional" || selectedParticipant.competition_type === "Olimpiade MIPA") && (
                   <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl shadow-sm space-y-3">
