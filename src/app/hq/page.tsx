@@ -66,10 +66,12 @@ const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick }
   }
 
   let stage = 1;
+  let isFailed = false;
   if (entry.notes) {
     try {
       const n = JSON.parse(entry.notes);
       if (n.current_stage) stage = n.current_stage;
+      if (n.is_failed) isFailed = n.is_failed;
     } catch (e) {}
   }
 
@@ -111,8 +113,20 @@ const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick }
         </div>
       </td>
       <td className="py-4 px-6">
-        {stage === 1 && <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-1"><ClipboardCheck size={10} /> TAHAP 1</span>}
-        {stage === 2 && <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-200 animate-pulse flex items-center gap-1"><Medal size={10} /> TAHAP 2</span>}
+        {stage === 1 && (
+          isFailed ? (
+            <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-200 flex items-center gap-1"><XCircle size={10} /> GAGAL T1</span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-1"><ClipboardCheck size={10} /> TAHAP 1</span>
+          )
+        )}
+        {stage === 2 && (
+          isFailed ? (
+            <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-200 flex items-center gap-1"><XCircle size={10} /> GAGAL T2</span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-200 animate-pulse flex items-center gap-1"><Medal size={10} /> TAHAP 2</span>
+          )
+        )}
         {stage === 3 && <span className="px-2.5 py-1 rounded-md text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-200 shadow-sm shadow-amber-100 flex items-center gap-1"><Trophy size={10} /> FINAL</span>}
       </td>
       <td className="py-4 px-6">
@@ -877,6 +891,14 @@ function ModernHQDashboardContent() {
     return stage;
   };
 
+  const getParticipantFailed = (p: any) => {
+    let failed = false;
+    if (p.notes) {
+      try { failed = JSON.parse(p.notes).is_failed || false; } catch (e) {}
+    }
+    return failed;
+  };
+
   const renderParticipantFiles = (p: any) => {
     let adminNotes: any = {};
     if (p.notes) {
@@ -1030,13 +1052,14 @@ function ModernHQDashboardContent() {
   };
 
   // --- KONTROL PROGRES TAHAP PESERTA ---
-  const handleUpdateStage = async (id: any, newStage: number) => {
+  const handleUpdateStage = async (id: any, newStage: number, isFailed: boolean = false) => {
     try {
       const entry = realEntries.find(e => e.id === id);
       let notesObj: any = {};
       if (entry?.notes) try { notesObj = JSON.parse(entry.notes); } catch (e) {}
       
       notesObj.current_stage = newStage;
+      notesObj.is_failed = isFailed;
       const updatedNotes = JSON.stringify(notesObj);
 
       const { error } = await supabase
@@ -1056,7 +1079,11 @@ function ModernHQDashboardContent() {
         setSelectedParticipant((prev: any) => ({ ...prev, notes: updatedNotes }));
       }
 
-      showToast(`Peserta berhasil dipindahkan ke Tahap ${newStage === 3 ? 'Final' : newStage}`, "success");
+      if (isFailed) {
+        showToast(`Peserta ditandai TIDAK LOLOS Tahap ${newStage}`, "error");
+      } else {
+        showToast(`Peserta berhasil dipindahkan ke Tahap ${newStage === 3 ? 'Final' : newStage}`, "success");
+      }
     } catch (err) {
       console.error("Gagal update tahap:", err);
       showToast("Gagal memperbarui tahap peserta", "error");
@@ -2827,33 +2854,68 @@ function ModernHQDashboardContent() {
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center justify-between px-2">
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Status:</span>
-                        {getParticipantStage(selectedParticipant) === 1 ? <span className="text-[10px] font-black text-slate-400 uppercase">Penyisihan (1)</span> :
-                         getParticipantStage(selectedParticipant) === 2 ? <span className="text-[10px] font-black text-blue-600 uppercase">Semi Final (2)</span> :
-                         getParticipantStage(selectedParticipant) === 3 ? <span className="text-[10px] font-black text-amber-600 uppercase">Final (3)</span> : null}
+                        {getParticipantStage(selectedParticipant) === 1 ? (
+                          getParticipantFailed(selectedParticipant) ? (
+                            <span className="text-[10px] font-black text-rose-500 uppercase flex items-center gap-1"><XCircle size={10} className="shrink-0" /> Gagal Penyisihan (1)</span>
+                          ) : (
+                            <span className="text-[10px] font-black text-slate-400 uppercase">Penyisihan (1)</span>
+                          )
+                        ) :
+                        getParticipantStage(selectedParticipant) === 2 ? (
+                          getParticipantFailed(selectedParticipant) ? (
+                            <span className="text-[10px] font-black text-rose-500 uppercase flex items-center gap-1"><XCircle size={10} className="shrink-0" /> Gagal Semi Final (2)</span>
+                          ) : (
+                            <span className="text-[10px] font-black text-blue-600 uppercase">Semi Final (2)</span>
+                          )
+                        ) :
+                        getParticipantStage(selectedParticipant) === 3 ? (
+                          <span className="text-[10px] font-black text-amber-600 uppercase">Final (3)</span>
+                        ) : null}
                       </div>
                       
-                      <div className="grid grid-cols-3 gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 1); }}
-                          className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ getParticipantStage(selectedParticipant) === 1 ? 'bg-white border-slate-200 text-slate-300 shadow-inner' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300' }`}
-                        >
-                          <Clock size={12} />
-                          SET T1
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 2); }}
-                          className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ getParticipantStage(selectedParticipant) === 2 ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white border-slate-100 text-blue-600 hover:border-blue-200' }`}
-                        >
-                          <Medal size={12} />
-                          LOLOS T2
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 3); }}
-                          className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ getParticipantStage(selectedParticipant) === 3 ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-200' : 'bg-white border-slate-100 text-amber-600 hover:border-amber-200' }`}
-                        >
-                          <Trophy size={12} />
-                          FINAL
-                        </button>
+                      <div className="flex flex-col gap-2">
+                        {/* Baris 1: Kemajuan/Kelulusan */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 1, false); }}
+                            className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ (getParticipantStage(selectedParticipant) === 1 && !getParticipantFailed(selectedParticipant)) ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-200' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300' }`}
+                          >
+                            <Clock size={12} />
+                            SET T1
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 2, false); }}
+                            className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ (getParticipantStage(selectedParticipant) === 2 && !getParticipantFailed(selectedParticipant)) ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white border-slate-100 text-blue-600 hover:border-blue-200' }`}
+                          >
+                            <Medal size={12} />
+                            LOLOS T2
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 3, false); }}
+                            className={`py-2.5 rounded-xl text-[9px] font-black transition-all border flex flex-col items-center justify-center gap-1 ${ getParticipantStage(selectedParticipant) === 3 ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-200' : 'bg-white border-slate-100 text-amber-600 hover:border-amber-200' }`}
+                          >
+                            <Trophy size={12} />
+                            FINAL (3)
+                          </button>
+                        </div>
+
+                        {/* Baris 2: Gagal / Tidak Lolos */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 1, true); }}
+                            className={`py-2 rounded-xl text-[9px] font-black transition-all border flex flex-row items-center justify-center gap-1.5 ${ (getParticipantStage(selectedParticipant) === 1 && getParticipantFailed(selectedParticipant)) ? 'bg-rose-600 border-rose-600 text-white shadow-md shadow-rose-100' : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-100' }`}
+                          >
+                            <XCircle size={11} />
+                            GAGAL TAHAP 1
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleUpdateStage(selectedParticipant.id, 2, true); }}
+                            className={`py-2 rounded-xl text-[9px] font-black transition-all border flex flex-row items-center justify-center gap-1.5 ${ (getParticipantStage(selectedParticipant) === 2 && getParticipantFailed(selectedParticipant)) ? 'bg-rose-600 border-rose-600 text-white shadow-md shadow-rose-100' : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-100' }`}
+                          >
+                            <XCircle size={11} />
+                            GAGAL TAHAP 2
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

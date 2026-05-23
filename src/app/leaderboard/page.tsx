@@ -30,11 +30,29 @@ interface HasilCek {
   mentorName?: string;
   statusPassing: "PASSED" | "FAILED" | "PENDING" | null;
   currentStage: number;
+  isFailed: boolean;
 }
 
 const getStageDetails = (hasilCek: HasilCek) => {
   const stage = hasilCek.currentStage || 1;
   const status = hasilCek.statusPassing;
+  const isFailed = hasilCek.isFailed;
+
+  if (isFailed) {
+    if (stage === 1) {
+      return {
+        headerStatus: "FAILED" as const,
+        title: "Belum Lolos Tahap 1",
+        subtitle: "Mohon maaf, kamu dinyatakan belum berhasil lolos Babak Penyisihan (Tahap 1) NCC 13th. Tetap semangat berkarya!"
+      };
+    } else if (stage === 2) {
+      return {
+        headerStatus: "FAILED" as const,
+        title: "Belum Lolos Tahap 2",
+        subtitle: "Kamu telah berjuang hebat mencapai Babak Semi Final (Tahap 2), namun dinyatakan belum berhasil lolos ke babak berikutnya. Tetap bangga!"
+      };
+    }
+  }
 
   if (stage === 1) {
     if (status === "PASSED") {
@@ -223,11 +241,15 @@ export default function LeaderboardPage() {
       }
       
       let currentStage = 1;
+      let isFailed = false;
       if (entry.notes) {
         try {
           const notesObj = JSON.parse(entry.notes);
           if (notesObj.current_stage) {
             currentStage = Number(notesObj.current_stage);
+          }
+          if (notesObj.is_failed) {
+            isFailed = Boolean(notesObj.is_failed);
           }
         } catch (e) {}
       }
@@ -255,7 +277,8 @@ export default function LeaderboardPage() {
         participant2Nisn: entry.participant2_nisn || undefined,
         mentorName: entry.mentor_name || entry.teacher_name || undefined,
         statusPassing,
-        currentStage
+        currentStage,
+        isFailed
       });
       setShowPopup(true);
     } catch { setCekError("Terjadi kesalahan. Coba lagi."); }
