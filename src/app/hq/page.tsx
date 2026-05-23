@@ -764,10 +764,25 @@ function ModernHQDashboardContent() {
     if (!isPortalLoaded) return;
 
     const syncToDatabase = async () => {
-      const payload = { waves, submissionStatus, phaseStatus, dashboardAssets, isRegistrationOpen };
+      // Ambil data teraktual dari database terlebih dahulu agar key lain tidak terhapus (misal paymentRequirementStage)
+      const { data: existing } = await supabase
+        .from('announcements')
+        .select('content')
+        .eq('title', 'SYS_PORTAL_SETTINGS')
+        .maybeSingle();
+
+      let parsed = { waves, submissionStatus, phaseStatus, dashboardAssets, isRegistrationOpen };
+      if (existing && existing.content) {
+        try {
+          parsed = { ...JSON.parse(existing.content), ...parsed };
+        } catch (e) {
+          console.error("Gagal parse existing content:", e);
+        }
+      }
+
       await supabase
         .from('announcements')
-        .update({ content: JSON.stringify(payload) })
+        .update({ content: JSON.stringify(parsed) })
         .eq('title', 'SYS_PORTAL_SETTINGS');
     };
     syncToDatabase();
