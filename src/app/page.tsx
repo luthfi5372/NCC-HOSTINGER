@@ -1,14 +1,13 @@
-// Force dynamic rendering — prevents static prerendering which crashes on useEffect/hooks
-export const dynamic = 'force-dynamic';
+"use client";
 
-import nextDynamic from "next/dynamic";
+import dynamic from "next/dynamic";
 import SmoothScroll from "@/components/SmoothScroll";
 
 // Heavy components with browser APIs loaded dynamically
-const ParallaxBackground = nextDynamic(() => import("@/components/ParallaxBackground"), { ssr: false });
-const IndonesiaMap = nextDynamic(() => import("@/components/IndonesiaMap"), { ssr: false });
-const GallerySection = nextDynamic(() => import("@/components/GallerySection"), { ssr: false });
-const SpeedMonitor = nextDynamic(() => import("@/components/SpeedMonitor"), { ssr: false });
+const ParallaxBackground = dynamic(() => import("@/components/ParallaxBackground"), { ssr: false });
+const IndonesiaMap = dynamic(() => import("@/components/IndonesiaMap"), { ssr: false });
+const GallerySection = dynamic(() => import("@/components/GallerySection"), { ssr: false });
+const SpeedMonitor = dynamic(() => import("@/components/SpeedMonitor"), { ssr: false });
 
 // Standard interactive components
 import Navbar from "@/components/Navbar";
