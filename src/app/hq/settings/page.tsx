@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { motion } from 'framer-motion';
 import { 
   LayoutGrid, Users, BadgeCheck, Megaphone, 
   Calendar, Image as ImageIcon, Server, Settings,
@@ -126,15 +127,43 @@ export default function SettingsDashboard() {
       }
       
       const newContent = JSON.stringify(parsed);
-      const { data: updatedData, error } = await supabase
-        .from('announcements')
-        .upsert({
-          title: 'SYS_PORTAL_SETTINGS',
-          content: newContent,
-          target_audience: 'All'
-        }, { onConflict: 'title' })
-        .select()
-        .single();
+      
+      // Deteksi ID yang ada untuk melakukan update, jika tidak ada baru insert
+      let activeId = portalSettingsData?.id;
+      if (!activeId) {
+        const { data: existing } = await supabase
+          .from('announcements')
+          .select('id')
+          .eq('title', 'SYS_PORTAL_SETTINGS')
+          .maybeSingle();
+        if (existing) activeId = existing.id;
+      }
+
+      let error = null;
+      let updatedData = null;
+
+      if (activeId) {
+        const { data: uData, error: uErr } = await supabase
+          .from('announcements')
+          .update({ content: newContent })
+          .eq('id', activeId)
+          .select()
+          .single();
+        error = uErr;
+        updatedData = uData;
+      } else {
+        const { data: iData, error: iErr } = await supabase
+          .from('announcements')
+          .insert([{
+            title: 'SYS_PORTAL_SETTINGS',
+            content: newContent,
+            target_audience: 'All'
+          }])
+          .select()
+          .single();
+        error = iErr;
+        updatedData = iData;
+      }
       
       if (error) {
         console.error("Gagal menyimpan tahap pembayaran:", error);
@@ -189,15 +218,43 @@ export default function SettingsDashboard() {
       }
       
       const newContent = JSON.stringify(parsed);
-      const { data: updatedData, error } = await supabase
-        .from('announcements')
-        .upsert({
-          title: 'SYS_PORTAL_SETTINGS',
-          content: newContent,
-          target_audience: 'All'
-        }, { onConflict: 'title' })
-        .select()
-        .single();
+
+      // Deteksi ID yang ada untuk melakukan update, jika tidak ada baru insert
+      let activeId = portalSettingsData?.id;
+      if (!activeId) {
+        const { data: existing } = await supabase
+          .from('announcements')
+          .select('id')
+          .eq('title', 'SYS_PORTAL_SETTINGS')
+          .maybeSingle();
+        if (existing) activeId = existing.id;
+      }
+
+      let error = null;
+      let updatedData = null;
+
+      if (activeId) {
+        const { data: uData, error: uErr } = await supabase
+          .from('announcements')
+          .update({ content: newContent })
+          .eq('id', activeId)
+          .select()
+          .single();
+        error = uErr;
+        updatedData = uData;
+      } else {
+        const { data: iData, error: iErr } = await supabase
+          .from('announcements')
+          .insert([{
+            title: 'SYS_PORTAL_SETTINGS',
+            content: newContent,
+            target_audience: 'All'
+          }])
+          .select()
+          .single();
+        error = iErr;
+        updatedData = iData;
+      }
       
       if (error) {
         console.error("Gagal menyimpan gerbang pendaftaran:", error);
@@ -441,16 +498,26 @@ export default function SettingsDashboard() {
               ].map((stage) => {
                 const isActive = paymentRequirementStage === stage.id;
                 return (
-                  <button
+                  <motion.button
                     key={stage.id}
                     onClick={() => handleUpdatePaymentStage(stage.id)}
-                    className={`text-left p-5 rounded-2xl border-2 transition-all flex flex-col justify-between h-full relative group ${
+                    whileHover={{ scale: 1.015 }}
+                    whileTap={{ scale: 0.985 }}
+                    className={`text-left p-5 rounded-2xl border-2 transition-all flex flex-col justify-between h-full relative overflow-hidden group ${
                       isActive
-                        ? 'border-indigo-600 bg-indigo-50/30 shadow-md shadow-indigo-100/50'
+                        ? 'border-indigo-600 bg-indigo-50/10 shadow-md shadow-indigo-50/50'
                         : 'border-slate-100 bg-slate-50/50 hover:border-slate-200 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="w-full flex justify-between items-start gap-4">
+                    {isActive && (
+                      <motion.div
+                        layoutId="activePaymentStage"
+                        className="absolute inset-0 bg-indigo-50/20 pointer-events-none"
+                        style={{ border: "2px solid #4f46e5", borderRadius: "14px" }}
+                        transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                      />
+                    )}
+                    <div className="w-full flex justify-between items-start gap-4 relative z-10">
                       <div>
                         <span className={`inline-block px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest mb-2.5 ${
                           isActive
@@ -473,10 +540,10 @@ export default function SettingsDashboard() {
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-500 font-medium leading-relaxed mt-3">
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed mt-3 relative z-10">
                       {stage.desc}
                     </p>
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
