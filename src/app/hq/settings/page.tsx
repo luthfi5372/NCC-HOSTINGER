@@ -248,6 +248,19 @@ export default function SettingsDashboard() {
   };
 
   const handleLogout = async () => {
+    // Auto-save sebelum logout agar data tidak hilang
+    const hasEmptyDates = waves.some(w => !w.startDate || !w.endDate);
+    if (!hasEmptyDates) {
+      try {
+        await handleSave();
+      } catch (e) {
+        console.error("Gagal auto-save saat logout", e);
+      }
+    } else {
+      const confirmed = window.confirm("Ada gelombang dengan tanggal yang masih kosong sehingga tidak bisa disimpan. Tetap keluar dan hilangkan perubahan yang belum disimpan?");
+      if (!confirmed) return;
+    }
+
     await supabase.auth.signOut();
     router.push('/login');
   };
