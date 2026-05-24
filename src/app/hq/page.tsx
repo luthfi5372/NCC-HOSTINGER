@@ -3187,7 +3187,7 @@ function ModernHQDashboardContent() {
       {/* ========================================================= */}
       {/* 🌟 MODAL KONFIRMASI LIQUID GLASS (MENGGANTIKAN window.confirm) */}
       {/* ========================================================= */}
-      <div className={`fixed inset-0 z-[90] flex items-center justify-center p-4 transition-all duration-200 ${confirmModal.show ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <div className={`fixed inset-0 z-[150] flex items-center justify-center p-4 transition-all duration-200 ${confirmModal.show ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         {/* Latar Belakang Gelap */}
         <div className="absolute inset-0 bg-slate-900/45" onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}></div>
         
