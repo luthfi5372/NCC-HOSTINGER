@@ -475,7 +475,6 @@ export async function adminFetchAllScores() {
   }
 }
 
-/** PUBLIC MODULE: Fetch Leaderboard Data */
 export async function fetchPublicLeaderboard() {
   const supabase = createClient();
   try {
@@ -493,7 +492,34 @@ export async function fetchPublicLeaderboard() {
       `)
       .eq('payment_status', 'Verified');
 
-    if (error) throw error;
+    if (error) {
+      // Fallback: Jika tabel atau relasi jury_scores tidak ditemukan (PGRST200 / PGRST205)
+      if (error.code === 'PGRST200' || error.code === 'PGRST205') {
+        console.warn("Jury scores table/relationship missing, falling back to entries only.");
+        const { data: entries, error: entriesErr } = await supabase
+          .from('competition_entries')
+          .select(`
+            id,
+            full_name,
+            school,
+            category,
+            payment_status
+          `)
+          .eq('payment_status', 'Verified');
+
+        if (entriesErr) throw entriesErr;
+
+        const fallbackLeaderboard = (entries || []).map(entry => ({
+          id: entry.id,
+          name: entry.full_name || "Peserta NCC",
+          school: entry.school || "-",
+          category: entry.category || "General",
+          score: 0
+        }));
+        return { data: fallbackLeaderboard, error: null };
+      }
+      throw error;
+    }
 
     const leaderboard = (data || []).map(entry => {
       // Pastikan jury_scores adalah array, jika null/undefined jadikan array kosong

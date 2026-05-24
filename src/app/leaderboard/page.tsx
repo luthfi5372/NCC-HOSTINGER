@@ -204,11 +204,18 @@ export default function LeaderboardPage() {
 
   async function checkResultVisible() {
     try {
-      const { data, error } = await supabase
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout")), 3000)
+      );
+      
+      const queryPromise = supabase
         .from("site_settings")
         .select("result_visible")
         .eq("id", 1)
         .single();
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
       // Jika kolom belum ada atau query gagal → tampilkan form (default true)
       if (error || data === null) {
         setResultVisible(true);
@@ -216,15 +223,26 @@ export default function LeaderboardPage() {
       }
       // Jika kolom ada tapi nilainya null → tampilkan form
       setResultVisible(data.result_visible ?? true);
-    } catch {
+    } catch (e) {
+      console.warn("Safety fallback triggered in checkResultVisible:", e);
       setResultVisible(true);
     }
   }
 
   async function loadLeaderboard() {
-    const { data: d } = await fetchPublicLeaderboard();
-    if (d) setData(d);
-    setIsLoading(false);
+    try {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout")), 4000)
+      );
+      
+      const queryPromise = fetchPublicLeaderboard();
+      const { data: d } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      if (d) setData(d);
+    } catch (e) {
+      console.warn("Safety fallback triggered in loadLeaderboard:", e);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const handleCekKelulusan = async (e: React.FormEvent) => {
