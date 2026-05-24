@@ -11,7 +11,36 @@ import { cn } from "@/lib/utils";
 
 const filters = ["ALL", "ACADEMIC", "SPEECH", "ARTS", "GALLERY"];
 
-const portfolioItems: any[] = [];
+const portfolioItems: any[] = [
+  {
+    id: "default-1",
+    category: "ACADEMIC",
+    label: "NCC MIPA Competition",
+    src: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=cover&w=800&q=80",
+    span: "col-span-1 md:col-span-2 row-span-1"
+  },
+  {
+    id: "default-2",
+    category: "SPEECH",
+    label: "Speech Contest Finals",
+    src: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=cover&w=800&q=80",
+    span: "col-span-1 row-span-1"
+  },
+  {
+    id: "default-3",
+    category: "ARTS",
+    label: "Digital Arts Exhibition",
+    src: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=cover&w=800&q=80",
+    span: "col-span-1 row-span-1"
+  },
+  {
+    id: "default-4",
+    category: "GALLERY",
+    label: "Moments of Excellence",
+    src: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=cover&w=800&q=80",
+    span: "col-span-1 md:col-span-2 row-span-1"
+  }
+];
 
 export default function GallerySection() {
   const [activeFilter, setActiveFilter] = useState("ALL");
@@ -25,16 +54,24 @@ export default function GallerySection() {
   useEffect(() => {
     const fetchGallery = async () => {
       try {
-        const { data } = await supabase
+        console.log("GallerySection: Fetching SYS_PORTAL_SETTINGS...");
+        const { data, error } = await supabase
           .from('announcements')
           .select('*')
           .eq('title', 'SYS_PORTAL_SETTINGS')
           .single();
         
+        if (error) {
+          console.error("GallerySection: Supabase query error:", error);
+          return;
+        }
+        
         if (data) {
+          console.log("GallerySection: Successfully fetched portal settings:", data);
           const parsed = JSON.parse(data.content);
           if (parsed.dashboardAssets?.gallery_images) {
             setAdminMedia(parsed.dashboardAssets.gallery_images);
+            console.log("GallerySection: Successfully loaded admin gallery images:", parsed.dashboardAssets.gallery_images);
           }
           if (parsed.dashboardAssets?.gallery_title) {
             setGalleryTitle(parsed.dashboardAssets.gallery_title);
@@ -42,9 +79,11 @@ export default function GallerySection() {
           if (parsed.dashboardAssets?.gallery_subtitle) {
             setGallerySubtitle(parsed.dashboardAssets.gallery_subtitle);
           }
+        } else {
+          console.warn("GallerySection: SYS_PORTAL_SETTINGS row not found in announcements.");
         }
       } catch (err) {
-        console.error("Failed to fetch gallery:", err);
+        console.error("GallerySection: Failed to fetch gallery exception:", err);
       }
     };
     fetchGallery();

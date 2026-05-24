@@ -782,7 +782,11 @@ function ModernHQDashboardContent() {
       let parsed = { waves, submissionStatus, phaseStatus, dashboardAssets, isRegistrationOpen };
       if (existing && existing.content) {
         try {
-          parsed = { ...JSON.parse(existing.content), ...parsed };
+          const dbParsed = JSON.parse(existing.content);
+          // Preserve paymentRequirementStage explicitly to protect against stale shallow overwrites
+          if (dbParsed.paymentRequirementStage) {
+            (parsed as any).paymentRequirementStage = dbParsed.paymentRequirementStage;
+          }
         } catch (e) {
           console.error("Gagal parse existing content:", e);
         }
