@@ -11,36 +11,7 @@ import { cn } from "@/lib/utils";
 
 const filters = ["ALL", "ACADEMIC", "SPEECH", "ARTS", "GALLERY"];
 
-const portfolioItems: any[] = [
-  {
-    id: "default-1",
-    category: "ACADEMIC",
-    label: "NCC MIPA Competition",
-    src: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=cover&w=800&q=80",
-    span: "col-span-1 md:col-span-2 row-span-1"
-  },
-  {
-    id: "default-2",
-    category: "SPEECH",
-    label: "Speech Contest Finals",
-    src: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=cover&w=800&q=80",
-    span: "col-span-1 row-span-1"
-  },
-  {
-    id: "default-3",
-    category: "ARTS",
-    label: "Digital Arts Exhibition",
-    src: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=cover&w=800&q=80",
-    span: "col-span-1 row-span-1"
-  },
-  {
-    id: "default-4",
-    category: "GALLERY",
-    label: "Moments of Excellence",
-    src: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=cover&w=800&q=80",
-    span: "col-span-1 md:col-span-2 row-span-1"
-  }
-];
+const portfolioItems: any[] = [];
 
 export default function GallerySection() {
   const [activeFilter, setActiveFilter] = useState("ALL");
@@ -160,58 +131,66 @@ export default function GallerySection() {
       </div>
 
       {/* Masonry / Grid Gallery */}
-      <div className="w-full max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 auto-rows-[240px] gap-4">
-        <AnimatePresence mode="popLayout">
-          {filteredItems.map((item) => (
-            <motion.div
-              layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}
-              key={item.id}
-              onMouseEnter={() => setHovered(item.id)}
-              onMouseLeave={() => setHovered(null)}
-              className={cn(
-                "relative rounded-[2rem] overflow-hidden group cursor-pointer shadow-lg transition-all duration-500 ease-out",
-                item.span,
-                hovered !== null && hovered !== item.id && "blur-sm scale-[0.98] opacity-60"
-              )}
-            >
-              {/* Image Rendering */}
-              <img 
-                src={item.src} 
-                alt={item.label} 
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              />
+      {filteredItems.length === 0 ? (
+        <div className="w-full max-w-2xl py-16 flex flex-col items-center justify-center text-slate-400 bg-white/50 backdrop-blur-sm rounded-[2rem] border border-slate-100 shadow-sm gsap-gallery-header animate-in fade-in duration-500">
+          <ImageIcon size={40} className="mb-3 opacity-30 text-slate-500" />
+          <p className="text-sm font-bold uppercase tracking-wider text-slate-500">Belum ada dokumentasi</p>
+          <p className="text-xs text-slate-400 mt-1">Momen dokumentasi acara akan muncul setelah ditambahkan oleh admin.</p>
+        </div>
+      ) : (
+        <div className="w-full max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 auto-rows-[240px] gap-4">
+          <AnimatePresence mode="popLayout">
+            {filteredItems.map((item) => (
+              <motion.div
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}
+                key={item.id}
+                onMouseEnter={() => setHovered(item.id)}
+                onMouseLeave={() => setHovered(null)}
+                className={cn(
+                  "relative rounded-[2rem] overflow-hidden group cursor-pointer shadow-lg transition-all duration-500 ease-out",
+                  item.span,
+                  hovered !== null && hovered !== item.id && "blur-sm scale-[0.98] opacity-60"
+                )}
+              >
+                {/* Image Rendering */}
+                <img 
+                  src={item.src} 
+                  alt={item.label} 
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
 
-              {/* Focus Overlay */}
-              <div className={cn(
-                "absolute inset-0 bg-black/40 flex flex-col items-center justify-end p-8 transition-opacity duration-500",
-                hovered === item.id ? "opacity-100" : "opacity-0"
-              )}>
-                <div className="absolute top-6 right-6">
-                  <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 transform -translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                    <Trophy size={18} className="text-white" />
+                {/* Focus Overlay */}
+                <div className={cn(
+                  "absolute inset-0 bg-black/40 flex flex-col items-center justify-end p-8 transition-opacity duration-500",
+                  hovered === item.id ? "opacity-100" : "opacity-0"
+                )}>
+                  <div className="absolute top-6 right-6">
+                    <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 transform -translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                      <Trophy size={18} className="text-white" />
+                    </div>
+                  </div>
+
+                  <div className="w-full transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                    <span className="inline-block px-3 py-1 rounded-lg bg-white/20 backdrop-blur-md text-[10px] font-bold tracking-[0.2em] text-white uppercase mb-3 border border-white/20">
+                      {item.category}
+                    </span>
+                    <h4 className="text-xl md:text-2xl font-bold text-white leading-tight drop-shadow-md">
+                      {item.label}
+                    </h4>
                   </div>
                 </div>
 
-                <div className="w-full transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                  <span className="inline-block px-3 py-1 rounded-lg bg-white/20 backdrop-blur-md text-[10px] font-bold tracking-[0.2em] text-white uppercase mb-3 border border-white/20">
-                    {item.category}
-                  </span>
-                  <h4 className="text-xl md:text-2xl font-bold text-white leading-tight drop-shadow-md">
-                    {item.label}
-                  </h4>
-                </div>
-              </div>
-
-              {/* Subtle Gradient Shadow (Bottom) */}
-              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent opacity-60 pointer-events-none" />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+                {/* Subtle Gradient Shadow (Bottom) */}
+                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent opacity-60 pointer-events-none" />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
 
     </section>
   );
