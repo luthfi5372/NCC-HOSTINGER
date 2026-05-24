@@ -767,23 +767,31 @@ function ModernHQDashboardContent() {
     }
   };
 
-  // --- 📡 REAL-TIME PORTAL SYNC ENGINE ---
-  useEffect(() => {
-    if (!isPortalLoaded) return;
-
-    const syncToDatabase = async () => {
-      // Ambil data teraktual dari database terlebih dahulu agar key lain tidak terhapus (misal paymentRequirementStage)
-      const { data: existing } = await supabase
+  // --- 📡 PORTAL SYNC WRITER ---
+  const performSyncToDatabase = async (currentWaves = waves, currentSub = submissionStatus, currentPhase = phaseStatus, currentAssets = dashboardAssets, currentReg = isRegistrationOpen) => {
+    try {
+      const { data: existing, error: fetchError } = await supabase
         .from('announcements')
-        .select('content')
+        .select('id, content')
         .eq('title', 'SYS_PORTAL_SETTINGS')
         .maybeSingle();
 
-      let parsed = { waves, submissionStatus, phaseStatus, dashboardAssets, isRegistrationOpen };
+      if (fetchError) {
+        console.error("Gagal mengambil data portal untuk sync:", fetchError);
+        return;
+      }
+
+      let parsed = { 
+        waves: currentWaves, 
+        submissionStatus: currentSub, 
+        phaseStatus: currentPhase, 
+        dashboardAssets: currentAssets, 
+        isRegistrationOpen: currentReg 
+      };
+
       if (existing && existing.content) {
         try {
           const dbParsed = JSON.parse(existing.content);
-          // Preserve paymentRequirementStage explicitly to protect against stale shallow overwrites
           if (dbParsed.paymentRequirementStage) {
             (parsed as any).paymentRequirementStage = dbParsed.paymentRequirementStage;
           }
@@ -808,8 +816,20 @@ function ModernHQDashboardContent() {
             type: 'info'
           }]);
       }
-    };
-    syncToDatabase();
+    } catch (err) {
+      console.error("Exception saat sinkronisasi portal:", err);
+    }
+  };
+
+  // --- 📡 REAL-TIME PORTAL SYNC ENGINE (DEBOUNCED TO PREVENT RACE CONDITIONS) ---
+  useEffect(() => {
+    if (!isPortalLoaded) return;
+
+    const timer = setTimeout(() => {
+      performSyncToDatabase();
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [waves, submissionStatus, phaseStatus, dashboardAssets, isRegistrationOpen, isPortalLoaded]);
 
   // --- 📡 REAL-TIME TIMELINE AUTO-SYNC ---
@@ -860,6 +880,12 @@ function ModernHQDashboardContent() {
 
   // --- 🚪 FUNGSI PINTU EVAKUASI ---
   const handleLogout = async () => {
+    try {
+      // Pastikan perubahan teranyar disimpan sebelum sesi dikeluarkan agar tidak hilang
+      await performSyncToDatabase();
+    } catch (err) {
+      console.error("Gagal menyimpan sebelum logout:", err);
+    }
     await supabase.auth.signOut();
     router.push('/login');
   };
