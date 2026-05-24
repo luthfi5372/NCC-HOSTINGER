@@ -75,21 +75,45 @@ export default function LiveMonitor() {
     return () => { supabase.removeChannel(channel); };
   }, [examId]);
 
-  // FITUR UNBLOCK PESERTA
-  const handleUnlockAccess = async (userId: string) => {
-    const confirmUnlock = confirm(`Apakah Anda yakin ingin membuka blokir untuk peserta dengan ID: ${userId}?`);
-    if (!confirmUnlock) return;
+  // State untuk Custom Modal Unblock & Toast
+  const [unlockUserId, setUnlockUserId] = useState<string | null>(null);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({
+    show: false,
+    message: '',
+    type: 'success'
+  });
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 4000);
+  };
+
+  // FITUR UNBLOCK PESERTA (Memicu Modal)
+  const handleUnlockAccess = (userId: string) => {
+    setUnlockUserId(userId);
+  };
+
+  // Konfirmasi Eksekusi Unblock dari Modal Custom
+  const confirmUnlockAccess = async () => {
+    if (!unlockUserId) return;
+    setIsUnlocking(true);
 
     try {
       const { error } = await supabase.from('cbt_attempts').update({
         violations_count: 0,
         updated_at: new Date().toISOString()
-      }).eq('user_id', userId).eq('exam_id', examId);
+      }).eq('user_id', unlockUserId).eq('exam_id', examId);
 
       if (error) throw error;
-      alert(`Akses untuk ${userId} berhasil dibuka! Arahkan peserta untuk me-refresh layarnya.`);
+      showToast(`Akses untuk ${unlockUserId} berhasil dibuka! Arahkan peserta untuk me-refresh layarnya.`, 'success');
     } catch (err: any) {
-      alert("Terjadi kesalahan sistem saat membuka blokir: " + err.message);
+      showToast("Terjadi kesalahan: " + err.message, 'error');
+    } finally {
+      setIsUnlocking(false);
+      setUnlockUserId(null);
     }
   };
 
@@ -237,6 +261,74 @@ export default function LiveMonitor() {
             </div>
           )}
         </div>
+
+        {/* ── CUSTOM TOAST NOTIFICATION ── */}
+        {toast.show && (
+          <div className="fixed bottom-6 right-6 z-[10000] animate-in slide-in-from-bottom-5 fade-in duration-300">
+            <div className={`px-5 py-4 rounded-2xl shadow-xl flex items-center border text-white backdrop-blur-md
+              ${toast.type === 'success' 
+                ? 'bg-emerald-600/95 border-emerald-500 shadow-emerald-100/50' 
+                : 'bg-rose-600/95 border-rose-500 shadow-rose-100/50'}`}
+            >
+              {toast.type === 'success' ? (
+                <CheckBadgeIcon className="w-5 h-5 mr-3 shrink-0" />
+              ) : (
+                <ShieldExclamationIcon className="w-5 h-5 mr-3 shrink-0" />
+              )}
+              <p className="text-xs font-black tracking-wide leading-relaxed">{toast.message}</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── CUSTOM MODAL UNBLOCK ── */}
+        {unlockUserId && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-[32px] p-8 md:p-10 max-w-sm w-full shadow-2xl text-center transform scale-100 animate-in zoom-in-95 duration-200 border border-gray-100 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+              
+              <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner relative group">
+                <div className="absolute inset-0 bg-emerald-100 rounded-full scale-105 animate-ping opacity-30" />
+                <LockOpenIcon className="w-10 h-10 relative z-10" />
+              </div>
+              
+              <h2 className="text-xl font-black text-gray-900 tracking-tight">Buka Blokir Peserta?</h2>
+              <p className="text-xs font-semibold text-gray-500 mt-3 leading-relaxed">
+                Apakah Anda yakin ingin membuka kembali akses pengerjaan CBT untuk peserta dengan ID:
+                <span className="block mt-2 font-mono font-black text-indigo-600 text-sm bg-indigo-50 px-3 py-1.5 rounded-full select-all tracking-wider border border-indigo-100 w-fit mx-auto">
+                  {unlockUserId}
+                </span>
+              </p>
+              
+              <div className="mt-8 flex space-x-3">
+                <button 
+                  onClick={() => setUnlockUserId(null)}
+                  disabled={isUnlocking}
+                  className="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={confirmUnlockAccess}
+                  disabled={isUnlocking}
+                  className="flex-1 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-emerald-100/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUnlocking ? (
+                    <>
+                      <svg className="animate-spin h-4.5 w-4.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Memproses...</span>
+                    </>
+                  ) : (
+                    <span>Buka Akses</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
