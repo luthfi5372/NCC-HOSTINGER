@@ -153,7 +153,7 @@ export default function GallerySection() {
                 className={cn(
                   "relative rounded-[2rem] overflow-hidden group cursor-pointer shadow-lg transition-all duration-500 ease-out",
                   item.span,
-                  hovered !== null && hovered !== item.id && "blur-sm scale-[0.98] opacity-60"
+                  hovered !== null && hovered !== item.id && allGalleryItems.some(g => g.id === hovered) && "blur-sm scale-[0.98] opacity-60"
                 )}
               >
                 {/* Image Rendering */}
