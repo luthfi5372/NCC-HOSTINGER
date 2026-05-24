@@ -788,10 +788,22 @@ function ModernHQDashboardContent() {
         }
       }
 
-      await supabase
-        .from('announcements')
-        .update({ content: JSON.stringify(parsed) })
-        .eq('title', 'SYS_PORTAL_SETTINGS');
+      if (existing) {
+        await supabase
+          .from('announcements')
+          .update({ content: JSON.stringify(parsed) })
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('announcements')
+          .insert([{
+            title: 'SYS_PORTAL_SETTINGS',
+            message: 'SYS_PORTAL_SETTINGS',
+            content: JSON.stringify(parsed),
+            target_audience: 'All',
+            type: 'info'
+          }]);
+      }
     };
     syncToDatabase();
   }, [waves, submissionStatus, phaseStatus, dashboardAssets, isRegistrationOpen, isPortalLoaded]);
