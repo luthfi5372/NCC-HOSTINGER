@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useParams, useRouter } from 'next/navigation';
+import { generateTicketCode } from '@/lib/utils';
 import { 
   ClockIcon, 
   ExclamationTriangleIcon, 
@@ -80,7 +81,9 @@ export default function ExamRoom() {
         }
 
         // 3. Lapor kehadiran CCTV
-        const userId = parsedUser.nisn || parsedUser.username;
+        const userId = parsedUser.id
+          ? `NCC-${generateTicketCode(parsedUser.id)}`
+          : (parsedUser.nisn || parsedUser.username);
         const { data: existingUser, error: checkErr } = await supabase
           .from('cbt_attempts')
           .select('*')
@@ -133,10 +136,14 @@ export default function ExamRoom() {
         const newCount = violationCount + 1;
         setViolationCount(newCount);
         
+        const cbtUserId = student.id
+          ? `NCC-${generateTicketCode(student.id)}`
+          : (student.nisn || student.username);
+
         await supabase.from('cbt_attempts').update({ 
           violations_count: newCount,
           updated_at: new Date().toISOString() 
-        }).eq('user_id', student.nisn || student.username).eq('exam_id', examId);
+        }).eq('user_id', cbtUserId).eq('exam_id', examId);
 
         if (newCount >= 3) setIsBlocked(true);
         else setShowCheatWarning(true); 
@@ -159,7 +166,9 @@ export default function ExamRoom() {
     const newAnswers = { ...answers, [questionId]: option };
     setAnswers(newAnswers);
     if (doubtfulAnswers[questionId]) setDoubtfulAnswers(prev => ({ ...prev, [questionId]: false }));
-    const userId = student?.nisn || student?.username;
+    const userId = student?.id
+      ? `NCC-${generateTicketCode(student.id)}`
+      : (student?.nisn || student?.username);
     
     // Keamanan ekstra saat mengirim jawaban
     if (userId && examId && examId !== 'undefined') {
@@ -203,7 +212,9 @@ export default function ExamRoom() {
       finalScore = Math.round(finalScore);
 
       // 2. Kirim Data ke Pusat Komando
-      const userId = student?.nisn || student?.username;
+      const userId = student?.id
+        ? `NCC-${generateTicketCode(student.id)}`
+        : (student?.nisn || student?.username);
       if (userId && examId && examId !== 'undefined') {
         const { error } = await supabase.from('cbt_attempts').update({
           submitted_at: new Date().toISOString(),
