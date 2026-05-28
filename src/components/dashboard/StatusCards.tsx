@@ -84,6 +84,7 @@ export default function StatusCards({
 
   // 🔄 Sync form state when userEntry changes (important for real-time updates)
   useEffect(() => {
+    if (isEditingProfile) return;
     if (userEntry) {
       setProfileForm({
         full_name: userEntry.full_name || "",
@@ -96,7 +97,7 @@ export default function StatusCards({
         participant2_nisn: userEntry.participant2_nisn || ""
       });
     }
-  }, [userEntry]);
+  }, [userEntry, isEditingProfile]);
 
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [studentCard, setStudentCard] = useState<File | null>(null);
@@ -151,8 +152,51 @@ export default function StatusCards({
     }
   };
 
+  // 🌊 HAPUS BERKAS FOTO/KARTU PELAJAR DARI NOTES DUA ARAH
+  const handleRemoveFile = async (key: 'profile_photo_url' | 'student_card_url') => {
+    const fileLabel = key === 'profile_photo_url' ? 'Foto Formal' : 'Kartu Pelajar';
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus ${fileLabel}?`)) return;
+    
+    try {
+      let notesObj: any = {};
+      if (userEntry?.notes) {
+        try { notesObj = JSON.parse(userEntry.notes); } catch (e) {}
+      }
+      
+      delete notesObj[key];
+      const updatedNotes = JSON.stringify(notesObj);
+      
+      const { error } = await supabase
+        .from('competition_entries')
+        .update({ notes: updatedNotes })
+        .eq('id', userEntry?.id);
+        
+      if (error) throw error;
+      
+      showToast(`${fileLabel} berhasil dihapus!`, "success");
+      setUserEntry((prev: any) => ({ ...prev, notes: updatedNotes }));
+    } catch (err: any) {
+      showToast(`Gagal menghapus: ${err.message}`, "error");
+    }
+  };
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validasi input agar tidak boleh kosong atau hanya spasi
+    if (!profileForm.full_name || !profileForm.full_name.trim()) {
+      showToast("Nama Lengkap tidak boleh kosong!", "error");
+      return;
+    }
+    if (!profileForm.school_name || !profileForm.school_name.trim()) {
+      showToast("Nama Asal Sekolah tidak boleh kosong!", "error");
+      return;
+    }
+    if (!profileForm.phone || !profileForm.phone.trim()) {
+      showToast("Nomor WhatsApp tidak boleh kosong!", "error");
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       const { data, error } = await supabase
@@ -604,7 +648,12 @@ export default function StatusCards({
                     <input type="file" accept="image/*" onChange={(e) => setProfilePhoto(e.target.files?.[0] || null)} className="block w-full text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-indigo-50 file:text-indigo-600" />
                     {(() => {
                       let n: any = {}; if (userEntry.notes) try { n = JSON.parse(userEntry.notes); } catch(e) {}
-                      return n.profile_photo_url && <a href={n.profile_photo_url} target="_blank" className="shrink-0 text-indigo-600 font-bold text-[10px] bg-indigo-50 px-2 py-1 rounded-lg">Lihat</a>
+                      return n.profile_photo_url && (
+                        <div className="flex gap-1 shrink-0">
+                          <a href={n.profile_photo_url} target="_blank" rel="noreferrer" className="text-indigo-600 font-bold text-[10px] bg-indigo-50 px-2 py-1 rounded-lg hover:bg-indigo-100 transition-colors">Lihat</a>
+                          <button type="button" onClick={() => handleRemoveFile('profile_photo_url')} className="text-red-600 font-bold text-[10px] bg-red-50 px-2 py-1 rounded-lg hover:bg-red-100 transition-colors">Hapus</button>
+                        </div>
+                      );
                     })()}
                   </div>
                 </div>
@@ -616,7 +665,12 @@ export default function StatusCards({
                     <input type="file" accept="image/*" onChange={(e) => setStudentCard(e.target.files?.[0] || null)} className="block w-full text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-indigo-50 file:text-indigo-600" />
                     {(() => {
                       let n: any = {}; if (userEntry.notes) try { n = JSON.parse(userEntry.notes); } catch(e) {}
-                      return n.student_card_url && <a href={n.student_card_url} target="_blank" className="shrink-0 text-indigo-600 font-bold text-[10px] bg-indigo-50 px-2 py-1 rounded-lg">Lihat</a>
+                      return n.student_card_url && (
+                        <div className="flex gap-1 shrink-0">
+                          <a href={n.student_card_url} target="_blank" rel="noreferrer" className="text-indigo-600 font-bold text-[10px] bg-indigo-50 px-2 py-1 rounded-lg hover:bg-indigo-100 transition-colors">Lihat</a>
+                          <button type="button" onClick={() => handleRemoveFile('student_card_url')} className="text-red-600 font-bold text-[10px] bg-red-50 px-2 py-1 rounded-lg hover:bg-red-100 transition-colors">Hapus</button>
+                        </div>
+                      );
                     })()}
                   </div>
                 </div>
