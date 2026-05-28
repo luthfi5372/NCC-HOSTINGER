@@ -412,6 +412,7 @@ export default function UserDashboard() {
             progress={progress}
             paymentRequirementStage={paymentRequirementStage}
             isRegistrationOpen={isRegistrationOpen}
+            portalWaves={portalWaves}
           />
 
           {/* Kolom Kanan */}

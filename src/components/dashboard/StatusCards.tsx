@@ -15,6 +15,7 @@ interface StatusCardsProps {
   progress: number;
   paymentRequirementStage?: string;
   isRegistrationOpen?: boolean;
+  portalWaves?: any[];
 }
 
 export default function StatusCards({
@@ -27,7 +28,8 @@ export default function StatusCards({
   showToast,
   progress,
   paymentRequirementStage = 'registration',
-  isRegistrationOpen = true
+  isRegistrationOpen = true,
+  portalWaves = []
 }: StatusCardsProps) {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,6 +37,22 @@ export default function StatusCards({
   const [isSavingUrl, setIsSavingUrl] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isEditingSubmission, setIsEditingSubmission] = useState(false);
+  
+  // 🌊 DYNAMIC REGISTRATION OPEN CALCULATION FROM settings/waves
+  const activeWave = portalWaves.find((w: any) => w.status === "Aktif");
+  const isRegEffectiveOpen = isRegistrationOpen && !!activeWave;
+  const waveNameClean = activeWave ? activeWave.name.split(" (")[0] : "";
+
+  const getButtonText = () => {
+    if (isRegEffectiveOpen) {
+      return `Lengkapi Berkas ${waveNameClean} Sekarang`;
+    }
+    const hasAnyActive = portalWaves.some((w: any) => w.status === "Aktif");
+    if (!hasAnyActive && portalWaves.length > 0) {
+      return "Semua Gelombang Pendaftaran Telah Ditutup";
+    }
+    return "Pendaftaran Ditutup Sementara";
+  };
   
   // Ambil submission_url yang sudah tersimpan di database
   const savedSubmissionUrl = (() => {
@@ -307,20 +325,25 @@ export default function StatusCards({
           </div>
           <button 
             onClick={() => {
-              if (isRegistrationOpen) {
+              if (isRegEffectiveOpen) {
                 setShowForm(true);
               } else {
-                showToast("Pendaftaran ditutup sementara oleh Admin.", "error");
+                const hasAnyActive = portalWaves.some((w: any) => w.status === "Aktif");
+                if (!hasAnyActive && portalWaves.length > 0) {
+                  showToast("Semua gelombang pendaftaran telah ditutup oleh Admin.", "error");
+                } else {
+                  showToast("Pendaftaran ditutup sementara oleh Admin.", "error");
+                }
               }
             }}
-            disabled={!isRegistrationOpen}
+            disabled={!isRegEffectiveOpen}
             className={`w-full mt-6 font-bold py-3 rounded-xl transition-all shadow-md text-sm ${
-              isRegistrationOpen 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200' 
+              isRegEffectiveOpen 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200 hover:scale-[1.02]' 
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
             }`}
           >
-            {isRegistrationOpen ? "Lengkapi Berkas Sekarang" : "Pendaftaran Ditutup Sementara"}
+            {getButtonText()}
           </button>
         </div>
       )}
@@ -741,7 +764,7 @@ export default function StatusCards({
 
         {/* ── DYNAMIC REGISTRATION CARD INTEGRATED WITH ADMIN GATE ── */}
         {!userEntry ? (
-          isRegistrationOpen ? (
+          isRegEffectiveOpen ? (
             <button
               onClick={() => setShowForm(true)}
               className="flex items-center text-left gap-4 p-5 bg-gradient-to-r from-[#5145cd] to-[#372b9c] border border-transparent hover:from-[#4338ca] hover:to-[#2e2285] text-white rounded-2xl transition-all shadow-lg hover:shadow-indigo-200/50 shadow-indigo-100 group relative overflow-hidden w-full"
@@ -752,23 +775,31 @@ export default function StatusCards({
               </div>
               <div className="flex-1">
                 <h4 className="font-extrabold text-sm flex items-center gap-1.5">
-                  Pendaftaran Kompetisi <Sparkles size={14} className="text-amber-300" />
+                  Pendaftaran Kompetisi - {waveNameClean} <Sparkles size={14} className="text-amber-300 animate-bounce" />
                 </h4>
-                <p className="text-[11px] text-indigo-100 mt-0.5 font-medium">Pilih bidang lomba & lengkapi berkas sekarang</p>
+                <p className="text-[11px] text-indigo-100 mt-0.5 font-medium">Pilih bidang lomba & daftar {waveNameClean} sekarang</p>
               </div>
               <ChevronRight size={18} className="text-white/80 group-hover:translate-x-1 transition-transform shrink-0" />
             </button>
           ) : (
             <div
-              className="flex items-center text-left gap-4 p-5 bg-slate-100 border border-slate-200 text-slate-500 rounded-2xl cursor-not-allowed select-none opacity-80 w-full"
-              title="Pendaftaran ditutup sementara oleh admin"
+              className="flex items-center text-left gap-4 p-5 bg-slate-100 border border-slate-200 text-slate-500 rounded-2xl cursor-not-allowed select-none opacity-80 w-full shadow-inner"
+              title={
+                portalWaves.length > 0 && !portalWaves.some((w: any) => w.status === "Aktif")
+                  ? "Semua gelombang pendaftaran telah ditutup"
+                  : "Pendaftaran ditutup sementara oleh admin"
+              }
             >
               <div className="w-12 h-12 bg-slate-200 text-slate-400 rounded-2xl flex items-center justify-center shrink-0">
                 <AlertCircle size={24} />
               </div>
               <div className="flex-1">
                 <h4 className="font-extrabold text-sm text-slate-700">Pendaftaran Ditutup</h4>
-                <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Gerbang pendaftaran dinonaktifkan sementara</p>
+                <p className="text-[11px] text-slate-400 mt-0.5 font-semibold">
+                  {portalWaves.length > 0 && !portalWaves.some((w: any) => w.status === "Aktif")
+                    ? "Semua gelombang pendaftaran telah ditutup"
+                    : "Gerbang pendaftaran dinonaktifkan sementara"}
+                </p>
               </div>
             </div>
           )
