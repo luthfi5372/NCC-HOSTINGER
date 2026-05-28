@@ -799,7 +799,45 @@ export default function StatusCards({
             <ChevronRight size={18} className="text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />
           </button>
         )}
-      </div>
+      {/* 🌟 PREMIUM GLASSMORPHIC OVERLAY FOR SUBMITTING & SAVING KARYA / BUKTI TF */}
+      {(isSavingUrl || isUploadingPayment || isSubmitting) && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative flex flex-col items-center p-8 rounded-[2rem] bg-white/15 border border-white/20 shadow-2xl max-w-sm w-full text-center">
+            {/* Spinning glowing gradient ring */}
+            <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-4 border-white/10"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-t-emerald-400 border-r-teal-500 animate-spin"></div>
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white shadow-lg animate-pulse">
+                {isSavingUrl ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 animate-bounce">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15M9 12l3-3m0 0l3 3m-3-3v12" />
+                  </svg>
+                ) : isUploadingPayment ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 animate-bounce">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 animate-spin">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                )}
+              </div>
+            </div>
+
+            <h3 className="text-xl font-black text-white mb-2 tracking-tight">
+              {isSavingUrl ? "Menyimpan Karya..." : isUploadingPayment ? "Mengunggah Bukti Pembayaran..." : "Mengupdate Profil..."}
+            </h3>
+            <p className="text-xs text-indigo-200 font-medium leading-relaxed">
+              {isSavingUrl 
+                ? "Sedang menautkan link karya pendaftaran Anda ke database utama." 
+                : isUploadingPayment
+                ? "Sedang mengunggah file bukti pembayaran Anda ke server penyimpanan aman."
+                : "Mohon tunggu sebentar, sedang menyimpan pembaruan profil Anda."
+              }
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

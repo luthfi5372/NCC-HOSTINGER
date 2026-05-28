@@ -314,6 +314,7 @@ function ModernHQDashboardContent() {
   const searchParams = useSearchParams();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [realEntries, setRealEntries] = useState<any[]>([]);
   const [dynamicChartData, setDynamicChartData] = useState<any[]>([]);
   const [dynamicBarData, setDynamicBarData] = useState<any[]>([]);
@@ -881,6 +882,7 @@ function ModernHQDashboardContent() {
 
   // --- 🚪 FUNGSI PINTU EVAKUASI ---
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     try {
       // Pastikan perubahan teranyar disimpan sebelum sesi dikeluarkan agar tidak hilang
       await performSyncToDatabase();
@@ -3544,7 +3546,26 @@ function ModernHQDashboardContent() {
             )}
           </div>
         </div>
-      </div>
+      {/* 🌟 PREMIUM GLASSMORPHIC OVERLAY FOR HQ LOGOUT & SYNC (LOCKDOWN MODE) */}
+      {isLoggingOut && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative flex flex-col items-center p-8 rounded-[2rem] bg-white/15 border border-white/20 shadow-2xl max-w-sm w-full text-center">
+            {/* Spinning glowing gradient ring */}
+            <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-4 border-white/10"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-indigo-500 animate-spin"></div>
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg animate-pulse">
+                <Shield size={24} className="text-white" />
+              </div>
+            </div>
+
+            <h3 className="text-xl font-black text-white mb-2 tracking-tight">Locking Down Command Center...</h3>
+            <p className="text-xs text-indigo-200 font-medium leading-relaxed">
+              Menyinkronkan data konfigurasi portal dan membersihkan sesi administrasi secara aman. Sampai jumpa kembali, Komandan!
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -29,9 +29,11 @@ export default function UserDashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [paymentRequirementStage, setPaymentRequirementStage] = useState('registration');
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     await supabase.auth.signOut();
     router.push('/login');
   };
@@ -495,6 +497,40 @@ export default function UserDashboard() {
 
       {showIdCard && (
         <IdCardModal userEntry={userEntry} setShowIdCard={setShowIdCard} showToast={showToast} />
+      )}
+
+      {/* 🌟 PREMIUM GLASSMORPHIC OVERLAY FOR LOGOUT & REGISTRATION SUBMIT */}
+      {(isLoggingOut || isSubmitting) && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative flex flex-col items-center p-8 rounded-[2rem] bg-white/15 border border-white/20 shadow-2xl max-w-sm w-full text-center">
+            {/* Spinning glowing gradient ring */}
+            <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-4 border-white/10"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-t-indigo-500 border-r-purple-500 animate-spin"></div>
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg animate-pulse">
+                {isLoggingOut ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 animate-bounce">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 animate-pulse">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                  </svg>
+                )}
+              </div>
+            </div>
+
+            <h3 className="text-xl font-black text-white mb-2 tracking-tight">
+              {isLoggingOut ? "Mengamankan Sesi..." : "Memproses Pendaftaran..."}
+            </h3>
+            <p className="text-xs text-indigo-200 font-medium leading-relaxed">
+              {isLoggingOut 
+                ? "Membersihkan data sesi Anda dengan aman. Sampai jumpa kembali di event selanjutnya!" 
+                : "Sedang mendaftarkan berkas pendaftaran Anda ke database utama. Mohon tunggu sebentar."
+              }
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
