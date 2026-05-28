@@ -50,9 +50,10 @@ interface ParticipantRowProps {
   onRowClick: (entry: any) => void;
   onIdCardClick: (entry: any) => void;
   onDeleteClick: (entry: any) => void;
+  waveName?: string;
 }
 
-const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick }: ParticipantRowProps) => {
+const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick, waveName }: ParticipantRowProps) => {
   const dateObj = entry.created_at ? new Date(entry.created_at) : new Date();
   const dateStr = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
   const timeStr = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
@@ -112,6 +113,16 @@ const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick }
         <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
            <MapPin size={11} className="shrink-0" /> {entry.province || entry.city || "Provinsi belum diisi"}
         </div>
+      </td>
+      <td className="py-4 px-6">
+        <span className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-colors ${
+          (waveName || "").toLowerCase().includes("gelombang 2") ||
+          (waveName || "").toLowerCase().includes("regular")
+            ? 'bg-amber-50 text-amber-700 border-amber-100/80 hover:bg-amber-100/50'
+            : 'bg-sky-50 text-sky-700 border-sky-100/80 hover:bg-sky-100/50'
+        }`}>
+          {(waveName || "Gelombang 1").split(" (")[0]}
+        </span>
       </td>
       <td className="py-4 px-6">
         {stage === 1 && (
@@ -1913,11 +1924,31 @@ function ModernHQDashboardContent() {
                   <p className="text-xs text-slate-500 mt-1">Database lengkap peserta terverifikasi NCC 13th.</p>
                 </div>
                 
-                <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-start lg:justify-end">
-                  <span className="bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-xs font-bold border border-blue-200 shadow-sm shrink-0">
+                <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-start lg:justify-end">
+                  <span className="bg-blue-50 text-blue-700 px-3.5 py-1.5 rounded-xl text-xs font-black border border-blue-100 shadow-sm shrink-0 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                     Total Tiket Aktif: {realEntries.filter(e => e.payment_status === 'Verified').length}
                   </span>
-                  <span className="bg-slate-100 text-slate-600 px-4 py-1.5 rounded-full text-xs font-bold border border-slate-200 shadow-sm shrink-0">
+                  <span className="bg-sky-50 text-sky-700 px-3.5 py-1.5 rounded-xl text-xs font-black border border-sky-100 shadow-sm shrink-0 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                    {waves[0]?.name?.split(" (")[0] || "Gelombang 1"}: {
+                      realEntries.filter(e => {
+                        const wName = getParticipantWave(e.created_at);
+                        return wName.toLowerCase().includes("gelombang 1") || wName.toLowerCase().includes("early bird");
+                      }).length
+                    }
+                  </span>
+                  <span className="bg-amber-50 text-amber-700 px-3.5 py-1.5 rounded-xl text-xs font-black border border-amber-100 shadow-sm shrink-0 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    {waves[1]?.name?.split(" (")[0] || "Gelombang 2"}: {
+                      realEntries.filter(e => {
+                        const wName = getParticipantWave(e.created_at);
+                        return wName.toLowerCase().includes("gelombang 2") || wName.toLowerCase().includes("regular");
+                      }).length
+                    }
+                  </span>
+                  <span className="bg-slate-50 text-slate-600 px-3.5 py-1.5 rounded-xl text-xs font-black border border-slate-200 shadow-sm shrink-0 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                     Total Semua: {realEntries.length}
                   </span>
                 </div>
@@ -1974,6 +2005,22 @@ function ModernHQDashboardContent() {
                     <Filter size={14} className="text-slate-400" />
                   </div>
                 </div>
+
+                {/* Dropdown Gelombang */}
+                <div className="relative w-full md:w-44">
+                  <select
+                    value={filterWave}
+                    onChange={(e) => setFilterWave(e.target.value)}
+                    className="w-full pl-4 pr-10 py-2.5 bg-white/90 backdrop-blur-md border border-white/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 appearance-none text-slate-700 font-medium shadow-sm transition-all"
+                  >
+                    <option value="All">Semua Gelombang</option>
+                    <option value="Gelombang 1">Gelombang 1</option>
+                    <option value="Gelombang 2">Gelombang 2</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <Filter size={14} className="text-slate-400" />
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -1984,6 +2031,7 @@ function ModernHQDashboardContent() {
                     <th className="py-4 px-6">ID TIKET</th>
                     <th className="py-4 px-6">PROFIL PESERTA</th>
                     <th className="py-4 px-6">ASAL SEKOLAH</th>
+                    <th className="py-4 px-6">GELOMBANG</th>
                     <th className="py-4 px-6">PROGRES</th>
                     <th className="py-4 px-6">KATEGORI & PEMBINA</th>
                     <th className="py-4 px-6">WAKTU DAFTAR</th>
@@ -1999,6 +2047,17 @@ function ModernHQDashboardContent() {
                       return e.payment_status === filterProgress;
                     })
                     .filter(e => {
+                      if (filterWave === "All") return true;
+                      const wName = getParticipantWave(e.created_at);
+                      if (filterWave === "Gelombang 1") {
+                        return wName.toLowerCase().includes("gelombang 1") || wName.toLowerCase().includes("early bird");
+                      }
+                      if (filterWave === "Gelombang 2") {
+                        return wName.toLowerCase().includes("gelombang 2") || wName.toLowerCase().includes("regular");
+                      }
+                      return true;
+                    })
+                    .filter(e => {
                       if (!searchQuery) return true;
                       const query = searchQuery.toLowerCase();
                       return (e.full_name || "").toLowerCase().includes(query) || 
@@ -2008,7 +2067,7 @@ function ModernHQDashboardContent() {
                     .filter(e => filterCategory === "All" || (e.competition_type || e.category) === filterCategory)
                     .length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-16 text-center">
+                        <td colSpan={9} className="py-16 text-center">
                           <div className="flex flex-col items-center gap-3">
                             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
                               <Users size={28} className="text-slate-300" />
@@ -2034,6 +2093,17 @@ function ModernHQDashboardContent() {
                         return e.payment_status === filterProgress;
                       })
                       .filter(e => {
+                        if (filterWave === "All") return true;
+                        const wName = getParticipantWave(e.created_at);
+                        if (filterWave === "Gelombang 1") {
+                          return wName.toLowerCase().includes("gelombang 1") || wName.toLowerCase().includes("early bird");
+                        }
+                        if (filterWave === "Gelombang 2") {
+                          return wName.toLowerCase().includes("gelombang 2") || wName.toLowerCase().includes("regular");
+                        }
+                        return true;
+                      })
+                      .filter(e => {
                         if (!searchQuery) return true;
                         const query = searchQuery.toLowerCase();
                         return (e.full_name || "").toLowerCase().includes(query) || 
@@ -2045,6 +2115,7 @@ function ModernHQDashboardContent() {
                         <ParticipantRow 
                           key={entry.id} 
                           entry={entry}
+                          waveName={getParticipantWave(entry.created_at)}
                           onRowClick={setSelectedParticipant}
                           onIdCardClick={setSelectedIdCard}
                           onDeleteClick={(e) => setDeleteModal({ show: true, id: e.id, userId: e.user_id, name: e.full_name })}
