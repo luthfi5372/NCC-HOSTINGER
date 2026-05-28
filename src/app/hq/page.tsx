@@ -3746,6 +3746,7 @@ function ModernHQDashboardContent() {
             )}
           </div>
         </div>
+      </div>
       {/* 🌟 PREMIUM GLASSMORPHIC OVERLAY FOR HQ LOGOUT & SYNC (LOCKDOWN MODE) */}
       {isLoggingOut && (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">

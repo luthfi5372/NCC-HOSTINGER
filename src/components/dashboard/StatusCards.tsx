@@ -799,6 +799,7 @@ export default function StatusCards({
             <ChevronRight size={18} className="text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />
           </button>
         )}
+      </div>
       {/* 🌟 PREMIUM GLASSMORPHIC OVERLAY FOR SUBMITTING & SAVING KARYA / BUKTI TF */}
       {(isSavingUrl || isUploadingPayment || isSubmitting) && (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-300">
