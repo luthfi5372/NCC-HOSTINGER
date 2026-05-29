@@ -21,8 +21,8 @@ interface LoginFormClientProps {
 }
 
 export default function LoginFormClient({ initialStats }: LoginFormClientProps) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("admin1@ncc.id");
+  const [password, setPassword] = useState("123456");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
