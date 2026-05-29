@@ -557,6 +557,7 @@ function ModernHQDashboardContent() {
   // Fitur Tambah Peserta & Import CSV
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showSchoolMembers, setShowSchoolMembers] = useState(false);
   const [newParticipant, setNewParticipant] = useState({
     full_name: "", email: "", nisn: "", school_name: "", province: "", city: "",
     category: "", mentor_name: "", mentor_email: "", mentor_phone: "", phone_number: ""
@@ -3776,6 +3777,14 @@ function ModernHQDashboardContent() {
                         </div>
                       </div>
                     </div>
+
+                    <button
+                      onClick={() => setShowSchoolMembers(true)}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100/80 hover:border-indigo-200/80 rounded-2xl text-xs font-bold transition-all shadow-sm hover:shadow active:scale-95"
+                    >
+                      <Users size={14} />
+                      Daftar Anggota
+                    </button>
                   </div>
 
                   {/* Message Thread Scroll Area */}
@@ -4446,6 +4455,139 @@ function ModernHQDashboardContent() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* 🏫 MODAL LIHAT ANGGOTA GRUP (FORUM SEKOLAH) */}
+      <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-300 ${showSchoolMembers ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowSchoolMembers(false)}></div>
+        <div className={`bg-white rounded-3xl p-6 md:p-8 w-full max-w-3xl relative transition-all duration-300 transform overflow-hidden max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 ${showSchoolMembers ? 'scale-100 translate-y-0' : 'scale-[0.98] translate-y-2'}`}>
+          
+          {/* Header */}
+          <div className="flex justify-between items-center pb-4 border-b border-slate-100 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
+                <Users size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-800 tracking-tight uppercase">
+                  {selectedSchoolGroup?.schoolName}
+                </h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                  NPSN: {selectedSchoolGroup?.npsn || "Tanpa NPSN"} • {selectedSchoolGroup?.students?.length || 0} Anggota Grup Terdaftar
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowSchoolMembers(false)} 
+              className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-2.5 rounded-full transition-all"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Members List (Scrollable) */}
+          <div className="flex-1 overflow-y-auto py-5 pr-1 space-y-4 custom-scrollbar">
+            {(!selectedSchoolGroup?.students || selectedSchoolGroup.students.length === 0) ? (
+              <div className="text-center py-8 text-slate-400">
+                <Users size={32} className="mx-auto text-slate-200 mb-2" />
+                <p className="text-xs font-bold uppercase tracking-wider">Tidak Ada Anggota</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {selectedSchoolGroup.students.map((student: any) => {
+                  let ticketCode = generateTicketCode(student.id);
+                  let paymentStatus = student.payment_status || "Unpaid";
+                  
+                  return (
+                    <div 
+                      key={student.id}
+                      className="bg-slate-50/50 border border-slate-100 hover:border-indigo-100 rounded-2xl p-4 transition-all flex flex-col justify-between hover:shadow-sm"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+                              {student.full_name?.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="font-bold text-xs text-slate-800 truncate uppercase tracking-tight">{student.full_name || "Peserta"}</h4>
+                              <p className="text-[9px] font-mono font-bold text-slate-400 mt-0.5">NCC-{ticketCode}</p>
+                            </div>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider shrink-0 shadow-sm border ${
+                            paymentStatus === 'Verified' || paymentStatus === 'success'
+                              ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                              : paymentStatus === 'Pending'
+                                ? 'bg-amber-50 text-amber-600 border-amber-100'
+                                : paymentStatus === 'Rejected'
+                                  ? 'bg-rose-50 text-rose-600 border-rose-100'
+                                  : 'bg-slate-100 text-slate-500 border-slate-200'
+                          }`}>
+                            {paymentStatus}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5 text-[10px] text-slate-500 font-medium">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 w-12 shrink-0">Email:</span>
+                            <span className="text-slate-700 truncate font-mono select-all">{student.email || "-"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 w-12 shrink-0">NISN:</span>
+                            <span className="text-slate-700 font-mono select-all">{student.nisn || "-"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 w-12 shrink-0">Lomba:</span>
+                            <span className="bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded font-bold text-[9px]">
+                              {student.competition_type || student.category || "-"}
+                            </span>
+                          </div>
+                          {student.team_name && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400 w-12 shrink-0">Tim:</span>
+                              <span className="text-slate-700 font-bold uppercase tracking-wider">{student.team_name}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Sync Indicator / Info */}
+                      <div className="mt-3.5 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2 shrink-0">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping"></span>
+                          DATABASE PUSAT SYNCED
+                        </span>
+                        <button
+                          onClick={() => {
+                            setShowSchoolMembers(false);
+                            setActiveTab("Peserta");
+                            setSearchQuery(student.email || "");
+                          }}
+                          className="text-[9px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-widest hover:underline transition-all"
+                        >
+                          Buka Profil
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          {/* Footer Action */}
+          <div className="pt-4 border-t border-slate-100 shrink-0 flex items-center justify-between text-slate-400 text-[10px] font-medium">
+            <span>
+              Menampilkan data langsung dari buku induk pendaftaran NCC yang terhubung ke server utama.
+            </span>
+            <button 
+              onClick={() => setShowSchoolMembers(false)}
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs transition-all active:scale-95 shadow-sm"
+            >
+              Tutup Panel
+            </button>
           </div>
         </div>
       </div>
