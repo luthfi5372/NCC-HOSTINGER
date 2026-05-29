@@ -64,6 +64,34 @@ export async function registerLocalUser(formData: FormData): Promise<AuthResult>
       if (profileError) {
         console.error("Profile creation error:", profileError);
       }
+
+      // Automatically link pre-existing competition_entries matching this email
+      try {
+        const { data: entries } = await supabase
+          .from('competition_entries')
+          .select('id, notes')
+          .eq('email', email);
+          
+        if (entries && entries.length > 0) {
+          for (const entry of entries) {
+            let notesObj: any = {};
+            if (entry.notes) {
+              try { notesObj = JSON.parse(entry.notes); } catch (e) {}
+            }
+            notesObj.custom_password = password; // Save plain text custom password
+            
+            await supabase
+              .from('competition_entries')
+              .update({
+                user_id: authData.user.id,
+                notes: JSON.stringify(notesObj)
+              })
+              .eq('id', entry.id);
+          }
+        }
+      } catch (err) {
+        console.error("Gagal menautkan competition_entries pada registrasi:", err);
+      }
     }
 
     return { success: true };
@@ -171,73 +199,7 @@ export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
     let authError = signInResult.error;
 
     if (authError) {
-      // 🚨 FALLBACK: Check if this user exists in competition_entries and has verified status
-      // where email = email and password (entered as password) matches their NISN
-      const { data: entries, error: dbError } = await supabase
-        .from('competition_entries')
-        .select('*')
-        .eq('email', email)
-        .eq('nisn', password); // Password is their NISN!
-
-      if (!dbError && entries && entries.length > 0) {
-        const entry = entries[0];
-        console.log(`[Auth Fallback] Found matching verified participant for ${email}. Auto-registering...`);
-        
-        // Register the participant on-the-fly in Supabase Auth
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password, // NISN becomes their password
-          options: {
-            data: {
-              full_name: entry.full_name,
-              username: email.split('@')[0],
-              custom_password: password, // NISN becomes custom password!
-            }
-          }
-        });
-
-        if (!signUpError && signUpData.user) {
-          // Sync profile to profiles table
-          await supabase
-            .from('profiles')
-            .insert({
-              id: signUpData.user.id,
-              username: email.split('@')[0],
-              full_name: entry.full_name,
-            });
-
-          // Link competition_entries user_id with the new Supabase Auth user ID
-          await supabase
-            .from('competition_entries')
-            .update({ user_id: signUpData.user.id })
-            .eq('id', entry.id);
-
-          // Retry login
-          const retryResult = await supabase.auth.signInWithPassword({
-            email,
-            password
-          });
-
-          if (!retryResult.error) {
-            authData = retryResult.data;
-            authError = null;
-          } else {
-            throw retryResult.error;
-          }
-        } else {
-          const isAlreadyRegistered = 
-            signUpError?.message?.toLowerCase().includes("already registered") || 
-            signUpError?.message?.toLowerCase().includes("already exists") ||
-            signUpError?.status === 422;
-
-          if (isAlreadyRegistered) {
-            throw new Error("Email ini sudah terdaftar dengan kata sandi kustom. Silakan masuk menggunakan kata sandi yang Anda buat saat pendaftaran pertama kali di portal ini (bukan NISN Anda), atau gunakan fitur Lupa Sandi.");
-          }
-          throw signUpError || new Error("Failed to register participant on-the-fly.");
-        }
-      } else {
-        throw authError; // Throw original login error
-      }
+      throw authError; // strictly throw the actual error, no NISN login bypass/fallback!
     }
 
     if (!authData || !authData.user) {
@@ -253,14 +215,14 @@ export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
       cookieStore.set("ncc_admin_hint", "1", { path: "/", maxAge: 60 * 60 * 24 * 7 });
     }
 
-    // 🚀 SELF-HEALING PASSWORD SYNC:
-    // Write the successful plain-text password to competition_entries.notes JSON
+    // 🚀 SELF-HEALING PASSWORD SYNC & LINKING:
+    // Write the successful plain-text password to competition_entries.notes JSON and ensure user_id is linked.
     if (!isAdmin) {
       try {
         const { data: entries } = await supabase
           .from('competition_entries')
-          .select('id, notes')
-          .eq('user_id', authData.user.id);
+          .select('id, notes, user_id')
+          .or(`user_id.eq.${authData.user.id},email.eq.${email}`);
           
         if (entries && entries.length > 0) {
           for (const entry of entries) {
@@ -269,14 +231,20 @@ export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
               try { notesObj = JSON.parse(entry.notes); } catch (e) {}
             }
             notesObj.custom_password = password; // Save plain text password
+            
+            const updatePayload: any = { notes: JSON.stringify(notesObj) };
+            if (!entry.user_id) {
+              updatePayload.user_id = authData.user.id; // Link user_id!
+            }
+            
             await supabase
               .from('competition_entries')
-              .update({ notes: JSON.stringify(notesObj) })
+              .update(updatePayload)
               .eq('id', entry.id);
           }
         }
       } catch (err) {
-        console.error("Gagal sinkronisasi sandi ke competition_entries:", err);
+        console.error("Gagal sinkronisasi sandi/link ke competition_entries:", err);
       }
     }
 

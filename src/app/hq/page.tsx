@@ -3919,7 +3919,7 @@ function ModernHQDashboardContent() {
                                 pass = parsed.custom_password;
                               } catch (e) {}
                             }
-                            return pass || selectedParticipant.nisn || "—";
+                            return pass || "Belum membuat sandi kustom";
                           })()
                         ) : "•••••"}
                       </p>
