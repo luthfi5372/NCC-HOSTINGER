@@ -1519,6 +1519,7 @@ function ModernHQDashboardContent() {
             full_name: row.nama_lengkap || "-",
             email: row.email || "no-email@ncc.id",
             nisn: row.nisn || "-",
+            npsn: row.npsn || "-",
             school_name: row.asal_sekolah || "-",
             province: row.provinsi || "-",
             city: row.kota || "-",
