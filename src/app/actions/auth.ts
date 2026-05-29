@@ -82,10 +82,9 @@ export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
   }
 
   // 🔥 TAKTIK 3: HARDCODE BYPASS KHUSUS ADMIN (STEALTH MODE)
-  const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "admin2@ncc.id", "halo.ncc@gmail.com"];
+  const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "halo.ncc@gmail.com"];
   const isAdminBypass = 
     (email === 'admin1@ncc.id' && password === '123456') ||
-    (email === 'admin2@ncc.id' && password === '123456') ||
     (email === 'admin' && password === 'admin123') ||
     (email === 'admin@ncc.id' && password === 'admin123') ||
     (email === 'halo.ncc@gmail.com' && password === 'ncc2026');

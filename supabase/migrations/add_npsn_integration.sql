@@ -63,7 +63,7 @@ CREATE POLICY "Users can read own school messages" ON public.school_messages
               AND (competition_entries.npsn = school_messages.npsn OR UPPER(TRIM(competition_entries.school_name)) = UPPER(TRIM(school_messages.school_name)))
         )
         -- Izinkan Admin Command Center mengakses seluruh chat
-        OR auth.jwt()->>'email' IN ('admin1@ncc.id', 'admin2@ncc.id', 'admin@ncc.id', 'halo.ncc@gmail.com')
+        OR auth.jwt()->>'email' IN ('admin1@ncc.id', 'admin@ncc.id', 'halo.ncc@gmail.com')
     );
 
 CREATE POLICY "Users can insert own school messages" ON public.school_messages
@@ -81,7 +81,7 @@ CREATE POLICY "Users can insert own school messages" ON public.school_messages
                   AND (competition_entries.npsn = school_messages.npsn OR UPPER(TRIM(competition_entries.school_name)) = UPPER(TRIM(school_messages.school_name)))
             )
             -- Izinkan Admin Command Center untuk mengirim pesan
-            OR auth.jwt()->>'email' IN ('admin1@ncc.id', 'admin2@ncc.id', 'admin@ncc.id', 'halo.ncc@gmail.com')
+            OR auth.jwt()->>'email' IN ('admin1@ncc.id', 'admin@ncc.id', 'halo.ncc@gmail.com')
         )
         AND (auth.uid()::text = sender_id OR sender_id = 'hq-admin')
     );

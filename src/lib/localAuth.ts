@@ -40,7 +40,6 @@ export function getUsers(): LocalUser[] {
     // Initialize or Update default admins
     const defaultAccounts = [
       { email: "admin1@ncc.id", fullName: "NCC System Monitor 1", password: "123456", role: "admin" },
-      { email: "admin2@ncc.id", fullName: "NCC System Monitor 2", password: "123456", role: "admin" },
       { email: "admin@ncc.id", fullName: "Demo Admin", password: "admin123", role: "admin" },
       { email: "user@ncc.id", fullName: "Demo User", password: "user123", role: "user" }
     ];

@@ -30,11 +30,11 @@ CREATE POLICY "Users can update their own competition entries" ON public.competi
     WITH CHECK (user_id::text = auth.uid()::text);
 
 -- C. Kebijakan ALL (SELECT, INSERT, UPDATE, DELETE) untuk Admin Command Center:
--- Mengizinkan seluruh email admin ('admin@ncc.id', 'admin1@ncc.id', 'admin2@ncc.id', 'halo.ncc@gmail.com') mengelola seluruh pendaftaran
+-- Mengizinkan seluruh email admin ('admin@ncc.id', 'admin1@ncc.id', 'halo.ncc@gmail.com') mengelola seluruh pendaftaran
 CREATE POLICY "Admin has full access to competition entries" ON public.competition_entries
     FOR ALL
-    USING (auth.jwt()->>'email' IN ('admin@ncc.id', 'admin1@ncc.id', 'admin2@ncc.id', 'halo.ncc@gmail.com'))
-    WITH CHECK (auth.jwt()->>'email' IN ('admin@ncc.id', 'admin1@ncc.id', 'admin2@ncc.id', 'halo.ncc@gmail.com'));
+    USING (auth.jwt()->>'email' IN ('admin@ncc.id', 'admin1@ncc.id', 'halo.ncc@gmail.com'))
+    WITH CHECK (auth.jwt()->>'email' IN ('admin@ncc.id', 'admin1@ncc.id', 'halo.ncc@gmail.com'));
 
 
 -- 2. --- PERBAIKAN PADA TABEL 'announcements' ---
@@ -51,8 +51,8 @@ CREATE POLICY "Public can select announcements" ON public.announcements
     USING (true);
 
 -- B. Kebijakan ALL (SELECT, INSERT, UPDATE, DELETE) untuk Admin Command Center:
--- Mengizinkan seluruh email admin ('admin@ncc.id', 'admin1@ncc.id', 'admin2@ncc.id', 'halo.ncc@gmail.com') membuat, mengubah, dan menghapus pengumuman / pengaturan portal
+-- Mengizinkan seluruh email admin ('admin@ncc.id', 'admin1@ncc.id', 'halo.ncc@gmail.com') membuat, mengubah, dan menghapus pengumuman / pengaturan portal
 CREATE POLICY "Admin has full access to announcements" ON public.announcements
     FOR ALL
-    USING (auth.jwt()->>'email' IN ('admin@ncc.id', 'admin1@ncc.id', 'admin2@ncc.id', 'halo.ncc@gmail.com'))
-    WITH CHECK (auth.jwt()->>'email' IN ('admin@ncc.id', 'admin1@ncc.id', 'admin2@ncc.id', 'halo.ncc@gmail.com'));
+    USING (auth.jwt()->>'email' IN ('admin@ncc.id', 'admin1@ncc.id', 'halo.ncc@gmail.com'))
+    WITH CHECK (auth.jwt()->>'email' IN ('admin@ncc.id', 'admin1@ncc.id', 'halo.ncc@gmail.com'));

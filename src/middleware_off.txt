@@ -49,7 +49,7 @@ export async function middleware(request: NextRequest) {
     }
     
     // Cek apakah dia benar-benar Admin (Email atau Metadata)
-    const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "admin2@ncc.id", "halo.ncc@gmail.com"];
+    const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "halo.ncc@gmail.com"];
     const isAdmin = (user.email && adminEmails.includes(user.email.toLowerCase())) || user.user_metadata?.role === 'admin';
     
     if (!isAdmin) {
@@ -63,7 +63,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
     
-    const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "admin2@ncc.id", "halo.ncc@gmail.com"];
+    const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "halo.ncc@gmail.com"];
     const juryEmails = ["juri1@ncc.id", "juri2@ncc.id", "juri3@ncc.id"];
     
     const isAdmin = (user.email && adminEmails.includes(user.email.toLowerCase())) || user.user_metadata?.role === 'admin';

@@ -3764,7 +3764,7 @@ function ModernHQDashboardContent() {
                       </div>
                     ) : (
                       groupMessages.map((msg, index) => {
-                        const isAdmin = msg.sender_id === "hq-admin" || msg.sender_id === "admin1" || msg.sender_id === "admin2";
+                        const isAdmin = msg.sender_id === "hq-admin" || msg.sender_id === "admin1";
                         const dateObj = new Date(msg.created_at);
                         const timeStr = dateObj.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 
