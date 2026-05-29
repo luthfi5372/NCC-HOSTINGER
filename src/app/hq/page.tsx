@@ -3907,10 +3907,21 @@ function ModernHQDashboardContent() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Password / Kata Sandi (NISN)</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Password / Kata Sandi (Akses Akun)</p>
                     <div className="flex items-center gap-2 mt-1">
                       <p className="font-mono text-xs font-black text-slate-800 tracking-wider bg-slate-100/60 px-2.5 py-1 rounded border border-slate-200/40 select-all">
-                        {showToken ? (selectedParticipant.nisn || "—") : "•••••"}
+                        {showToken ? (
+                          (() => {
+                            let pass = "";
+                            if (selectedParticipant.notes) {
+                              try {
+                                const parsed = JSON.parse(selectedParticipant.notes);
+                                pass = parsed.custom_password;
+                              } catch (e) {}
+                            }
+                            return pass || selectedParticipant.nisn || "—";
+                          })()
+                        ) : "•••••"}
                       </p>
                       <button 
                         type="button"

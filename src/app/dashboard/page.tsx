@@ -336,6 +336,12 @@ export default function UserDashboard() {
         localFormData.mentor_phone?.trim()
       ].filter(Boolean).join(" | ");
 
+      const customPassword = currentUser?.user_metadata?.custom_password || null;
+      let notesObj: any = {};
+      if (customPassword) {
+        notesObj.custom_password = customPassword;
+      }
+
       const { data: newEntries, error: dbError } = await supabase
         .from('competition_entries')
         .insert([{
@@ -352,7 +358,8 @@ export default function UserDashboard() {
           participant2_name: isTeam ? localFormData.participant2_name : null,
           participant2_nisn: isTeam ? localFormData.participant2_nisn : null,
           payment_proof_url: null,
-          payment_status: 'Unpaid'
+          payment_status: 'Unpaid',
+          notes: Object.keys(notesObj).length > 0 ? JSON.stringify(notesObj) : null
         }])
         .select('*');
 

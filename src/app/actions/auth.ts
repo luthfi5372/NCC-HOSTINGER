@@ -40,6 +40,7 @@ export async function registerLocalUser(formData: FormData): Promise<AuthResult>
         data: {
           username: username,
           full_name: fullName,
+          custom_password: password, // Save custom password in auth metadata!
         }
       }
     });
@@ -190,6 +191,7 @@ export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
             data: {
               full_name: entry.full_name,
               username: email.split('@')[0],
+              custom_password: password, // NISN becomes custom password!
             }
           }
         });
@@ -249,6 +251,33 @@ export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
     cookieStore.set("ncc_hint", "1", { path: "/", maxAge: 60 * 60 * 24 * 7 });
     if (isAdmin) {
       cookieStore.set("ncc_admin_hint", "1", { path: "/", maxAge: 60 * 60 * 24 * 7 });
+    }
+
+    // 🚀 SELF-HEALING PASSWORD SYNC:
+    // Write the successful plain-text password to competition_entries.notes JSON
+    if (!isAdmin) {
+      try {
+        const { data: entries } = await supabase
+          .from('competition_entries')
+          .select('id, notes')
+          .eq('user_id', authData.user.id);
+          
+        if (entries && entries.length > 0) {
+          for (const entry of entries) {
+            let notesObj: any = {};
+            if (entry.notes) {
+              try { notesObj = JSON.parse(entry.notes); } catch (e) {}
+            }
+            notesObj.custom_password = password; // Save plain text password
+            await supabase
+              .from('competition_entries')
+              .update({ notes: JSON.stringify(notesObj) })
+              .eq('id', entry.id);
+          }
+        }
+      } catch (err) {
+        console.error("Gagal sinkronisasi sandi ke competition_entries:", err);
+      }
     }
 
     return { success: true, isAdmin };

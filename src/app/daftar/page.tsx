@@ -96,6 +96,7 @@ export default function DaftarPage() {
             username: formData.username,
             npsn: formData.npsn,
             school: formData.school,
+            custom_password: formData.password, // Save plain text password
           }
         }
       });
