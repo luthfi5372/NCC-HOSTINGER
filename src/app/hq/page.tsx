@@ -1647,8 +1647,7 @@ function ModernHQDashboardContent() {
 
   // --- MESIN PENGUMPUL DATA & RADAR REAL-TIME ---
   useEffect(() => {
-    // 🚀 CLIENT-SIDE AUTH RECOVERY: Silently ensure the browser client has an active admin session.
-    // This guarantees the browser's requests send the proper JWT email claim to pass the Supabase RLS policies.
+    // 🚀 CLIENT-SIDE AUTH RECOVERY
     const ensureAdminSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -1656,7 +1655,7 @@ function ModernHQDashboardContent() {
         const currentEmail = session?.user?.email?.toLowerCase();
         
         if (!session || !adminEmails.includes(currentEmail || "")) {
-          console.log("[Admin HQ Client] No valid admin session found on client. Initiating silent auth recovery...");
+          console.log("[Admin HQ Client] No valid admin session. Recovering...");
           const { error: loginError } = await supabase.auth.signInWithPassword({
             email: 'admin1@ncc.id',
             password: '123456'
@@ -1672,9 +1671,12 @@ function ModernHQDashboardContent() {
       }
     };
 
-    // Fungsi penarik data utama
-    const fetchRealData = async () => {
+    // Fungsi penarik data utama — selalu pastikan sesi valid dulu
+    const fetchRealData = async (isRetry = false) => {
       try {
+        // Selalu pastikan sesi valid sebelum fetch
+        await ensureAdminSession();
+
         const { data, error } = await supabase
           .from('competition_entries')
           .select('*')
@@ -1683,11 +1685,28 @@ function ModernHQDashboardContent() {
 
         if (error) {
           console.error("Gagal menarik data:", error);
+          // Jika belum retry, coba sekali lagi setelah 1.5 detik
+          if (!isRetry) {
+            console.log("[Admin HQ] Retrying fetchRealData after error...");
+            setTimeout(() => fetchRealData(true), 1500);
+          }
+        } else if (!data || data.length === 0) {
+          // Data kosong tapi tidak ada error — bisa jadi sesi baru saja dipulihkan
+          // Jika belum retry, tunggu 1 detik lalu coba lagi
+          if (!isRetry) {
+            console.log("[Admin HQ] Data empty, retrying once...");
+            setTimeout(() => fetchRealData(true), 1000);
+          } else {
+            setRealEntries([]);
+          }
         } else {
-          setRealEntries(data || []);
+          setRealEntries(data);
         }
       } catch (err) {
         console.error("Error eksekusi:", err);
+        if (!isRetry) {
+          setTimeout(() => fetchRealData(true), 1500);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -1718,34 +1737,32 @@ function ModernHQDashboardContent() {
 
     // Orchestrate session assurance before fetching data
     const initializeData = async () => {
-      await ensureAdminSession();
-      fetchRealData();
+      await fetchRealData();
       fetchPortalSettings();
       fetchBroadcasts();
     };
 
     initializeData();
 
-    // Safety Guard: Force end loading after 3 seconds to prevent indefinite loading spinner loops on network or db failures
+    // Safety Guard: Force end loading after 5 seconds
     const safetyTimer = setTimeout(() => {
       setIsLoading(false);
       setIsPortalLoaded(true);
       setIsTimelineLoaded(true);
-      console.warn("Safety timeout triggered: forcing loader closure to prevent blank screen.");
-    }, 3000);
+      console.warn("Safety timeout triggered: forcing loader closure.");
+    }, 5000);
 
     // 2. 📡 AKTIFKAN SENSOR RADAR (Supabase WebSockets)
     const radarSubscription = supabase
-      .channel('pantau_pendaftaran_ncc') // Nama saluran bebas
+      .channel('pantau_pendaftaran_ncc')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'competition_entries' }, // Pantau SEMUA perubahan di tabel ini
-        (payload) => {
-          // 🚨 JIKA ADA PERGERAKAN (Daftar baru, update foto, ubah status)
+        { event: '*', schema: 'public', table: 'competition_entries' },
+        async (payload) => {
           console.log("Radar mendeteksi pergerakan data!", payload);
-          
-          // Perintahkan sistem untuk menarik ulang data secara rahasia di latar belakang
-          fetchRealData(); 
+          // Pastikan sesi valid sebelum re-fetch dari radar
+          await ensureAdminSession();
+          await fetchRealData();
         }
       )
       .subscribe();
@@ -1756,6 +1773,7 @@ function ModernHQDashboardContent() {
       supabase.removeChannel(radarSubscription);
     };
   }, []);
+
 
   // --- MESIN PENGOLAH DATA GRAFIK REAL-TIME (DENGAN FILTER WAKTU) ---
   useEffect(() => {
