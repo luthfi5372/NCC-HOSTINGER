@@ -2101,7 +2101,7 @@ function ModernHQDashboardContent() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 shadow-sm cursor-pointer hover:bg-slate-50">
               <Calendar size={16} className="text-slate-400" />
-              April 2026
+              {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
             </div>
             
             {activeTab === "Peserta" && (

@@ -27,6 +27,8 @@ export default function LoginFormClient({ initialStats }: LoginFormClientProps) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [redirectTarget, setRedirectTarget] = useState<'dashboard' | 'hq'>('dashboard');
   const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
@@ -92,6 +94,8 @@ export default function LoginFormClient({ initialStats }: LoginFormClientProps) 
       }
 
       setSuccess(true);
+      setIsRedirecting(true);
+      setRedirectTarget(result.isAdmin ? 'hq' : 'dashboard');
       
       setTimeout(() => {
         if (result.isAdmin) {
@@ -99,7 +103,7 @@ export default function LoginFormClient({ initialStats }: LoginFormClientProps) 
         } else {
           window.location.href = '/dashboard';
         }
-      }, 1000);
+      }, 1800);
     } else {
       let errorMessage = result.error ?? "Email atau kata sandi salah.";
       // Hanya override pesan mentah Supabase dengan bahasa Indonesia yang ramah.
@@ -113,6 +117,52 @@ export default function LoginFormClient({ initialStats }: LoginFormClientProps) 
       showToast(errorMessage, "error");
     }
   };
+
+  // Full-screen redirect loading overlay
+  if (isRedirecting) {
+    return (
+      <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800">
+        {/* Animated background blobs */}
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+
+        {/* Spinning ring */}
+        <div className="relative mb-8">
+          <div className="w-28 h-28 rounded-full border-4 border-white/20 border-t-white animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-20 h-20 bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl flex items-center justify-center shadow-2xl">
+              <Trophy size={36} className="text-yellow-300 drop-shadow-lg" style={{ animation: 'bounce 1s infinite' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Text */}
+        <h2 className="text-white text-2xl font-black mb-2 tracking-tight">
+          {redirectTarget === 'hq' ? 'Masuk ke Command Center...' : 'Masuk ke Dashboard...'}
+        </h2>
+        <p className="text-indigo-200 text-sm font-medium mb-8">
+          {redirectTarget === 'hq' ? 'Menyiapkan data admin NCC 13th' : 'Memuat profil peserta Anda'}
+        </p>
+
+        {/* Animated progress bar */}
+        <div className="w-64 h-1.5 bg-white/20 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-white rounded-full"
+            style={{
+              animation: 'progressFill 1.5s ease-out forwards'
+            }}
+          />
+        </div>
+
+        <style>{`
+          @keyframes progressFill {
+            from { width: 0%; }
+            to { width: 100%; }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/20 w-full">
