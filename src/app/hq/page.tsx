@@ -3356,89 +3356,157 @@ function ModernHQDashboardContent() {
                                         {/* Calendar Popover */}
                                         {isOpen && (
                                           <div
-                                            className="absolute z-50 top-full mt-2 left-0 bg-white rounded-2xl shadow-2xl border border-slate-100 p-3 w-64 animate-in fade-in zoom-in-95 duration-150"
+                                            className="absolute z-50 top-full mt-2 left-0 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                                            style={{ width: '280px' }}
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            {/* Month Navigator */}
-                                            <div className="flex items-center justify-between mb-3">
-                                              <button
-                                                type="button"
-                                                onClick={() => navigateMonth(-1)}
-                                                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-indigo-600 transition-colors font-bold text-sm"
-                                              >‹</button>
-                                              <span className="text-xs font-black text-slate-800">
-                                                {MONTHS_FULL[viewMonth]} {viewYear}
-                                              </span>
-                                              <button
-                                                type="button"
-                                                onClick={() => navigateMonth(1)}
-                                                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-indigo-600 transition-colors font-bold text-sm"
-                                              >›</button>
-                                            </div>
-
-                                            {/* Year quick-jump */}
-                                            <div className="flex items-center justify-center gap-1 mb-2">
-                                              {[viewYear - 1, viewYear, viewYear + 1].map(y => (
+                                            {/* ── HEADER ── */}
+                                            <div className="bg-indigo-600 px-4 pt-4 pb-3">
+                                              <div className="flex items-center justify-between">
                                                 <button
-                                                  key={y}
                                                   type="button"
-                                                  onClick={() => setCalViewDate(prev => ({ ...prev, [calKey]: { year: y, month: viewMonth } }))}
-                                                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
-                                                    y === viewYear
-                                                      ? 'bg-indigo-600 text-white'
-                                                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                                                  }`}
-                                                >{y}</button>
-                                              ))}
-                                            </div>
+                                                  onClick={() => navigateMonth(-1)}
+                                                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors text-base font-bold"
+                                                >‹</button>
 
-                                            {/* Day Headers */}
-                                            <div className="grid grid-cols-7 mb-1">
-                                              {DAYS.map(d => (
-                                                <div key={d} className="text-center text-[9px] font-black text-slate-400 uppercase py-1">{d}</div>
-                                              ))}
-                                            </div>
-
-                                            {/* Date Grid */}
-                                            <div className="grid grid-cols-7 gap-0.5">
-                                              {cells.map((d, ci) => (
+                                                {/* Clickable month+year → toggle year picker */}
                                                 <button
-                                                  key={ci}
                                                   type="button"
-                                                  disabled={d === null}
-                                                  onClick={() => d && selectDay(d)}
-                                                  className={`h-7 w-full text-[11px] rounded-lg font-bold transition-all ${
-                                                    d === null
-                                                      ? 'invisible'
-                                                      : isSelectedDay(d!)
-                                                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                                                        : isTodayDay(d!)
-                                                          ? 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-300'
-                                                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
-                                                  }`}
-                                                >{d}</button>
-                                              ))}
+                                                  onClick={() => setCalViewDate(prev => ({
+                                                    ...prev,
+                                                    [calKey]: { year: viewYear, month: viewMonth, showYearPicker: !(prev[calKey]?.showYearPicker) } as any
+                                                  }))}
+                                                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition-colors group"
+                                                >
+                                                  <span className="text-sm font-black text-white tracking-wide">
+                                                    {(calViewDate[calKey] as any)?.showYearPicker
+                                                      ? `Pilih Tahun`
+                                                      : `${MONTHS_FULL[viewMonth]} ${viewYear}`
+                                                    }
+                                                  </span>
+                                                  <span className="text-white/70 text-xs group-hover:text-white transition-colors">
+                                                    {(calViewDate[calKey] as any)?.showYearPicker ? '▲' : '▼'}
+                                                  </span>
+                                                </button>
+
+                                                <button
+                                                  type="button"
+                                                  onClick={() => navigateMonth(1)}
+                                                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors text-base font-bold"
+                                                >›</button>
+                                              </div>
+
+                                              {/* Selected date display */}
+                                              {currentVal && !((calViewDate[calKey] as any)?.showYearPicker) && (
+                                                <div className="mt-2 text-center">
+                                                  <span className="text-white/80 text-xs font-medium">
+                                                    {(() => { const d = new Date(currentVal); return `${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`; })()}
+                                                  </span>
+                                                </div>
+                                              )}
                                             </div>
 
-                                            {/* Footer */}
-                                            <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-                                                  updateTimelineItem(cat.category, wave.label, item.label, type, todayStr);
-                                                  setOpenCalendar(null);
-                                                }}
-                                                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
-                                              >Hari ini</button>
-                                              <button
-                                                type="button"
-                                                onClick={() => setOpenCalendar(null)}
-                                                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors"
-                                              >Tutup</button>
-                                            </div>
+                                            {/* ── YEAR PICKER MODE ── */}
+                                            {(calViewDate[calKey] as any)?.showYearPicker ? (() => {
+                                              const decadeStart = (calViewDate[calKey] as any)?.decadeStart ?? Math.floor(viewYear / 20) * 20;
+                                              const years = Array.from({ length: 20 }, (_, i) => decadeStart + i);
+                                              return (
+                                                <div className="p-3">
+                                                  {/* Decade nav */}
+                                                  <div className="flex items-center justify-between mb-2 px-1">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setCalViewDate(prev => ({ ...prev, [calKey]: { ...(prev[calKey] as any), decadeStart: decadeStart - 20 } as any }))}
+                                                      className="text-xs font-black text-slate-500 hover:text-indigo-600 px-2 py-1 rounded-lg hover:bg-indigo-50 transition-colors"
+                                                    >‹ {decadeStart - 20}s</button>
+                                                    <span className="text-xs font-black text-slate-600">{decadeStart} – {decadeStart + 19}</span>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setCalViewDate(prev => ({ ...prev, [calKey]: { ...(prev[calKey] as any), decadeStart: decadeStart + 20 } as any }))}
+                                                      className="text-xs font-black text-slate-500 hover:text-indigo-600 px-2 py-1 rounded-lg hover:bg-indigo-50 transition-colors"
+                                                    >{decadeStart + 20}s ›</button>
+                                                  </div>
+                                                  <div className="grid grid-cols-4 gap-1">
+                                                    {years.map(y => (
+                                                      <button
+                                                        key={y}
+                                                        type="button"
+                                                        onClick={() => setCalViewDate(prev => ({ ...prev, [calKey]: { year: y, month: viewMonth, showYearPicker: false } as any }))}
+                                                        className={`py-2 rounded-xl text-xs font-black transition-all ${
+                                                          y === viewYear
+                                                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100'
+                                                            : y === today.getFullYear()
+                                                              ? 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-300'
+                                                              : 'text-slate-600 hover:bg-slate-100'
+                                                        }`}
+                                                      >{y}</button>
+                                                    ))}
+                                                  </div>
+                                                  <div className="mt-3 pt-2 border-t border-slate-100 flex justify-center">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setCalViewDate(prev => ({ ...prev, [calKey]: { year: today.getFullYear(), month: today.getMonth(), showYearPicker: false, decadeStart: Math.floor(today.getFullYear() / 20) * 20 } as any }))}
+                                                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                                                    >Kembali ke tahun ini</button>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })() : (
+                                              /* ── CALENDAR DATE GRID MODE ── */
+                                              <div className="p-3">
+                                                {/* Day Headers */}
+                                                <div className="grid grid-cols-7 mb-1">
+                                                  {DAYS.map(d => (
+                                                    <div key={d} className="text-center text-[9px] font-black text-slate-400 uppercase py-1">{d}</div>
+                                                  ))}
+                                                </div>
+
+                                                {/* Date Grid */}
+                                                <div className="grid grid-cols-7 gap-0.5">
+                                                  {cells.map((d, ci) => (
+                                                    <button
+                                                      key={ci}
+                                                      type="button"
+                                                      disabled={d === null}
+                                                      onClick={() => d && selectDay(d)}
+                                                      className={`h-8 w-full text-[11px] rounded-lg font-bold transition-all ${
+                                                        d === null
+                                                          ? 'invisible'
+                                                          : isSelectedDay(d!)
+                                                            ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200 scale-105'
+                                                            : isTodayDay(d!)
+                                                              ? 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-300 font-black'
+                                                              : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
+                                                      }`}
+                                                    >{d}</button>
+                                                  ))}
+                                                </div>
+
+                                                {/* Footer */}
+                                                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+                                                      updateTimelineItem(cat.category, wave.label, item.label, type, todayStr);
+                                                      setOpenCalendar(null);
+                                                    }}
+                                                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
+                                                  >
+                                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full inline-block" />
+                                                    Hari ini
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => setOpenCalendar(null)}
+                                                    className="text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                                                  >Tutup</button>
+                                                </div>
+                                              </div>
+                                            )}
                                           </div>
                                         )}
+
                                       </div>
                                     );
                                   };
