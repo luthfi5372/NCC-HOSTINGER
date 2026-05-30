@@ -790,6 +790,9 @@ function ModernHQDashboardContent() {
   const [timeFilter, setTimeFilter] = useState("All"); // Opsi: 'Today', '7Days', '1Month', 'All'
   const [selectedParticipant, setSelectedParticipant] = useState<any | null>(null);
   const [selectedIdCard, setSelectedIdCard] = useState<any | null>(null);
+  // Calendar picker state
+  const [openCalendar, setOpenCalendar] = useState<string | null>(null); // key: `${cat}-${wave}-${item}-${type}`
+  const [calViewDate, setCalViewDate] = useState<{ [key: string]: { year: number; month: number } }>({});
 
   // --- MEMORI SIARAN KOMANDO ---
   const [broadcastTitle, setBroadcastTitle] = useState("");
@@ -1111,6 +1114,14 @@ function ModernHQDashboardContent() {
     }, 1000);
     return () => clearTimeout(timer);
   }, [timelineData, isTimelineLoaded]);
+
+  // --- 📅 CLOSE CALENDAR ON OUTSIDE CLICK ---
+  useEffect(() => {
+    if (!openCalendar) return;
+    const handler = () => setOpenCalendar(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [openCalendar]);
 
   const saveTimeline = async () => {
     setIsSavingTimeline(true);
@@ -3238,20 +3249,209 @@ function ModernHQDashboardContent() {
 
                               <div className="space-y-5">
                                 {wave.items.map((item: any) => {
-                                  // Logika untuk mendeteksi apakah ini rentang waktu atau tanggal tunggal
                                   const isRange = item.label.toLowerCase().includes("pendaftaran") || 
                                                  item.label.toLowerCase().includes("pengumpulan") || 
                                                  item.label.toLowerCase().includes("seleksi");
-                                  
+
+                                  // Inline MiniCalendarPicker renderer
+                                  const renderCalPicker = (type: 'start' | 'end') => {
+                                    const calKey = `${cat.category}-${wave.label}-${item.label}-${type}`;
+                                    const isOpen = openCalendar === calKey;
+                                    const currentVal = type === 'start' ? (item.start || '') : (item.end || '');
+                                    const today = new Date();
+
+                                    // Get view date for this calendar
+                                    let viewYear = calViewDate[calKey]?.year;
+                                    let viewMonth = calViewDate[calKey]?.month;
+                                    if (viewYear === undefined) {
+                                      const base = currentVal ? new Date(currentVal) : today;
+                                      viewYear = base.getFullYear();
+                                      viewMonth = base.getMonth();
+                                    }
+
+                                    const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+                                    const MONTHS_FULL = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                                    const DAYS = ['Sen','Sel','Rab','Kam','Jum','Sab','Min'];
+
+                                    const firstDay = new Date(viewYear, viewMonth, 1);
+                                    const lastDay = new Date(viewYear, viewMonth + 1, 0);
+                                    // Adjust: getDay() returns 0=Sun, we want 0=Mon
+                                    const startOffset = (firstDay.getDay() + 6) % 7;
+                                    const totalCells = startOffset + lastDay.getDate();
+                                    const cells = Array.from({ length: Math.ceil(totalCells / 7) * 7 }, (_, i) => {
+                                      const d = i - startOffset + 1;
+                                      return d >= 1 && d <= lastDay.getDate() ? d : null;
+                                    });
+
+                                    const selectedDate = currentVal ? new Date(currentVal) : null;
+                                    const isSelectedDay = (d: number) => selectedDate &&
+                                      selectedDate.getFullYear() === viewYear &&
+                                      selectedDate.getMonth() === viewMonth &&
+                                      selectedDate.getDate() === d;
+                                    const isTodayDay = (d: number) =>
+                                      today.getFullYear() === viewYear &&
+                                      today.getMonth() === viewMonth &&
+                                      today.getDate() === d;
+
+                                    const navigateMonth = (delta: number) => {
+                                      let nm = viewMonth + delta;
+                                      let ny = viewYear;
+                                      if (nm < 0) { nm = 11; ny -= 1; }
+                                      if (nm > 11) { nm = 0; ny += 1; }
+                                      setCalViewDate(prev => ({ ...prev, [calKey]: { year: ny, month: nm } }));
+                                    };
+
+                                    const selectDay = (d: number) => {
+                                      const mm = String(viewMonth + 1).padStart(2, '0');
+                                      const dd = String(d).padStart(2, '0');
+                                      updateTimelineItem(cat.category, wave.label, item.label, type, `${viewYear}-${mm}-${dd}`);
+                                      setOpenCalendar(null);
+                                    };
+
+                                    const labelText = type === 'start' ? 'Mulai' : 'Selesai';
+                                    const displayVal = currentVal
+                                      ? (() => { const d = new Date(currentVal); return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`; })()
+                                      : 'Pilih tanggal';
+
+                                    return (
+                                      <div key={type} className="space-y-1 relative">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase ml-1">{labelText}</p>
+                                        {/* Trigger button */}
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (isOpen) {
+                                              setOpenCalendar(null);
+                                            } else {
+                                              // Init view to current value's month
+                                              if (currentVal && !calViewDate[calKey]) {
+                                                const base = new Date(currentVal);
+                                                setCalViewDate(prev => ({ ...prev, [calKey]: { year: base.getFullYear(), month: base.getMonth() } }));
+                                              } else if (!calViewDate[calKey]) {
+                                                setCalViewDate(prev => ({ ...prev, [calKey]: { year: today.getFullYear(), month: today.getMonth() } }));
+                                              }
+                                              setOpenCalendar(calKey);
+                                            }
+                                          }}
+                                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                                            currentVal
+                                              ? 'bg-white border-indigo-200 text-indigo-700 hover:border-indigo-400 shadow-sm'
+                                              : 'bg-white border-dashed border-slate-300 text-slate-400 hover:border-indigo-300 hover:text-indigo-500'
+                                          }`}
+                                        >
+                                          <Calendar size={12} className={currentVal ? 'text-indigo-500' : 'text-slate-300'} />
+                                          <span>{displayVal}</span>
+                                          {currentVal && (
+                                            <span
+                                              role="button"
+                                              onClick={(e) => { e.stopPropagation(); updateTimelineItem(cat.category, wave.label, item.label, type, ''); }}
+                                              className="ml-auto text-slate-300 hover:text-rose-400 transition-colors"
+                                            >
+                                              ✕
+                                            </span>
+                                          )}
+                                        </button>
+
+                                        {/* Calendar Popover */}
+                                        {isOpen && (
+                                          <div
+                                            className="absolute z-50 top-full mt-2 left-0 bg-white rounded-2xl shadow-2xl border border-slate-100 p-3 w-64 animate-in fade-in zoom-in-95 duration-150"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {/* Month Navigator */}
+                                            <div className="flex items-center justify-between mb-3">
+                                              <button
+                                                type="button"
+                                                onClick={() => navigateMonth(-1)}
+                                                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-indigo-600 transition-colors font-bold text-sm"
+                                              >‹</button>
+                                              <span className="text-xs font-black text-slate-800">
+                                                {MONTHS_FULL[viewMonth]} {viewYear}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => navigateMonth(1)}
+                                                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-indigo-600 transition-colors font-bold text-sm"
+                                              >›</button>
+                                            </div>
+
+                                            {/* Year quick-jump */}
+                                            <div className="flex items-center justify-center gap-1 mb-2">
+                                              {[viewYear - 1, viewYear, viewYear + 1].map(y => (
+                                                <button
+                                                  key={y}
+                                                  type="button"
+                                                  onClick={() => setCalViewDate(prev => ({ ...prev, [calKey]: { year: y, month: viewMonth } }))}
+                                                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+                                                    y === viewYear
+                                                      ? 'bg-indigo-600 text-white'
+                                                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                                  }`}
+                                                >{y}</button>
+                                              ))}
+                                            </div>
+
+                                            {/* Day Headers */}
+                                            <div className="grid grid-cols-7 mb-1">
+                                              {DAYS.map(d => (
+                                                <div key={d} className="text-center text-[9px] font-black text-slate-400 uppercase py-1">{d}</div>
+                                              ))}
+                                            </div>
+
+                                            {/* Date Grid */}
+                                            <div className="grid grid-cols-7 gap-0.5">
+                                              {cells.map((d, ci) => (
+                                                <button
+                                                  key={ci}
+                                                  type="button"
+                                                  disabled={d === null}
+                                                  onClick={() => d && selectDay(d)}
+                                                  className={`h-7 w-full text-[11px] rounded-lg font-bold transition-all ${
+                                                    d === null
+                                                      ? 'invisible'
+                                                      : isSelectedDay(d!)
+                                                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
+                                                        : isTodayDay(d!)
+                                                          ? 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-300'
+                                                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
+                                                  }`}
+                                                >{d}</button>
+                                              ))}
+                                            </div>
+
+                                            {/* Footer */}
+                                            <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+                                                  updateTimelineItem(cat.category, wave.label, item.label, type, todayStr);
+                                                  setOpenCalendar(null);
+                                                }}
+                                                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                                              >Hari ini</button>
+                                              <button
+                                                type="button"
+                                                onClick={() => setOpenCalendar(null)}
+                                                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                                              >Tutup</button>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  };
+
                                   return (
-                                    <div key={`${cat.category}-${wave.label}-${item.label}`} className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4 space-y-3 transition-all hover:border-indigo-100">
+                                    <div key={`${cat.category}-${wave.label}-${item.label}`} className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3 transition-all hover:border-indigo-200 hover:shadow-sm">
                                       <div className="flex items-center justify-between">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
                                           {item.label}
                                         </label>
-                                        <div className="flex items-center gap-2">
-                                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
-                                          <span className="text-[10px] font-black text-indigo-600 bg-white px-2 py-0.5 rounded-md border border-indigo-100 shadow-sm">
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></div>
+                                          <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
                                             {item.start && item.end ? (
                                               `${formatIndoDate(item.start)} – ${formatIndoDate(item.end)}`
                                             ) : item.start ? (
@@ -3259,34 +3459,15 @@ function ModernHQDashboardContent() {
                                             ) : item.end ? (
                                               `s.d. ${formatIndoDate(item.end)}`
                                             ) : (
-                                              "Belum Set"
+                                              <span className="text-slate-400">Belum Set</span>
                                             )}
                                           </span>
                                         </div>
                                       </div>
 
-                                      <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-1">
-                                          <p className="text-[9px] font-black text-slate-400 uppercase ml-1">Mulai</p>
-                                          <input 
-                                            type="date" 
-                                            value={item.start || ""}
-                                            onChange={(e) => updateTimelineItem(cat.category, wave.label, item.label, 'start', e.target.value)}
-                                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all cursor-pointer"
-                                          />
-                                        </div>
-                                        
-                                        {isRange && (
-                                          <div className="space-y-1">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase ml-1">Selesai</p>
-                                            <input 
-                                              type="date" 
-                                              value={item.end || ""}
-                                              onChange={(e) => updateTimelineItem(cat.category, wave.label, item.label, 'end', e.target.value)}
-                                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all cursor-pointer"
-                                            />
-                                          </div>
-                                        )}
+                                      <div className={`grid gap-3 ${isRange ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                                        {renderCalPicker('start')}
+                                        {isRange && renderCalPicker('end')}
                                       </div>
                                     </div>
                                   );
