@@ -11,7 +11,7 @@ import {
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
   Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight, Save, MessageSquare,
-  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, EyeOff, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck, Pencil, History, MegaphoneOff
+  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, EyeOff, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck, Pencil, History, MegaphoneOff, Forward
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -416,6 +416,13 @@ function ModernHQDashboardContent() {
   const [groupMsgText, setGroupMsgText] = useState("");
   const [isSendingGroupMsg, setIsSendingGroupMsg] = useState(false);
   const [searchSchoolQuery, setSearchSchoolQuery] = useState("");
+  
+  // WA-like features for Forum Sekolah in HQ Admin panel
+  const [hqEditingMsg, setHqEditingMsg] = useState<any | null>(null);
+  const [hqEditInput, setHqEditInput] = useState("");
+  const [isUpdatingHqMsg, setIsUpdatingHqMsg] = useState(false);
+  const [hqForwardingMsg, setHqForwardingMsg] = useState<any | null>(null);
+  const [searchForwardSchool, setSearchForwardSchool] = useState("");
 
   // Efek memuat obrolan untuk Forum Sekolah terpilih
   useEffect(() => {
@@ -461,13 +468,19 @@ function ModernHQDashboardContent() {
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*", // Listen to all events!
           schema: "public",
           table: "school_messages",
           filter: filterExpr,
         },
         (payload) => {
-          setGroupMessages((prev) => [...prev, payload.new]);
+          if (payload.eventType === "INSERT") {
+            setGroupMessages((prev) => [...prev, payload.new]);
+          } else if (payload.eventType === "UPDATE") {
+            setGroupMessages((prev) => prev.map(msg => msg.id === payload.new.id ? payload.new : msg));
+          } else if (payload.eventType === "DELETE") {
+            setGroupMessages((prev) => prev.filter(msg => msg.id !== payload.old.id));
+          }
         }
       )
       .subscribe();
@@ -505,6 +518,66 @@ function ModernHQDashboardContent() {
       setIsSendingGroupMsg(false);
     }
   };
+  const handleDeleteHqMessage = async (msgId: string) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus pesan ini?")) return;
+    try {
+      const { error } = await supabase
+        .from("school_messages")
+        .delete()
+        .eq("id", msgId);
+      if (error) throw error;
+      setGroupMessages(prev => prev.filter(m => m.id !== msgId));
+    } catch (err: any) {
+      alert("Gagal menghapus pesan: " + err.message);
+    }
+  };
+
+  const handleUpdateHqMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!hqEditInput.trim() || !hqEditingMsg || isUpdatingHqMsg) return;
+    setIsUpdatingHqMsg(true);
+    try {
+      const { error } = await supabase
+        .from("school_messages")
+        .update({ message: hqEditInput.trim() })
+        .eq("id", hqEditingMsg.id);
+      if (error) throw error;
+      
+      setGroupMessages(prev => prev.map(m => m.id === hqEditingMsg.id ? { ...m, message: hqEditInput.trim() } : m));
+      setHqEditingMsg(null);
+      setHqEditInput("");
+    } catch (err: any) {
+      alert("Gagal memperbarui pesan: " + err.message);
+    } finally {
+      setIsUpdatingHqMsg(false);
+    }
+  };
+
+  const handleForwardHqMessage = async (targetGroup: any) => {
+    if (!hqForwardingMsg) return;
+    const cleanText = hqForwardingMsg.message.replace(/^↪ Diteruskan:\n/, "");
+    const forwardedText = `↪ Diteruskan:\n${cleanText}`;
+    
+    try {
+      const { error } = await supabase
+        .from("school_messages")
+        .insert([
+          {
+            school_name: targetGroup.schoolName,
+            npsn: targetGroup.npsn || null,
+            sender_id: "hq-admin",
+            sender_name: "Markas Besar (Admin)",
+            message: forwardedText,
+          }
+        ]);
+      if (error) throw error;
+      alert(`Pesan berhasil diteruskan ke ${targetGroup.schoolName}!`);
+      setHqForwardingMsg(null);
+    } catch (err: any) {
+      alert("Gagal meneruskan pesan: " + err.message);
+    }
+  };
+
   const [activeToken, setActiveToken] = useState("------");
   const [showToken, setShowToken] = useState(false);
 
@@ -3805,13 +3878,14 @@ function ModernHQDashboardContent() {
                     ) : (
                       groupMessages.map((msg, index) => {
                         const isAdmin = msg.sender_id === "hq-admin" || msg.sender_id === "admin1";
+                        const isMsgByAdmin = msg.sender_id === "hq-admin" || msg.sender_id === "admin1";
                         const dateObj = new Date(msg.created_at);
                         const timeStr = dateObj.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 
                         return (
                           <div
                             key={msg.id || index}
-                            className={`flex flex-col max-w-[80%] ${isAdmin ? "self-end items-end" : "self-start items-start"}`}
+                            className={`flex flex-col max-w-[80%] relative group/bubble ${isAdmin ? "self-end items-end" : "self-start items-start"}`}
                           >
                             <span className="text-[10px] text-slate-400 font-bold mb-1 ml-1.5 uppercase tracking-wider flex items-center gap-1.5">
                               {msg.sender_name}
@@ -3821,6 +3895,36 @@ function ModernHQDashboardContent() {
                                 </span>
                               )}
                             </span>
+                            
+                            {/* Hover Options Menu (WhatsApp style) */}
+                            <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white border border-slate-100 shadow-md rounded-full px-2 py-1 z-10 opacity-0 group-hover/bubble:opacity-100 transition-all duration-200 ${isAdmin ? "-left-24" : "-right-24"}`}>
+                              {(isMsgByAdmin) && (
+                                <button 
+                                  onClick={() => { setHqEditingMsg(msg); setHqEditInput(msg.message.replace(/^↪ Diteruskan:\n/, "")); }}
+                                  className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-indigo-600 transition-colors"
+                                  title="Edit"
+                                >
+                                  <Pencil size={11} />
+                                </button>
+                              )}
+                              {(isMsgByAdmin || !isAdmin) && (
+                                <button 
+                                  onClick={() => handleDeleteHqMessage(msg.id)}
+                                  className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-rose-600 transition-colors"
+                                  title={isMsgByAdmin ? "Hapus" : "Hapus (Moderasi)"}
+                                >
+                                  <Trash2 size={11} />
+                                </button>
+                              )}
+                              <button 
+                                onClick={() => setHqForwardingMsg(msg)}
+                                className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-blue-600 transition-colors"
+                                title="Teruskan"
+                              >
+                                <Forward size={11} />
+                              </button>
+                            </div>
+
                             <div
                               className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed shadow-sm border ${
                                 isAdmin
@@ -3828,7 +3932,13 @@ function ModernHQDashboardContent() {
                                   : "bg-white text-slate-700 border-slate-100 rounded-tl-none"
                               }`}
                             >
-                              {msg.message}
+                              {msg.message.startsWith("↪ Diteruskan:\n") && (
+                                <div className={`text-[9px] font-bold flex items-center gap-1 mb-1 pb-1 border-b ${isAdmin ? "text-slate-400 border-slate-800" : "text-slate-400 border-slate-200"}`}>
+                                  <Forward size={10} className="italic" />
+                                  Diteruskan
+                                </div>
+                              )}
+                              {msg.message.replace(/^↪ Diteruskan:\n/, "")}
                             </div>
                             <span className="text-[9px] text-slate-400 font-medium mt-1 mx-1.5">
                               {timeStr} WIB
@@ -4469,6 +4579,93 @@ function ModernHQDashboardContent() {
           </div>
         </div>
       </div>
+
+      {/* ✏️ HQ EDIT MESSAGE MODAL */}
+      {hqEditingMsg && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="font-bold text-slate-800 text-sm mb-3">Edit Pesan Resmi</h3>
+            <form onSubmit={handleUpdateHqMessage} className="space-y-4">
+              <textarea
+                value={hqEditInput}
+                onChange={(e) => setHqEditInput(e.target.value)}
+                required
+                className="w-full p-3 bg-slate-50 border border-slate-200 focus:bg-white rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700 placeholder:text-slate-400 shadow-inner resize-none h-24"
+                placeholder="Edit balasan resmi..."
+              />
+              <div className="flex justify-end gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => { setHqEditingMsg(null); setHqEditInput(""); }}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-slate-600 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingHqMsg || !hqEditInput.trim()}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-colors disabled:opacity-50"
+                >
+                  {isUpdatingHqMsg ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ↪️ HQ FORWARD MESSAGE MODAL */}
+      {hqForwardingMsg && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 p-4">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100 mb-4 shrink-0">
+              <h3 className="font-bold text-slate-800 text-sm">Teruskan Pesan</h3>
+              <button 
+                onClick={() => setHqForwardingMsg(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-xs"
+              >
+                Tutup
+              </button>
+            </div>
+            
+            {/* Search Bar */}
+            <div className="mb-4 shrink-0">
+              <input
+                type="text"
+                placeholder="Cari sekolah tujuan..."
+                value={searchForwardSchool}
+                onChange={(e) => setSearchForwardSchool(e.target.value)}
+                className="w-full pl-3 pr-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700 placeholder:text-slate-400 shadow-inner"
+              />
+            </div>
+
+            {/* School List */}
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar min-h-[200px]">
+              {schoolGroups
+                .filter(group => 
+                  group.schoolName.toLowerCase().includes(searchForwardSchool.toLowerCase()) ||
+                  group.npsn.includes(searchForwardSchool)
+                )
+                .map((group, idx) => (
+                  <button
+                    key={group.npsn || group.schoolName || idx}
+                    type="button"
+                    onClick={() => handleForwardHqMessage(group)}
+                    className="w-full text-left p-3 border border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/20 rounded-xl transition-all flex items-center justify-between"
+                  >
+                    <div>
+                      <h4 className="font-bold text-xs text-slate-800 uppercase tracking-tight truncate max-w-[250px]">
+                        {group.schoolName}
+                      </h4>
+                      <span className="text-[9px] text-slate-400 font-mono mt-0.5 block">NPSN: {group.npsn || "Tanpa NPSN"}</span>
+                    </div>
+                    <Forward size={14} className="text-slate-400" />
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 🏫 MODAL LIHAT ANGGOTA GRUP (FORUM SEKOLAH) */}
       <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-300 ${showSchoolMembers ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>

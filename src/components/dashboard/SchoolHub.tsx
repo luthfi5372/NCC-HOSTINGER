@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, Users, Send, Building2, ShieldAlert, Award, Loader2, CheckCircle2, ChevronRight, Camera, ImageIcon } from "lucide-react";
+import { MessageSquare, Users, Send, Building2, ShieldAlert, Award, Loader2, CheckCircle2, ChevronRight, Camera, ImageIcon, Pencil, Trash2, Forward } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 
@@ -22,6 +22,11 @@ export default function SchoolHub({ userEntry, currentUser }: SchoolHubProps) {
 
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  // WA-like features states
+  const [editingMsg, setEditingMsg] = useState<any | null>(null);
+  const [editInput, setEditInput] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
@@ -152,7 +157,7 @@ export default function SchoolHub({ userEntry, currentUser }: SchoolHubProps) {
 
     fetchMessages();
 
-    // Listen to real-time additions of messages for this school
+    // Listen to real-time additions, updates, and deletes of messages for this school
     let channel: any;
     try {
       const channelKey = activeNpsn ? `npsn_${activeNpsn}` : activeSchool.replace(/\s+/g, "_");
@@ -163,13 +168,19 @@ export default function SchoolHub({ userEntry, currentUser }: SchoolHubProps) {
         .on(
           "postgres_changes",
           {
-            event: "INSERT",
+            event: "*", // Listen to all events!
             schema: "public",
             table: "school_messages",
             filter: filterExpr,
           },
           (payload) => {
-            setMessages((prev) => [...prev, payload.new]);
+            if (payload.eventType === "INSERT") {
+              setMessages((prev) => [...prev, payload.new]);
+            } else if (payload.eventType === "UPDATE") {
+              setMessages((prev) => prev.map(msg => msg.id === payload.new.id ? payload.new : msg));
+            } else if (payload.eventType === "DELETE") {
+              setMessages((prev) => prev.filter(msg => msg.id !== payload.old.id));
+            }
           }
         )
         .subscribe();
@@ -240,10 +251,68 @@ export default function SchoolHub({ userEntry, currentUser }: SchoolHubProps) {
       if (error) throw error;
     } catch (err: any) {
       console.error("Failed to send message:", err);
-      // Fallback optimistic rendering or error display if blocked by RLS / database setup
       alert("Gagal mengirim pesan: Pastikan tabel SQL sudah di-setup dan Anda terdaftar di sekolah ini.");
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleDeleteMessage = async (msgId: string) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus pesan ini?")) return;
+    try {
+      const { error } = await supabase
+        .from("school_messages")
+        .delete()
+        .eq("id", msgId);
+      if (error) throw error;
+      setMessages(prev => prev.filter(m => m.id !== msgId));
+    } catch (err: any) {
+      alert("Gagal menghapus pesan: " + err.message);
+    }
+  };
+
+  const handleUpdateMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editInput.trim() || !editingMsg || isUpdating) return;
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("school_messages")
+        .update({ message: editInput.trim() })
+        .eq("id", editingMsg.id);
+      if (error) throw error;
+      
+      setMessages(prev => prev.map(m => m.id === editingMsg.id ? { ...m, message: editInput.trim() } : m));
+      setEditingMsg(null);
+      setEditInput("");
+    } catch (err: any) {
+      alert("Gagal memperbarui pesan: " + err.message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleForwardMessage = async (msgText: string) => {
+    const cleanText = msgText.replace(/^↪ Diteruskan:\n/, "");
+    const forwardedText = `↪ Diteruskan:\n${cleanText}`;
+    
+    try {
+      const senderName = currentUser?.user_metadata?.full_name || currentUser?.email?.split("@")[0] || "Peserta NCC";
+      const { error } = await supabase
+        .from("school_messages")
+        .insert([
+          {
+            school_name: activeSchool,
+            npsn: activeNpsn || null,
+            sender_id: currentUser.id,
+            sender_name: senderName,
+            message: forwardedText,
+          }
+        ]);
+      if (error) throw error;
+      alert("Pesan berhasil diteruskan!");
+    } catch (err: any) {
+      alert("Gagal meneruskan pesan: " + err.message);
     }
   };
 
@@ -424,7 +493,7 @@ export default function SchoolHub({ userEntry, currentUser }: SchoolHubProps) {
                   return (
                     <div
                       key={msg.id || index}
-                      className={`flex flex-col max-w-[80%] ${isMe ? "self-end items-end" : "self-start items-start"}`}
+                      className={`flex flex-col max-w-[80%] relative group/bubble ${isMe ? "self-end items-end" : "self-start items-start"}`}
                     >
                       {/* Sender Name */}
                       {!isMe && (
@@ -432,6 +501,36 @@ export default function SchoolHub({ userEntry, currentUser }: SchoolHubProps) {
                           {msg.sender_name}
                         </span>
                       )}
+                      
+                      {/* Hover Action Menu (WhatsApp style) */}
+                      <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white border border-slate-100 shadow-md rounded-full px-2 py-1 z-10 opacity-0 group-hover/bubble:opacity-100 transition-all duration-200 ${isMe ? "-left-24" : "-right-24"}`}>
+                        {isMe && (
+                          <>
+                            <button 
+                              onClick={() => { setEditingMsg(msg); setEditInput(msg.message.replace(/^↪ Diteruskan:\n/, "")); }}
+                              className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-indigo-600 transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil size={11} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteMessage(msg.id)}
+                              className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-rose-600 transition-colors"
+                              title="Hapus"
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          </>
+                        )}
+                        <button 
+                          onClick={() => handleForwardMessage(msg.message)}
+                          className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-blue-600 transition-colors"
+                          title="Teruskan"
+                        >
+                          <Forward size={11} />
+                        </button>
+                      </div>
+
                       {/* Bubble Message */}
                       <div
                         className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed shadow-sm border ${
@@ -440,7 +539,13 @@ export default function SchoolHub({ userEntry, currentUser }: SchoolHubProps) {
                             : "bg-slate-50 text-slate-700 border-slate-100 rounded-tl-none"
                         }`}
                       >
-                        {msg.message}
+                        {msg.message.startsWith("↪ Diteruskan:\n") && (
+                          <div className={`text-[9px] font-bold flex items-center gap-1 mb-1 pb-1 border-b ${isMe ? "text-indigo-200 border-indigo-500" : "text-slate-400 border-slate-200"}`}>
+                            <Forward size={10} className="italic" />
+                            Diteruskan
+                          </div>
+                        )}
+                        {msg.message.replace(/^↪ Diteruskan:\n/, "")}
                       </div>
                       {/* Time Sent */}
                       <span className="text-[9px] text-slate-400 font-medium mt-1 mx-1.5">
@@ -559,6 +664,40 @@ export default function SchoolHub({ userEntry, currentUser }: SchoolHubProps) {
           </div>
         )}
       </div>
+
+      {/* ✏️ EDIT MESSAGE MODAL */}
+      {editingMsg && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="font-bold text-slate-800 text-sm mb-3">Edit Pesan</h3>
+            <form onSubmit={handleUpdateMessage} className="space-y-4">
+              <textarea
+                value={editInput}
+                onChange={(e) => setEditInput(e.target.value)}
+                required
+                className="w-full p-3 bg-slate-50 border border-slate-200 focus:bg-white rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700 placeholder:text-slate-400 shadow-inner resize-none h-24"
+                placeholder="Edit pesan Anda..."
+              />
+              <div className="flex justify-end gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => { setEditingMsg(null); setEditInput(""); }}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-slate-600 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdating || !editInput.trim()}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-colors disabled:opacity-50"
+                >
+                  {isUpdating ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
