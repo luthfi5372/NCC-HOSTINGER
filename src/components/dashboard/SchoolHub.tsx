@@ -172,6 +172,13 @@ export default function SchoolHub({ userEntry, currentUser }: SchoolHubProps) {
             table: "school_messages",
           },
           (payload) => {
+            if (payload.eventType === "DELETE") {
+              if (payload.old && payload.old.id) {
+                setMessages((prev) => prev.filter(msg => msg.id !== payload.old.id));
+              }
+              return;
+            }
+
             const newOrOld = payload.new || payload.old;
             if (!newOrOld) return;
 
@@ -186,8 +193,6 @@ export default function SchoolHub({ userEntry, currentUser }: SchoolHubProps) {
                 });
               } else if (payload.eventType === "UPDATE") {
                 setMessages((prev) => prev.map(msg => msg.id === payload.new.id ? payload.new : msg));
-              } else if (payload.eventType === "DELETE") {
-                setMessages((prev) => prev.filter(msg => msg.id !== payload.old.id));
               }
             }
           }

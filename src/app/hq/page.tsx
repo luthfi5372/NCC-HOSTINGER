@@ -478,6 +478,13 @@ function ModernHQDashboardContent() {
           table: "school_messages",
         },
         (payload) => {
+          if (payload.eventType === "DELETE") {
+            if (payload.old && payload.old.id) {
+              setGroupMessages((prev) => prev.filter(msg => msg.id !== payload.old.id));
+            }
+            return;
+          }
+
           const newOrOld = payload.new || payload.old;
           if (!newOrOld) return;
 
@@ -492,8 +499,6 @@ function ModernHQDashboardContent() {
               });
             } else if (payload.eventType === "UPDATE") {
               setGroupMessages((prev) => prev.map(msg => msg.id === payload.new.id ? payload.new : msg));
-            } else if (payload.eventType === "DELETE") {
-              setGroupMessages((prev) => prev.filter(msg => msg.id !== payload.old.id));
             }
           }
         }
