@@ -87,7 +87,7 @@ export default function TimelineSection() {
   // Track scroll within this section
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start 80%", "end 20%"]
+    offset: ["start 80%", "center 50%"]
   });
 
   // Spring physics for smooth drawing and particle movement
