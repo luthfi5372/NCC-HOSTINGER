@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from 'next/link';
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase"; 
@@ -30,6 +30,18 @@ export default function UserDashboard() {
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
+
+  // 🚀 REF-SYNC PATTERN TO PREVENT INFINITE FETCH LOOP & MEMORY LEAKS
+  const userEntryRef = useRef<any>(null);
+  const currentUserRef = useRef<any>(null);
+
+  useEffect(() => {
+    userEntryRef.current = userEntry;
+  }, [userEntry]);
+
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -295,7 +307,7 @@ export default function UserDashboard() {
                   .select('*')
                   .order('created_at', { ascending: false });
 
-                const userStatus = userEntry?.payment_status === 'Verified' ? 'Verified' : 'Pending';
+                const userStatus = userEntryRef.current?.payment_status === 'Verified' ? 'Verified' : 'Pending';
                 
                 const filtered = (latestData || []).filter((item: any) => {
                   if (item.title === 'SYS_PORTAL_SETTINGS' || item.title === 'SYSTEM_TIMELINE_CONFIG') return false;
@@ -305,7 +317,7 @@ export default function UserDashboard() {
                   if (item.target_audience === 'specific') {
                     try {
                       const parsed = JSON.parse(item.content);
-                      return Array.isArray(parsed.target_user_ids) && parsed.target_user_ids.includes(currentUser?.id);
+                      return Array.isArray(parsed.target_user_ids) && parsed.target_user_ids.includes(currentUserRef.current?.id);
                     } catch (e) {
                       return false;
                     }
@@ -326,7 +338,7 @@ export default function UserDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userEntry, currentUser]); // Re-subscribe if userEntry or currentUser changes
+  }, []); // Run exactly once on mount to prevent infinite fetch loop!
 
   const handleSubmitEntry = async (localFormData: any) => {
     setIsSubmitting(true);
