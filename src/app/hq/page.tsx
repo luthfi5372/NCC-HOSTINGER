@@ -718,6 +718,9 @@ function ModernHQDashboardContent() {
   const [isSavingTimeline, setIsSavingTimeline] = useState(false);
   const [isTimelineLoaded, setIsTimelineLoaded] = useState(false);
   const [isPortalLoaded, setIsPortalLoaded] = useState(false);
+  // ⚡ Ref untuk selalu baca timelineData TERBARU (hindari stale closure di saveTimeline)
+  const timelineDataRef = React.useRef<any[]>(timelineData);
+  React.useEffect(() => { timelineDataRef.current = timelineData; }, [timelineData]);
 
   useEffect(() => {
     const fetchTimeline = async () => {
@@ -1144,7 +1147,9 @@ function ModernHQDashboardContent() {
   const saveTimeline = async () => {
     setIsSavingTimeline(true);
     try {
-      const cleanData = timelineData.map(cat => ({
+      // ⚡ Selalu gunakan timelineDataRef.current agar tidak terkena stale closure
+      const latestData = timelineDataRef.current;
+      const cleanData = latestData.map(cat => ({
         ...cat,
         waves: cat.waves.map((wave: any) => ({
           ...wave,
