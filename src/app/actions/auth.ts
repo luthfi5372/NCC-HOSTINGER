@@ -679,4 +679,140 @@ export async function getLLMSTelemetryData() {
   }
 }
 
+/** Mengambil data siaran (announcements) secara aman dari server (RLS bypass) */
+export async function getAdminBroadcasts() {
+  try {
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    const client = serviceRoleKey
+      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        })
+      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+
+    const { data, error } = await client
+      .from('announcements')
+      .select('*')
+      .neq('title', 'SYS_PORTAL_SETTINGS')
+      .neq('title', 'SYSTEM_TIMELINE_CONFIG')
+      .order('created_at', { ascending: false });
+
+    return { data: data || [], error: error ? error.message : null };
+  } catch (err: any) {
+    console.error("[Server Action] Exception getAdminBroadcasts:", err);
+    return { data: [], error: err.message || "Gagal mengambil siaran." };
+  }
+}
+
+/** Mengambil percakapan sekolah secara aman dari server (RLS bypass) */
+export async function getSchoolMessages(schoolName: string, npsn?: string) {
+  try {
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    const client = serviceRoleKey
+      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        })
+      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+
+    let query = client.from("school_messages").select("*");
+    if (npsn) {
+      query = query.or(`npsn.eq."${npsn}",school_name.eq."${schoolName}"`);
+    } else {
+      query = query.eq("school_name", schoolName);
+    }
+
+    const { data, error } = await query
+      .order("created_at", { ascending: true })
+      .limit(150);
+
+    return { data: data || [], error: error ? error.message : null };
+  } catch (err: any) {
+    console.error("[Server Action] Exception getSchoolMessages:", err);
+    return { data: [], error: err.message || "Gagal mengambil pesan." };
+  }
+}
+
+/** Mengambil setting portal secara aman dari server (RLS bypass) */
+export async function getPortalSettings() {
+  try {
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    const client = serviceRoleKey
+      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        })
+      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+
+    const { data, error } = await client
+      .from('announcements')
+      .select('*')
+      .eq('title', 'SYS_PORTAL_SETTINGS')
+      .maybeSingle();
+
+    return { data: data || null, error: error ? error.message : null };
+  } catch (err: any) {
+    console.error("[Server Action] Exception getPortalSettings:", err);
+    return { data: null, error: err.message || "Gagal mengambil settings." };
+  }
+}
+
+/** Mengambil konfigurasi timeline secara aman dari server (RLS bypass) */
+export async function getTimelineConfig() {
+  try {
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    const client = serviceRoleKey
+      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        })
+      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+
+    const { data, error } = await client
+      .from('announcements')
+      .select('*')
+      .eq('title', 'SYSTEM_TIMELINE_CONFIG')
+      .maybeSingle();
+
+    return { data: data || null, error: error ? error.message : null };
+  } catch (err: any) {
+    console.error("[Server Action] Exception getTimelineConfig:", err);
+    return { data: null, error: err.message || "Gagal mengambil timeline." };
+  }
+}
+
+/** Mengambil sesi ujian CBT aktif secara aman dari server (RLS bypass) */
+export async function getActiveExams() {
+  try {
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    const client = serviceRoleKey
+      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        })
+      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+
+    const { data, error } = await client
+      .from('cbt_exams')
+      .select('id, title')
+      .eq('is_active', true);
+
+    return { data: data || [], error: error ? error.message : null };
+  } catch (err: any) {
+    console.error("[Server Action] Exception getActiveExams:", err);
+    return { data: [], error: err.message || "Gagal mengambil data CBT." };
+  }
+}
+
+
 

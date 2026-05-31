@@ -316,14 +316,19 @@ export default function IntegratedLLMSDashboard() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans">
+    <div className="flex min-h-screen bg-slate-50/70 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50/60 via-slate-50 to-slate-100/60 font-sans relative overflow-hidden">
+      
+      {/* Decorative Orbs for vibrant modern aesthetics */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-indigo-200/15 rounded-full blur-3xl pointer-events-none -z-10"></div>
+      <div className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] bg-violet-200/15 rounded-full blur-3xl pointer-events-none -z-10"></div>
+      <div className="absolute top-[40%] right-[30%] w-[30vw] h-[30vw] bg-pink-200/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
 
-      {/* ─── SIDEBAR (Clean White) ─── */}
-      <aside className="hidden lg:flex w-60 bg-white border-r border-slate-100 flex-col fixed h-full z-20 shadow-sm">
+      {/* ─── SIDEBAR (Glassmorphic) ─── */}
+      <aside className="hidden lg:flex w-60 bg-white/70 backdrop-blur-xl border-r border-slate-200/60 flex-col fixed h-full z-20 shadow-lg shadow-slate-200/20">
         {/* Logo */}
         <div className="px-5 py-6">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-200">
+            <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-300">
               <ShieldCheck className="w-4.5 h-4.5 text-white" style={{width:'18px',height:'18px'}} />
             </div>
             <div>
@@ -338,34 +343,34 @@ export default function IntegratedLLMSDashboard() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center justify-between px-3 py-2.5 text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all group text-sm font-medium"
+              className="flex items-center justify-between px-3 py-2.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/40 hover:shadow-[0_2px_8px_-2px_rgba(79,70,229,0.08)] rounded-xl transition-all group text-sm font-medium"
             >
               <div className="flex items-center gap-3">
-                <item.icon className="w-4 h-4 group-hover:text-indigo-500 transition-colors" />
+                <item.icon className="w-4 h-4 group-hover:text-indigo-500 group-hover:scale-105 transition-all duration-200" />
                 <span>{item.label}</span>
               </div>
               {item.badge && (
-                <span className="text-[9px] font-black bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-md">{item.badge}</span>
+                <span className="text-[9px] font-black bg-slate-100 group-hover:bg-indigo-100/50 text-slate-400 group-hover:text-indigo-600 px-1.5 py-0.5 rounded-md transition-colors">{item.badge}</span>
               )}
             </Link>
           ))}
 
           {/* Active: Manajemen LLMS */}
-          <div className="relative pt-1">
+          <div className="relative pt-1.5">
             <Link
               href="/hq/llms"
-              className="flex items-center justify-between px-3 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold text-sm shadow-md shadow-indigo-200/60"
+              className="flex items-center justify-between px-3 py-2.5 bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 hover:scale-[1.02] hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300"
             >
               <div className="flex items-center gap-3">
-                <Server className="w-4 h-4 text-indigo-200" />
+                <Server className="w-4 h-4 text-indigo-200 animate-pulse" />
                 <span>Manajemen LLMS</span>
               </div>
-              <span className="text-[8px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider">NEW</span>
+              <span className="text-[8px] font-black bg-white/30 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-inner animate-pulse">NEW</span>
             </Link>
           </div>
         </nav>
 
-        <div className="p-3 border-t border-slate-100">
+        <div className="p-3 border-t border-slate-200/60">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all text-sm font-medium"
@@ -377,31 +382,31 @@ export default function IntegratedLLMSDashboard() {
       </aside>
 
       {/* ─── MAIN CONTENT ─── */}
-      <main className="flex-1 lg:ml-60 flex flex-col min-h-screen">
+      <main className="flex-1 lg:ml-60 flex flex-col min-h-screen relative z-10">
 
         {/* TOP HEADER */}
-        <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-xl border-b border-slate-100 px-6 md:px-8 py-4 flex justify-between items-center shadow-sm">
+        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-6 md:px-8 py-4 flex justify-between items-center shadow-sm shadow-slate-100/20">
           <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Sistem Online</span>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]"></span>
+              <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100/50">Sistem Online</span>
             </div>
-            <h2 className="text-xl font-black text-slate-900 tracking-tight">Pusat Komando LLMS</h2>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">Administrasi CBT Terpusat · NCC 13th</p>
+            <h2 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 tracking-tight">Pusat Komando LLMS</h2>
+            <p className="text-xs text-slate-400 font-semibold mt-0.5">Administrasi CBT Terpusat · NCC 13th</p>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <button
               onClick={fetchTelemetryData}
-              className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all text-slate-500 hover:text-slate-800"
+              className="p-3 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-xl transition-all text-slate-500 hover:text-slate-800 shadow-sm active:scale-95"
               title="Sinkron Data"
             >
               <RotateCcw className={`w-4 h-4 ${refreshing ? 'animate-spin text-indigo-500' : ''}`} />
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-indigo-200"
+              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/35 hover:scale-[1.02] active:scale-95"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-3.5 h-3.5 stroke-[3px]" />
               Sesi Baru
             </button>
           </div>
@@ -409,79 +414,90 @@ export default function IntegratedLLMSDashboard() {
 
         <div className="p-6 md:p-8 space-y-6 flex-1">
 
-          {/* ─── STAT CARDS ─── */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* ─── STAT CARDS (VIBRANT NEON GLOW GRID) ─── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
 
             {/* Peserta Online */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-blue-600 rounded-t-2xl"></div>
-              <div className="flex items-start justify-between mt-1">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-3xl p-6 shadow-lg shadow-blue-500/10 border border-blue-400/20 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute right-[-10%] top-[-10%] w-32 h-32 bg-white/5 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="flex items-start justify-between relative z-10">
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Peserta Online</p>
-                  <p className="text-4xl font-black text-blue-600">{stats.onlineParticipants}</p>
-                  <div className="flex items-center gap-1 mt-2">
-                    <Activity className="w-3 h-3 text-blue-400" />
-                    <span className="text-[10px] text-blue-400 font-medium">Real-time</span>
+                  <p className="text-[10px] font-bold text-blue-200/90 uppercase tracking-widest mb-2.5">Peserta Online</p>
+                  <p className="text-4xl font-black tracking-tight">{stats.onlineParticipants}</p>
+                  <div className="flex items-center gap-1.5 mt-4 bg-white/10 px-2.5 py-1 rounded-xl w-fit border border-white/5 backdrop-blur-md">
+                    <Activity className="w-3.5 h-3.5 text-blue-200 animate-pulse" />
+                    <span className="text-[10px] text-blue-200 font-bold tracking-wider uppercase">Live Sync</span>
                   </div>
                 </div>
-                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-all">
-                  <Users className="w-5 h-5 text-blue-500" />
+                <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center group-hover:bg-white/20 group-hover:rotate-6 transition-all duration-300 shadow-inner">
+                  <Users className="w-6 h-6 text-white" />
                 </div>
               </div>
             </div>
 
-            {/* Sesi Aktif */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-400 to-indigo-600 rounded-t-2xl"></div>
-              <div className="flex items-start justify-between mt-1">
+            {/* Sesi Ujian */}
+            <div className="bg-gradient-to-br from-violet-600 to-indigo-700 text-white rounded-3xl p-6 shadow-lg shadow-indigo-500/10 border border-indigo-400/20 hover:scale-[1.02] hover:shadow-xl hover:shadow-indigo-500/20 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute right-[-10%] top-[-10%] w-32 h-32 bg-white/5 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="flex items-start justify-between relative z-10">
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Sesi Aktif</p>
-                  <p className="text-4xl font-black text-indigo-600">{stats.activeSessions}</p>
-                  <div className="flex items-center gap-1 mt-2">
-                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></span>
-                    <span className="text-[10px] text-indigo-400 font-medium">Running</span>
+                  <p className="text-[10px] font-bold text-indigo-200/90 uppercase tracking-widest mb-2.5">Sesi Ujian</p>
+                  <p className="text-4xl font-black tracking-tight">{stats.activeSessions}</p>
+                  <div className="flex items-center gap-1.5 mt-4 bg-white/10 px-2.5 py-1 rounded-xl w-fit border border-white/5 backdrop-blur-md">
+                    <span className="w-2 h-2 bg-indigo-300 rounded-full animate-ping"></span>
+                    <span className="text-[10px] text-indigo-200 font-bold tracking-wider uppercase">Running</span>
                   </div>
                 </div>
-                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center group-hover:bg-indigo-100 transition-all">
-                  <Radio className="w-5 h-5 text-indigo-500" />
+                <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center group-hover:bg-white/20 group-hover:rotate-6 transition-all duration-300 shadow-inner">
+                  <Radio className="w-6 h-6 text-white" />
                 </div>
               </div>
             </div>
 
             {/* Bank Soal */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-400 to-emerald-500 rounded-t-2xl"></div>
-              <div className="flex items-start justify-between mt-1">
+            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-3xl p-6 shadow-lg shadow-emerald-500/10 border border-emerald-400/20 hover:scale-[1.02] hover:shadow-xl hover:shadow-emerald-500/20 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute right-[-10%] top-[-10%] w-32 h-32 bg-white/5 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="flex items-start justify-between relative z-10">
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Bank Soal</p>
-                  <p className="text-4xl font-black text-teal-600">{stats.totalQuestions}</p>
-                  <div className="flex items-center gap-1 mt-2">
-                    <Zap className="w-3 h-3 text-teal-400" />
-                    <span className="text-[10px] text-teal-400 font-medium">Total soal</span>
+                  <p className="text-[10px] font-bold text-emerald-200/90 uppercase tracking-widest mb-2.5">Bank Soal</p>
+                  <p className="text-4xl font-black tracking-tight">{stats.totalQuestions}</p>
+                  <div className="flex items-center gap-1.5 mt-4 bg-white/10 px-2.5 py-1 rounded-xl w-fit border border-white/5 backdrop-blur-md">
+                    <Zap className="w-3.5 h-3.5 text-emerald-200" />
+                    <span className="text-[10px] text-emerald-200 font-bold tracking-wider uppercase">Verified</span>
                   </div>
                 </div>
-                <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center group-hover:bg-teal-100 transition-all">
-                  <FileText className="w-5 h-5 text-teal-500" />
+                <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center group-hover:bg-white/20 group-hover:rotate-6 transition-all duration-300 shadow-inner">
+                  <FileText className="w-6 h-6 text-white" />
                 </div>
               </div>
             </div>
 
             {/* Kecurangan */}
-            <div className={`bg-white rounded-2xl p-5 border shadow-sm hover:shadow-md transition-all group relative overflow-hidden ${stats.totalViolations > 0 ? 'border-rose-100' : 'border-slate-100'}`}>
-              <div className={`absolute top-0 left-0 w-full h-1 rounded-t-2xl ${stats.totalViolations > 0 ? 'bg-gradient-to-r from-rose-400 to-red-500 animate-pulse' : 'bg-gradient-to-r from-slate-200 to-slate-300'}`}></div>
-              <div className="flex items-start justify-between mt-1">
+            <div className={`text-white rounded-3xl p-6 hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group ${
+              stats.totalViolations > 0 
+                ? 'bg-gradient-to-br from-rose-600 to-red-700 shadow-lg shadow-rose-500/25 border border-rose-500/30' 
+                : 'bg-gradient-to-br from-slate-800 to-slate-900 shadow-lg shadow-slate-950/20 border border-slate-700/40'
+            }`}>
+              <div className="absolute right-[-10%] top-[-10%] w-32 h-32 bg-white/5 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="flex items-start justify-between relative z-10">
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Kecurangan</p>
-                  <p className={`text-4xl font-black ${stats.totalViolations > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{stats.totalViolations}</p>
-                  <div className="flex items-center gap-1 mt-2">
-                    {stats.totalViolations > 0
-                      ? <><span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></span><span className="text-[10px] text-rose-400 font-medium">Terdeteksi</span></>
-                      : <><ShieldCheck className="w-3 h-3 text-slate-300" /><span className="text-[10px] text-slate-400 font-medium">Aman</span></>
-                    }
+                  <p className="text-[10px] font-bold text-slate-300/90 uppercase tracking-widest mb-2.5">Integritas Keamanan</p>
+                  <p className="text-4xl font-black tracking-tight">{stats.totalViolations}</p>
+                  <div className="flex items-center gap-1.5 mt-4 bg-white/10 px-2.5 py-1 rounded-xl w-fit border border-white/5 backdrop-blur-md">
+                    {stats.totalViolations > 0 ? (
+                      <>
+                        <span className="w-2 h-2 bg-rose-400 rounded-full animate-ping"></span>
+                        <span className="text-[10px] text-rose-200 font-bold tracking-wider uppercase">Terdeteksi</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+                        <span className="text-[10px] text-emerald-300 font-bold tracking-wider uppercase">Sangat Aman</span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${stats.totalViolations > 0 ? 'bg-rose-50 group-hover:bg-rose-100' : 'bg-slate-50 group-hover:bg-slate-100'}`}>
-                  <ShieldAlert className={`w-5 h-5 ${stats.totalViolations > 0 ? 'text-rose-500' : 'text-slate-400'}`} />
+                <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center group-hover:bg-white/20 group-hover:rotate-6 transition-all duration-300 shadow-inner">
+                  <ShieldAlert className="w-6 h-6 text-white" />
                 </div>
               </div>
             </div>
@@ -491,56 +507,72 @@ export default function IntegratedLLMSDashboard() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
             {/* SESSION TABLE */}
-            <div className="xl:col-span-2 bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-              <div className="px-6 py-4 border-b border-slate-50 bg-slate-50/60 flex items-center justify-between">
+            <div className="xl:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 shadow-[0_12px_40px_rgba(31,38,135,0.05)] rounded-3xl overflow-hidden transition-all duration-300">
+              <div className="px-6 py-5 border-b border-slate-100/85 bg-white/40 flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">Daftar Sesi & Live Monitoring</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">{sessions.length} sesi terdaftar</p>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
+                    Daftar Sesi & Live Monitoring
+                  </h3>
+                  <p className="text-xs font-semibold text-slate-400 mt-1">{sessions.length} sesi terdaftar</p>
                 </div>
               </div>
 
               {sessions.length === 0 ? (
                 <div className="py-16 flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
-                    <Server className="w-8 h-8 text-slate-300" />
+                  <div className="w-16 h-16 bg-gradient-to-br from-indigo-50 to-slate-100 border border-slate-200/50 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+                    <Server className="w-8 h-8 text-indigo-400 animate-pulse" />
                   </div>
-                  <p className="text-slate-500 font-semibold">Belum ada sesi ujian</p>
-                  <p className="text-slate-400 text-sm mt-1">Klik &quot;Sesi Baru&quot; untuk memulai</p>
+                  <p className="text-slate-500 font-extrabold text-sm uppercase tracking-wider">Belum ada sesi ujian</p>
+                  <p className="text-slate-400 text-xs mt-1">Klik &quot;Sesi Baru&quot; untuk memulai ujian</p>
                   <button
                     onClick={() => setShowAddModal(true)}
-                    className="mt-5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-indigo-100"
+                    className="mt-5 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md shadow-indigo-200 hover:scale-105 active:scale-95"
                   >
-                    <Plus className="w-3.5 h-3.5 inline mr-1.5" />Buat Sesi Pertama
+                    <Plus className="w-3.5 h-3.5 inline mr-1.5 stroke-[3px]" />Buat Sesi Pertama
                   </button>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-50">
+                <div className="divide-y divide-slate-100/80">
                   {sessions.map((session) => (
-                    <div key={session.id} className="px-6 py-4 hover:bg-slate-50/60 transition-all">
+                    <div 
+                      key={session.id} 
+                      className={`px-6 py-5 hover:bg-indigo-50/20 transition-all duration-300 border-l-4 ${
+                        session.is_active ? 'border-l-emerald-500' : 'border-l-slate-200 hover:border-l-amber-400'
+                      }`}
+                    >
                       <div className="flex items-center justify-between gap-4">
 
                         {/* Session info */}
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                            session.is_active ? 'bg-emerald-100' : 'bg-slate-100'
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-all duration-300 ${
+                            session.is_active 
+                              ? 'bg-emerald-50 border border-emerald-200/50 shadow-emerald-100' 
+                              : 'bg-slate-50 border border-slate-200/50 shadow-slate-100'
                           }`}>
-                            <span className={`w-2.5 h-2.5 rounded-full ${session.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
+                            <span className={`w-3 h-3 rounded-full transition-all duration-500 ${session.is_active ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-slate-300'}`}></span>
                           </div>
                           <div className="min-w-0">
-                            <p className="font-bold text-slate-800 text-sm truncate">{session.title || 'Ujian Tanpa Judul'}</p>
-                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                              <span className="text-[10px] font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md">{session.id.substring(0,8)}</span>
-                              <span className="text-[10px] font-semibold text-slate-400">{session.duration_minutes || 90} mnt</span>
+                            <p className="font-extrabold text-slate-800 text-sm md:text-base tracking-tight leading-snug truncate">
+                              {session.title || 'Ujian Tanpa Judul'}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                              <span className="text-[9px] font-black font-mono bg-indigo-50 border border-indigo-100/50 text-indigo-600 px-2 py-0.5 rounded-md shadow-sm">{session.id.substring(0,8)}</span>
+                              <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{session.duration_minutes || 90} MNT</span>
                               {/* Toggle */}
                               <button
                                 onClick={() => handleToggleActive(session.id, session.is_active)}
-                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ${
-                                  session.is_active ? 'bg-emerald-500' : 'bg-slate-200'
+                                className={`relative inline-flex h-5.5 w-10 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none shadow-inner ${
+                                  session.is_active ? 'bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-emerald-200' : 'bg-slate-200 shadow-slate-200'
                                 }`}
                               >
-                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition duration-200 ${session.is_active ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                <span className={`inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow-md transition duration-300 ${session.is_active ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
                               </button>
-                              <span className={`text-[9px] font-black uppercase tracking-wider ${session.is_active ? 'text-emerald-600' : 'text-slate-400'}`}>
+                              <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
+                                session.is_active 
+                                  ? 'bg-emerald-50 border border-emerald-100/50 text-emerald-600 animate-pulse' 
+                                  : 'bg-slate-100 border border-slate-200/50 text-slate-400'
+                              }`}>
                                 {session.is_active ? 'ON' : 'OFF'}
                               </span>
                             </div>
@@ -548,42 +580,74 @@ export default function IntegratedLLMSDashboard() {
                         </div>
 
                         {/* Live Token */}
-                        <div className="hidden md:flex flex-col items-center bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2 shrink-0">
-                          <div className="flex items-center gap-1.5 text-indigo-600">
-                            <Key className="w-3 h-3" />
-                            <span className="font-mono font-black text-sm tracking-[0.2em]">{liveTokens[session.id] || '------'}</span>
+                        <div className="hidden md:flex flex-col items-center bg-slate-900 border border-slate-800 rounded-2xl px-5 py-2.5 shrink-0 shadow-lg shadow-indigo-950/20 relative group/token hover:scale-105 transition-all duration-300">
+                          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 to-cyan-500/5 rounded-2xl opacity-0 group-hover/token:opacity-100 transition-opacity duration-300"></div>
+                          <div className="flex items-center gap-2 text-cyan-400 font-mono font-black text-sm tracking-[0.2em] relative z-10">
+                            <Key className="w-3.5 h-3.5 text-cyan-500 shrink-0 animate-bounce" />
+                            <span>{liveTokens[session.id] || '------'}</span>
                           </div>
-                          <div className="flex items-center gap-1 mt-1">
-                            <Clock className="w-2.5 h-2.5 text-indigo-400" />
-                            <span className="text-[9px] text-indigo-400 font-bold">{Math.floor(countdown/60)}:{(countdown%60).toString().padStart(2,'0')}</span>
+                          <div className="flex items-center gap-1.5 mt-1 relative z-10">
+                            <Clock className="w-3 h-3 text-violet-400 animate-pulse" />
+                            <span className="text-[10px] text-violet-300 font-black tracking-wider">
+                              {Math.floor(countdown/60)}:{(countdown%60).toString().padStart(2,'0')}
+                            </span>
                           </div>
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button onClick={() => openEditModal(session)} className="p-2 hover:bg-indigo-50 hover:text-indigo-600 text-slate-400 rounded-lg transition-all" title="Edit">
-                            <Pencil className="w-3.5 h-3.5" />
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button 
+                            onClick={() => openEditModal(session)} 
+                            className="p-2.5 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 border border-transparent hover:border-indigo-100 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm hover:shadow-indigo-100/40" 
+                            title="Edit"
+                          >
+                            <Pencil className="w-4 h-4" />
                           </button>
-                          <Link href={`/hq/llms/${session.id}/questions`} className="p-2 hover:bg-slate-100 hover:text-slate-700 text-slate-400 rounded-lg transition-all" title="Soal">
-                            <FileText className="w-3.5 h-3.5" />
+                          <Link 
+                            href={`/hq/llms/${session.id}/questions`} 
+                            className="p-2.5 hover:bg-violet-50 text-slate-400 hover:text-violet-600 border border-transparent hover:border-violet-100 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm hover:shadow-violet-100/40" 
+                            title="Soal"
+                          >
+                            <FileText className="w-4 h-4" />
                           </Link>
-                          <Link href={`/hq/llms/${session.id}/monitor`} className="p-2 hover:bg-blue-50 hover:text-blue-600 text-slate-400 rounded-lg transition-all relative" title="Pantau">
-                            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-rose-500 rounded-full"></span>
-                            <Monitor className="w-3.5 h-3.5" />
+                          <Link 
+                            href={`/hq/llms/${session.id}/monitor`} 
+                            className="p-2.5 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border border-transparent hover:border-blue-100 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 relative shadow-sm hover:shadow-blue-100/40" 
+                            title="Pantau"
+                          >
+                            <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 border border-white rounded-full animate-ping"></span>
+                            <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 border border-white rounded-full"></span>
+                            <Monitor className="w-4 h-4" />
                           </Link>
-                          <Link href={`/hq/llms/${session.id}/leaderboard`} className="p-2 hover:bg-amber-50 hover:text-amber-600 text-slate-400 rounded-lg transition-all" title="Skor">
-                            <Trophy className="w-3.5 h-3.5" />
+                          <Link 
+                            href={`/hq/llms/${session.id}/leaderboard`} 
+                            className="p-2.5 hover:bg-amber-50 text-slate-400 hover:text-amber-600 border border-transparent hover:border-amber-100 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm hover:shadow-amber-100/40" 
+                            title="Skor"
+                          >
+                            <Trophy className="w-4 h-4" />
                           </Link>
-                          <button onClick={() => openDeleteModal(session)} className="p-2 hover:bg-rose-50 hover:text-rose-500 text-slate-400 rounded-lg transition-all" title="Hapus">
-                            <Trash2 className="w-3.5 h-3.5" />
+                          <button 
+                            onClick={() => openDeleteModal(session)} 
+                            className="p-2.5 hover:bg-rose-50 text-slate-400 hover:text-rose-500 border border-transparent hover:border-rose-100 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm hover:shadow-rose-100/40" 
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
 
                       {/* Action labels */}
-                      <div className="hidden sm:flex items-center justify-end gap-1 mt-1.5">
-                        {['Edit', 'Soal', 'Pantau', 'Skor', 'Hapus'].map(label => (
-                          <span key={label} className="text-[8px] text-slate-300 font-bold uppercase tracking-wider w-[34px] text-center">{label}</span>
+                      <div className="hidden sm:flex items-center justify-end gap-1.5 mt-2">
+                        {[
+                          { label: 'Edit', color: 'text-indigo-400' },
+                          { label: 'Soal', color: 'text-violet-400' },
+                          { label: 'Pantau', color: 'text-sky-400' },
+                          { label: 'Skor', color: 'text-amber-400' },
+                          { label: 'Hapus', color: 'text-rose-400' }
+                        ].map(item => (
+                          <span key={item.label} className={`text-[9px] font-black uppercase tracking-wider w-[36px] text-center ${item.color} opacity-40 hover:opacity-100 transition-opacity`}>
+                            {item.label}
+                          </span>
                         ))}
                       </div>
                     </div>
@@ -596,96 +660,97 @@ export default function IntegratedLLMSDashboard() {
             <div className="space-y-5">
 
               {/* Quick Actions */}
-              <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-6 h-6 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <Zap className="w-3.5 h-3.5 text-indigo-600" />
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-3xl shadow-lg shadow-indigo-100/5">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-7 h-7 bg-indigo-500/10 border border-indigo-200/50 rounded-xl flex items-center justify-center shadow-sm">
+                    <Zap className="w-4 h-4 text-indigo-600" />
                   </div>
-                  <h3 className="text-xs font-bold text-slate-600 uppercase tracking-widest">Aksi Cepat</h3>
+                  <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest">Aksi Cepat</h3>
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   <Link
                     href="/hq/llms/broadcast"
-                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl hover:from-indigo-700 hover:to-violet-700 transition-all group shadow-md shadow-indigo-100"
+                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white rounded-2xl transition-all duration-300 group shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/35 hover:scale-[1.02] active:scale-95"
                   >
                     <div className="flex items-center gap-2.5">
-                      <Radio className="w-4 h-4" />
-                      <span className="text-xs font-bold uppercase tracking-wider">Kirim Siaran</span>
+                      <Radio className="w-4 h-4 text-indigo-100 animate-pulse" />
+                      <span className="text-xs font-black uppercase tracking-wider">Kirim Siaran</span>
                     </div>
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform stroke-[3px]" />
                   </Link>
                   <button
                     onClick={fetchTelemetryData}
-                    className="w-full flex items-center justify-center gap-2 p-3.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300 rounded-xl transition-all text-xs font-bold uppercase tracking-wider"
+                    className="w-full flex items-center justify-center gap-2 p-3.5 bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 text-slate-700 hover:text-indigo-600 rounded-2xl transition-all duration-300 text-xs font-black uppercase tracking-wider shadow-sm active:scale-95"
                   >
-                    <RotateCcw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-500' : ''}`} />
+                    <RotateCcw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-500' : 'text-slate-500'}`} />
                     Sinkron Data
                   </button>
                 </div>
               </div>
 
               {/* Security Log */}
-              <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-3xl shadow-lg shadow-slate-100/5">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-rose-50 rounded-lg flex items-center justify-center">
-                      <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 bg-rose-500/10 border border-rose-200/50 rounded-xl flex items-center justify-center shadow-sm">
+                      <ShieldAlert className="w-4 h-4 text-rose-500 animate-pulse" />
                     </div>
-                    <h3 className="text-xs font-bold text-slate-600 uppercase tracking-widest">Security Log</h3>
+                    <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest">Security Log</h3>
                   </div>
                   <div className="flex items-center gap-1.5 px-2 py-1 bg-rose-50 border border-rose-100 rounded-lg">
-                    <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></span>
-                    <span className="text-[9px] text-rose-500 font-bold uppercase">Live</span>
+                    <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping"></span>
+                    <span className="text-[9px] text-rose-500 font-black uppercase tracking-widest">Live</span>
                   </div>
                 </div>
 
                 {securityLogs.length === 0 ? (
-                  <div className="py-7 flex flex-col items-center justify-center text-center bg-emerald-50/60 border border-emerald-100 rounded-xl">
-                    <div className="w-11 h-11 bg-emerald-100 rounded-full flex items-center justify-center mb-3">
-                      <ShieldCheck className="w-6 h-6 text-emerald-500" />
+                  <div className="py-7 flex flex-col items-center justify-center text-center bg-gradient-to-tr from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 shadow-[0_8px_30px_rgba(16,185,129,0.08)] rounded-2xl relative overflow-hidden group/aman">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.15)_0%,transparent_70%)] opacity-0 group-hover/aman:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                    <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-200/50 rounded-full flex items-center justify-center mb-3 shadow-inner relative z-10 animate-pulse">
+                      <ShieldCheck className="w-6 h-6 text-emerald-600" />
                     </div>
-                    <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Aman Terkendali</p>
-                    <p className="text-[10px] text-emerald-500/70 mt-1">100% Integritas Terjaga</p>
+                    <p className="text-xs font-black text-emerald-700 uppercase tracking-widest relative z-10">Aman Terkendali</p>
+                    <p className="text-[10px] text-emerald-500/70 font-bold mt-1 relative z-10">100% Integritas Terjaga</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {securityLogs.map(log => (
-                      <div key={log.id} className="p-3 bg-rose-50 border border-rose-100 rounded-xl flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                      <div key={log.id} className="p-3 bg-rose-500/5 border border-rose-200/40 rounded-2xl flex justify-between items-center transition-all duration-300 hover:bg-rose-500/10 hover:border-rose-500/30 shadow-sm shadow-rose-500/5">
+                        <div className="flex items-center gap-2.5">
+                          <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 animate-bounce" />
                           <div>
-                            <p className="text-[10px] font-bold text-slate-800 truncate max-w-[100px]">{log.userId.substring(0,8)}...</p>
-                            <p className="text-[9px] text-rose-500 font-medium">{log.count}x pelanggaran</p>
+                            <p className="text-[11px] font-black text-slate-800 tracking-tight font-mono">{log.userId.substring(0,8)}...</p>
+                            <p className="text-[9px] text-rose-600 font-extrabold tracking-wide uppercase mt-0.5">{log.count}x pelanggaran</p>
                           </div>
                         </div>
-                        <span className="text-[9px] font-mono text-slate-400">{log.time}</span>
+                        <span className="text-[10px] font-black font-mono text-slate-400 bg-white border border-slate-200/50 px-2 py-0.5 rounded-md shadow-sm">{log.time}</span>
                       </div>
                     ))}
                     <button
                       onClick={downloadSecurityReport}
-                      className="w-full mt-1 py-3 bg-slate-50 border border-slate-200 hover:bg-rose-50 hover:border-rose-200 text-slate-500 hover:text-rose-500 text-[9px] font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5"
+                      className="w-full mt-2 py-3.5 bg-white border border-slate-200 hover:border-rose-200 hover:bg-rose-50/30 text-slate-600 hover:text-rose-600 text-xs font-black uppercase tracking-widest rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 shadow-sm"
                     >
-                      <FileDown className="w-3.5 h-3.5" />Laporan .CSV
+                      <FileDown className="w-4 h-4" />Laporan .CSV
                     </button>
                   </div>
                 )}
               </div>
 
               {/* Token Info */}
-              <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100 rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-6 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <Lock className="w-3.5 h-3.5 text-indigo-600" />
+              <div className="bg-gradient-to-br from-indigo-500/5 via-violet-500/5 to-purple-500/5 border border-indigo-100 rounded-3xl p-5 shadow-lg shadow-indigo-100/5">
+                <div className="flex items-center gap-2 mb-3.5">
+                  <div className="w-7 h-7 bg-indigo-500/10 border border-indigo-200/50 rounded-xl flex items-center justify-center shadow-sm">
+                    <Lock className="w-4 h-4 text-indigo-600" />
                   </div>
-                  <h3 className="text-xs font-bold text-slate-600 uppercase tracking-widest">Info Token</h3>
+                  <h3 className="text-xs font-black text-indigo-900 uppercase tracking-widest">Info Token</h3>
                 </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Token berubah otomatis setiap <span className="font-bold text-indigo-600">10 menit</span>. Bagikan ke peserta sebelum ujian dimulai.
+                <p className="text-[11px] text-indigo-950/80 leading-relaxed font-medium">
+                  Token berubah otomatis setiap <span className="font-extrabold text-indigo-600 bg-indigo-100/50 px-1.5 py-0.5 rounded border border-indigo-200/30">10 menit</span>. Bagikan ke peserta sebelum ujian dimulai.
                 </p>
-                <div className="mt-3 flex items-center gap-2 p-2.5 bg-white border border-indigo-100 rounded-xl shadow-sm">
-                  <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                  <span className="text-xs font-mono text-indigo-700 font-black">
-                    Rotasi dalam: {Math.floor(countdown/60)}:{(countdown%60).toString().padStart(2,'0')}
+                <div className="mt-4 flex items-center gap-2.5 p-3 bg-white/80 backdrop-blur-md border border-indigo-100/80 rounded-2xl shadow-sm">
+                  <Clock className="w-4 h-4 text-indigo-500 animate-spin" style={{ animationDuration: '6s' }} />
+                  <span className="text-xs font-mono text-indigo-900 font-extrabold tracking-wide">
+                    Rotasi dalam: <span className="text-indigo-600 font-black">{Math.floor(countdown/60)}:{(countdown%60).toString().padStart(2,'0')}</span>
                   </span>
                 </div>
               </div>
@@ -696,63 +761,67 @@ export default function IntegratedLLMSDashboard() {
 
       {/* ─── MODAL EDIT ─── */}
       {showEditModal && editingSession && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/30 backdrop-blur-md">
-          <div className="bg-white border border-slate-200 w-full max-w-xl rounded-3xl p-8 shadow-2xl shadow-slate-200/80 relative">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-xl border border-white w-full max-w-xl rounded-[32px] p-8 shadow-2xl shadow-slate-950/20 relative animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-lg font-black text-slate-900">Edit Sesi Ujian</h2>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">ID: {editingSession.id?.substring(0,8)}...</p>
+                <h2 className="text-lg font-black text-slate-900 uppercase tracking-wider">Edit Sesi Ujian</h2>
+                <p className="text-xs text-slate-400 font-bold mt-1">ID: <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">{editingSession.id?.substring(0,8)}...</span></p>
               </div>
-              <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-all">
-                <X size={20} />
+              <button onClick={() => setShowEditModal(false)} className="p-2.5 hover:bg-slate-100 rounded-2xl text-slate-400 hover:text-slate-600 transition-all active:scale-90">
+                <X size={20} className="stroke-[2.5px]" />
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Judul Sesi</label>
                 <input type="text" value={editingSession.title || ''} onChange={e => setEditingSession({...editingSession, title: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none transition-all" />
+                  className="w-full bg-slate-50 border border-slate-200/80 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-800 outline-none transition-all duration-200" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Durasi (Menit)</label>
                   <input type="number" value={editingSession.duration_minutes || 90} onChange={e => setEditingSession({...editingSession, duration_minutes: parseInt(e.target.value)||90})}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none transition-all" />
+                    className="w-full bg-slate-50 border border-slate-200/80 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-800 outline-none transition-all duration-200" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Status Sesi</label>
                   <button onClick={() => setEditingSession({...editingSession, is_active: !editingSession.is_active})}
-                    className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all border-2 ${
-                      editingSession.is_active ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-500'
+                    className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 border-2 ${
+                      editingSession.is_active 
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500 border-transparent text-white shadow-md shadow-emerald-200/60' 
+                        : 'bg-slate-50 border-slate-200/80 text-slate-500'
                     }`}>
-                    {editingSession.is_active ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
-                    {editingSession.is_active ? 'Aktif' : 'Nonaktif'}
+                    {editingSession.is_active ? <ToggleRight className="w-5 h-5 animate-pulse" /> : <ToggleLeft className="w-5 h-5" />}
+                    {editingSession.is_active ? 'Aktif (ON)' : 'Nonaktif (OFF)'}
                   </button>
                 </div>
               </div>
-              <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
-                <p className="text-[10px] font-black uppercase text-indigo-500 tracking-widest mb-3">⚙️ Konfigurasi Poin</p>
+              <div className="p-5 bg-indigo-500/5 border border-indigo-100/50 rounded-2xl shadow-inner">
+                <p className="text-[10px] font-black uppercase text-indigo-500 tracking-widest mb-3 flex items-center gap-1.5">
+                  <span>⚙️</span> Konfigurasi Poin Penilaian
+                </p>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase tracking-widest text-emerald-600">✓ Benar</label>
                     <input type="number" value={editingSession.correct_point ?? 4} onChange={e => setEditingSession({...editingSession, correct_point: parseInt(e.target.value)||0})}
-                      className="w-full bg-white border border-emerald-200 rounded-lg px-3 py-2 text-sm font-black text-slate-700 outline-none text-center focus:ring-2 focus:ring-emerald-100" />
+                      className="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2.5 text-sm font-black text-slate-700 outline-none text-center focus:ring-4 focus:ring-emerald-100" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase tracking-widest text-rose-500">✗ Salah</label>
                     <input type="number" value={editingSession.penalty_point ?? 0} onChange={e => setEditingSession({...editingSession, penalty_point: parseInt(e.target.value)||0})}
-                      className="w-full bg-white border border-rose-200 rounded-lg px-3 py-2 text-sm font-black text-slate-700 outline-none text-center focus:ring-2 focus:ring-rose-100" />
+                      className="w-full bg-white border border-rose-200 rounded-xl px-3 py-2.5 text-sm font-black text-slate-700 outline-none text-center focus:ring-4 focus:ring-rose-100" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">— Kosong</label>
                     <input type="number" value={editingSession.empty_point ?? 0} onChange={e => setEditingSession({...editingSession, empty_point: parseInt(e.target.value)||0})}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-black text-slate-700 outline-none text-center focus:ring-2 focus:ring-slate-100" />
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-black text-slate-700 outline-none text-center focus:ring-4 focus:ring-slate-100" />
                   </div>
                 </div>
-                <p className="text-[9px] text-indigo-400 font-medium mt-2 text-center">Contoh UTBK: Benar=4, Salah=1 (penalti), Kosong=0</p>
+                <p className="text-[9px] text-indigo-400 font-bold mt-2 text-center">Standard UTBK: Benar = 4, Salah = -1, Kosong = 0</p>
               </div>
               <button onClick={handleUpdateSession} disabled={isSavingEdit}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-md shadow-indigo-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/35 transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50">
                 {isSavingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save size={16} /> Simpan Perubahan</>}
               </button>
             </div>
@@ -762,33 +831,35 @@ export default function IntegratedLLMSDashboard() {
 
       {/* ─── MODAL DELETE ─── */}
       {showDeleteModal && deletingSession && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/30 backdrop-blur-md">
-          <div className="bg-white border border-rose-100 w-full max-w-md rounded-3xl p-8 shadow-2xl shadow-rose-100/60 relative">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-xl border border-rose-100 w-full max-w-md rounded-[32px] p-8 shadow-2xl shadow-rose-950/20 relative animate-in fade-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-rose-50 border border-rose-100 text-rose-500 rounded-2xl flex items-center justify-center mb-5">
-                <Trash2 className="w-8 h-8" />
+              <div className="w-16 h-16 bg-rose-500/10 border border-rose-200/50 text-rose-600 rounded-[24px] flex items-center justify-center mb-5 animate-bounce">
+                <Trash2 className="w-8 h-8 stroke-[2px]" />
               </div>
-              <h2 className="text-xl font-black text-slate-900">Hapus Sesi Permanen</h2>
-              <p className="text-sm text-slate-500 font-medium mt-2 leading-relaxed">
-                Sesi <span className="font-black text-slate-800">&ldquo;{deletingSession.title}&rdquo;</span> beserta{' '}
-                <span className="text-rose-500 font-bold">semua soal & data peserta</span> akan dihapus selamanya.
+              <h2 className="text-xl font-black text-slate-900 uppercase tracking-wide">Hapus Sesi Permanen</h2>
+              <p className="text-sm text-slate-500 font-semibold mt-2 leading-relaxed">
+                Sesi <span className="font-extrabold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">&ldquo;{deletingSession.title}&rdquo;</span> beserta{' '}
+                <span className="text-rose-500 font-bold block mt-1">semua bank soal & riwayat peserta</span> akan dihapus selamanya.
               </p>
-              <div className="w-full mt-5 p-4 bg-rose-50 border border-rose-100 rounded-xl text-left">
-                <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-2">⚠️ Tidak dapat dibatalkan!</p>
-                <ul className="text-xs text-rose-400 font-medium space-y-1 list-disc list-inside">
-                  <li>Semua soal (cbt_questions)</li>
+              <div className="w-full mt-5 p-5 bg-rose-500/5 border border-rose-100/50 rounded-2xl text-left shadow-inner">
+                <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-2 flex items-center gap-1">
+                  <span>⚠️</span> Tidak Dapat Dibatalkan!
+                </p>
+                <ul className="text-xs text-rose-500/80 font-bold space-y-1 list-disc list-inside">
+                  <li>Semua bank soal (cbt_questions)</li>
                   <li>Semua data & skor peserta (cbt_attempts)</li>
                   <li>Sesi ujian itu sendiri (cbt_exams)</li>
                 </ul>
               </div>
-              <div className="flex gap-3 w-full mt-5">
+              <div className="flex gap-3.5 w-full mt-6">
                 <button onClick={() => { setShowDeleteModal(false); setDeletingSession(null); }} disabled={isDeleting}
-                  className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all">
+                  className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-extrabold text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-200 hover:text-slate-800 transition-all duration-200 active:scale-95">
                   Batal
                 </button>
                 <button onClick={handleDeleteSession} disabled={isDeleting}
-                  className="flex-1 py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md shadow-rose-100 flex items-center justify-center gap-2 disabled:opacity-50">
-                  {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  className="flex-1 py-3.5 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-extrabold text-xs uppercase tracking-widest rounded-2xl transition-all duration-200 shadow-lg shadow-rose-500/20 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
+                  {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                   {isDeleting ? 'Menghapus...' : 'Hapus Permanen'}
                 </button>
               </div>
@@ -799,40 +870,40 @@ export default function IntegratedLLMSDashboard() {
 
       {/* ─── MODAL ADD ─── */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/30 backdrop-blur-md">
-          <div className="bg-white border border-slate-200 w-full max-w-xl rounded-3xl p-8 shadow-2xl shadow-slate-200/80 relative">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-xl border border-white w-full max-w-xl rounded-[32px] p-8 shadow-2xl shadow-slate-950/20 relative animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-lg font-black text-slate-900">Buat Sesi Ujian Baru</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Isi detail sesi ujian yang akan dibuka</p>
+                <h2 className="text-lg font-black text-slate-900 uppercase tracking-wider">Buat Sesi Ujian Baru</h2>
+                <p className="text-xs text-slate-400 font-semibold mt-1">Konfigurasikan sesi ujian CBT terpusat</p>
               </div>
-              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-all">
-                <X size={20} />
+              <button onClick={() => setShowAddModal(false)} className="p-2.5 hover:bg-slate-100 rounded-2xl text-slate-400 hover:text-slate-600 transition-all active:scale-90">
+                <X size={20} className="stroke-[2.5px]" />
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Judul Sesi</label>
                 <input type="text" value={newSession.title} onChange={(e) => setNewSession({...newSession, title: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none transition-all placeholder-slate-300"
-                  placeholder="Contoh: Matematika Dasar – Sesi 1" />
+                  className="w-full bg-slate-50 border border-slate-200/80 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-800 outline-none transition-all duration-200 placeholder-slate-300"
+                  placeholder="Contoh: Matematika Dasar – Sesi Awal" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Token Akses (opsional)</label>
                   <input type="text" value={newSession.token} onChange={(e) => setNewSession({...newSession, token: e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none transition-all placeholder-slate-300 uppercase"
-                    placeholder="AUTO" />
+                    className="w-full bg-slate-50 border border-slate-200/80 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-800 outline-none transition-all duration-200 placeholder-slate-300 uppercase tracking-widest"
+                    placeholder="AUTO GENERATED" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Durasi (Menit)</label>
                   <input type="number" value={newSession.duration_minutes} onChange={(e) => setNewSession({...newSession, duration_minutes: parseInt(e.target.value) || 0})}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none transition-all" />
+                    className="w-full bg-slate-50 border border-slate-200/80 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-800 outline-none transition-all duration-200" />
                 </div>
               </div>
               <button onClick={handleAddSession} disabled={isSaving}
-                className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus size={16} /> Buat Sesi Sekarang</>}
+                className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/35 hover:scale-[1.01] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50">
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus size={16} className="stroke-[3px]" /> Buat Sesi Sekarang</>}
               </button>
             </div>
           </div>

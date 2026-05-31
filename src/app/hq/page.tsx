@@ -7,7 +7,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client"; 
 import { generateTicketCode } from "@/lib/utils"; 
-import { getAdminCompetitionEntries, getUnregisteredUsers } from "@/app/actions/auth";
+import { 
+  getAdminCompetitionEntries, 
+  getUnregisteredUsers, 
+  getAdminBroadcasts, 
+  getSchoolMessages, 
+  getPortalSettings, 
+  getTimelineConfig, 
+  getActiveExams 
+} from "@/app/actions/auth";
 
 import { 
   LayoutDashboard, Users, FileCheck, Settings, 
@@ -436,25 +444,19 @@ function ModernHQDashboardContent() {
 
     const fetchGroupMessages = async () => {
       setIsLoadingGroupMessages(true);
+      const safetyTimer = setTimeout(() => {
+        setIsLoadingGroupMessages(false);
+      }, 5000);
+
       try {
-        let query = supabase.from("school_messages").select("*");
-        
-        if (selectedSchoolGroup.npsn) {
-          query = query.or(`npsn.eq."${selectedSchoolGroup.npsn}",school_name.eq."${selectedSchoolGroup.schoolName}"`);
-        } else {
-          query = query.eq("school_name", selectedSchoolGroup.schoolName);
-        }
-
-        const { data, error } = await query
-          .order("created_at", { ascending: true })
-          .limit(150);
-
+        const { data, error } = await getSchoolMessages(selectedSchoolGroup.schoolName, selectedSchoolGroup.npsn);
         if (!error) {
           setGroupMessages(data || []);
         }
       } catch (err) {
         console.error("Gagal memuat pesan obrolan kelompok:", err);
       } finally {
+        clearTimeout(safetyTimer);
         setIsLoadingGroupMessages(false);
       }
     };
@@ -597,10 +599,7 @@ function ModernHQDashboardContent() {
   useEffect(() => {
     const fetchActiveToken = async () => {
       try {
-        const { data: exams } = await supabase
-          .from('cbt_exams')
-          .select('id, title')
-          .eq('is_active', true);
+        const { data: exams } = await getActiveExams();
           
         if (exams && exams.length > 0) {
           const updateToken = () => {
@@ -729,7 +728,7 @@ function ModernHQDashboardContent() {
   useEffect(() => {
     const fetchTimeline = async () => {
       try {
-        const { data: timelineConfig } = await supabase.from('announcements').select('*').eq('title', 'SYSTEM_TIMELINE_CONFIG').single();
+        const { data: timelineConfig } = await getTimelineConfig();
         if (timelineConfig && timelineConfig.content) {
           try {
             const rawData = JSON.parse(timelineConfig.content);
@@ -814,19 +813,20 @@ function ModernHQDashboardContent() {
 
   const fetchBroadcasts = async () => {
     setIsFetchingBroadcasts(true);
-    try {
-      const { data, error } = await supabase
-        .from('announcements')
-        .select('*')
-        .not('title', 'in', '("SYS_PORTAL_SETTINGS","SYSTEM_TIMELINE_CONFIG")')
-        .order('created_at', { ascending: false });
+    const safetyTimer = setTimeout(() => {
+      setIsFetchingBroadcasts(false);
+    }, 5000);
 
-      if (error) throw error;
+    try {
+      const { data, error } = await getAdminBroadcasts();
+
+      if (error) throw new Error(error);
       setBroadcasts(data || []);
     } catch (err: any) {
       console.error("Gagal menarik data siaran:", err);
       showToast(`Gagal memuat riwayat siaran: ${err.message}`, "error");
     } finally {
+      clearTimeout(safetyTimer);
       setIsFetchingBroadcasts(false);
     }
   };
@@ -1190,20 +1190,19 @@ function ModernHQDashboardContent() {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      // Batasi waktu sync maks 3 detik agar tidak stuck
-      const syncTimeout = new Promise<void>((resolve) => setTimeout(resolve, 3000));
-      await Promise.race([performSyncToDatabase(), syncTimeout]);
-    } catch (err) {
-      console.error("Gagal menyimpan sebelum logout:", err);
-    } finally {
-      // Selalu logout & redirect meskipun sync gagal
-      try { await supabase.auth.signOut(); } catch (_) {}
-      try {
-        const { logoutLocalUser } = await import("@/app/actions/auth");
-        await logoutLocalUser();
-      } catch (_) {
-        router.push('/login');
-      }
+      // Jalankan sinkronisasi di latar belakang tanpa memblokir/menghambat proses keluar
+      performSyncToDatabase();
+    } catch (_) {}
+
+    // Jeda singkat 250ms untuk memberikan efek transisi visual yang halus sebelum redirect
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    try { await supabase.auth.signOut(); } catch (_) {}
+    try {
+      const { logoutLocalUser } = await import("@/app/actions/auth");
+      await logoutLocalUser();
+    } catch (_) {
+      router.push('/login');
     }
   };
 
@@ -1792,11 +1791,7 @@ function ModernHQDashboardContent() {
 
     const fetchPortalSettings = async () => {
       try {
-        const { data: existing } = await supabase
-          .from('announcements')
-          .select('*')
-          .eq('title', 'SYS_PORTAL_SETTINGS')
-          .single();
+        const { data: existing } = await getPortalSettings();
 
         if (existing) {
           const parsed = JSON.parse(existing.content);
@@ -5389,22 +5384,22 @@ function ModernHQDashboardContent() {
           </div>
         </div>
       </div>
-      {/* 🌟 PREMIUM GLASSMORPHIC OVERLAY FOR HQ LOGOUT & SYNC (LOCKDOWN MODE) */}
+      {/* 🌟 PREMIUM SOLID DARK OVERLAY FOR HQ LOGOUT & SYNC (LOCKDOWN MODE - LIGHTWEIGHT & LAG-FREE) */}
       {isLoggingOut && (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="relative flex flex-col items-center p-8 rounded-[2rem] bg-white/15 border border-white/20 shadow-2xl max-w-sm w-full text-center">
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950 animate-in fade-in duration-200">
+          <div className="relative flex flex-col items-center p-8 rounded-[2rem] bg-white/5 border border-white/10 shadow-2xl max-w-sm w-full text-center">
             {/* Spinning glowing gradient ring */}
             <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-4 border-white/10"></div>
-              <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-indigo-500 animate-spin"></div>
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg animate-pulse">
+              <div className="absolute inset-0 rounded-full border-4 border-white/5"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-t-indigo-500 border-r-violet-500 animate-spin"></div>
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg animate-pulse">
                 <Shield size={24} className="text-white" />
               </div>
             </div>
 
             <h3 className="text-xl font-black text-white mb-2 tracking-tight">Locking Down Command Center...</h3>
-            <p className="text-xs text-indigo-200 font-medium leading-relaxed">
-              Menyinkronkan data konfigurasi portal dan membersihkan sesi administrasi secara aman. Sampai jumpa kembali, Komandan!
+            <p className="text-xs text-indigo-200/80 font-semibold leading-relaxed">
+              Membersihkan sesi administrasi secara aman. Sampai jumpa kembali, Komandan!
             </p>
           </div>
         </div>
