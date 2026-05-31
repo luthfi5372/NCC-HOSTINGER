@@ -107,17 +107,28 @@ export default function TimelineSection() {
     // 📡 DYNAMIC REAL-TIME SINKRONISASI DARI DATABASE SUPABASE
     const fetchTimeline = async () => {
       try {
-        const { createClient } = await import("@/lib/supabase/client");
-        const supabase = createClient();
-        const { data } = await supabase
+        // Gunakan supabase-js langsung dengan URL & anon key
+        // agar bisa baca dari halaman publik tanpa sesi/cookie
+        const { createClient: createRawClient } = await import('@supabase/supabase-js');
+        const supabase = createRawClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        );
+        const { data, error } = await supabase
           .from('announcements')
           .select('content')
           .eq('title', 'SYSTEM_TIMELINE_CONFIG')
           .single();
 
+        if (error) {
+          console.warn("[TimelineSection] Gagal fetch dari DB:", error.message);
+          return;
+        }
+
         if (data && data.content) {
           const config = JSON.parse(data.content);
           if (!Array.isArray(config)) return;
+
           
           const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
           const formatDate = (dateStr: string) => {

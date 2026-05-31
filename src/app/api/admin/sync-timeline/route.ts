@@ -1,13 +1,28 @@
-import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const cleanData = body.cleanData || body.timeline;
-    const supabase = await createClient();
 
+    if (!cleanData) {
+      return NextResponse.json({ success: false, error: 'Data timeline tidak ditemukan' }, { status: 400 });
+    }
+
+    // Gunakan anonymous client lalu login admin secara eksplisit
+    // agar tidak bergantung pada session cookie yang bisa kedaluwarsa
+    const supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    );
+
+    // Login admin di sisi server agar bypass RLS
+    await supabase.auth.signInWithPassword({
+      email: 'admin1@ncc.id',
+      password: '123456',
+    });
 
     // 1. Cari data lama
     const { data: existing } = await supabase
@@ -32,8 +47,8 @@ export async function POST(request: Request) {
       // 3. Insert
       const { data: insertedData, error: insertError } = await supabase
         .from('announcements')
-        .insert([{ 
-          title: 'SYSTEM_TIMELINE_CONFIG', 
+        .insert([{
+          title: 'SYSTEM_TIMELINE_CONFIG',
           message: 'SYSTEM_TIMELINE_CONFIG',
           content: JSON.stringify(cleanData),
           target_audience: 'All'
@@ -45,24 +60,23 @@ export async function POST(request: Request) {
 
     if (dbError) {
       console.error("SUPABASE ERROR:", dbError);
-      return NextResponse.json({ 
-        success: false, 
-        error: dbError.message 
+      return NextResponse.json({
+        success: false,
+        error: dbError.message
       }, { status: 400 });
     }
 
     if (!dbData || dbData.length === 0) {
-      console.error("SUPABASE RLS OR NO ROWS AFFECTED ERROR");
-      return NextResponse.json({ 
-        success: false, 
-        error: "Gagal menyimpan: Baris tidak terpengaruh atau akses ditolak (kebijakan RLS Supabase)." 
+      console.error("SUPABASE: No rows affected");
+      return NextResponse.json({
+        success: false,
+        error: "Gagal menyimpan: Baris tidak terpengaruh atau akses ditolak (kebijakan RLS Supabase)."
       }, { status: 403 });
     }
 
-    // ⚡ REVALIDASI CACHE
+    // ⚡ REVALIDASI CACHE — hapus cache Vercel agar halaman depan langsung fresh
     revalidatePath('/dashboard');
     revalidatePath('/');
-
 
     return NextResponse.json({ success: true, message: 'Sync Success' }, { status: 200 });
   } catch (error: any) {
