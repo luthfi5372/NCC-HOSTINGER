@@ -4,31 +4,33 @@ import { useRef, useEffect, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  Mic,
+  MessageCircle,
+  Volume2,
+  BookOpen,
+  PenTool,
+  Microscope,
+  Atom,
+  Star,
+  Moon,
+  Book,
+  Rocket,
+  Calculator,
+  Telescope,
+  Dna,
+} from "lucide-react";
 
-const Nicci = ({ size }: { size: number }) => (
-  <div 
-    style={{
-      width: `${size}px`,
-      height: `${size * 1.333}px`,
-      backgroundImage: 'url("/nicci.svg")',
-      backgroundSize: 'contain',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat'
-    }}
-  />
-);
+const categoryIcons = [
+  { icons: [Mic, MessageCircle, Volume2], color: "text-red-400" },          // Speech
+  { icons: [BookOpen, PenTool, Microscope, Atom], color: "text-emerald-400" }, // LKTI
+  { icons: [Star, Moon, Book], color: "text-amber-400" },                   // MTQ
+  { icons: [Rocket, Calculator, Telescope, Dna], color: "text-blue-400" }     // MIPA
+];
 
-const Nicco = ({ size }: { size: number }) => (
-  <div 
-    style={{
-      width: `${size}px`,
-      height: `${size * 1.297}px`,
-      backgroundImage: 'url("/nicco.svg")',
-      backgroundSize: 'contain',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat'
-    }}
-  />
+// Flat array to pick randomly but know the color
+const allIconsMapped = categoryIcons.flatMap(cat => 
+  cat.icons.map(Icon => ({ Icon, color: cat.color }))
 );
 
 // Pre-generated positions to avoid hydration mismatch
@@ -36,31 +38,30 @@ const generateElements = () => {
   const elements = [];
   // Generate 80 elements to ensure the whole long page is populated (plenty for 600vh)
   for (let i = 0; i < 80; i++) {
-    const isNicci = i % 2 === 0;
+    const itemConfig = allIconsMapped[i % allIconsMapped.length];
     
     // Spread vertically across 600vh (6 screen heights)
     const factorLevel = (i * 29) % 650; // 0 to 650 vh
     // Spread horizontally across 100vw
     const factorX = (i * 13) % 100;
     
-    const size = 48 + ((i * 7) % 52); // 48px to 100px for a visible but clean background size
+    const size = 32 + ((i * 7) % 60); // 32px to 92px for a visible but clean background size
     const depth = 1 + ((i * 19) % 4); // 1 to 4 parallax speed
-    const opacity = 0.08 + (((i * 11) % 12) / 100); // 8% to 20% opacity for perfect background blending
-    const rotate = (i * 15) % 40 - 20; // Slight rotation (-20 to 20 deg)
+    const opacity = 0.12 + (((i * 11) % 16) / 100); // 12% to 28% opacity for perfect background blending
+    const rotate = (i * 45) % 360;
     const blur = depth > 3 ? "blur(3px)" : depth > 2 ? "blur(1px)" : "blur(0px)";
-    const floatAnim = i % 2 === 0 ? "mascot-float-normal" : "mascot-float-reverse";
 
     elements.push({
       id: i,
-      type: isNicci ? "nicci" : "nicco",
+      Icon: itemConfig.Icon,
+      color: itemConfig.color,
       x: factorX,        // vw
       y: factorLevel,    // vh starting
       size,
       depth,             // parallax speed multiplier
       opacity,
       rotate,
-      blur,
-      floatAnim
+      blur
     });
   }
   return elements;
@@ -91,7 +92,7 @@ export default function ParallaxBackground() {
     for (let d = 1; d <= 4; d++) {
       gsap.to(`.parallax-depth-${d}`, {
         y: () => -1 * window.innerHeight * d,
-        rotation: "+=15", // Subtle secondary rotation on scroll
+        rotation: "+=45", // Subtle secondary rotation on scroll
         ease: "none",
         scrollTrigger: {
           trigger: document.body,
@@ -116,55 +117,23 @@ export default function ParallaxBackground() {
       className="fixed inset-0 pointer-events-none overflow-hidden"
       style={{ zIndex: 0 }} // Put behind everything
     >
-      <style>{`
-        @keyframes mascotFloatNormal {
-          0% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-12px) rotate(3deg); }
-          100% { transform: translateY(0px) rotate(0deg); }
-        }
-        @keyframes mascotFloatReverse {
-          0% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(12px) rotate(-3deg); }
-          100% { transform: translateY(0px) rotate(0deg); }
-        }
-        .mascot-float-normal {
-          animation: mascotFloatNormal 8s ease-in-out infinite;
-          will-change: transform;
-        }
-        .mascot-float-reverse {
-          animation: mascotFloatReverse 10s ease-in-out infinite;
-          will-change: transform;
-        }
-      `}</style>
-
       <div className="absolute inset-0 bg-slate-50" /> {/* Solid background at the very back */}
       
       {displayedItems.map((item) => (
         <div
           key={item.id}
-          className={`parallax-item parallax-depth-${item.depth} absolute`}
+          className={`parallax-item parallax-depth-${item.depth} absolute ${item.color}`}
           data-depth={item.depth}
           style={{
             left: `${item.x}vw`,
             top: `${item.y}vh`,
-            opacity: isMobile ? item.opacity * 0.5 : item.opacity, // Fader on mobile for high readability
+            opacity: isMobile ? item.opacity * 0.6 : item.opacity, // Fader on mobile for high readability
+            transform: `rotate(${item.rotate}deg)`,
             filter: isMobile ? "blur(3px)" : item.blur, // Soft blur on mobile to avoid clashing with text
             willChange: "transform",
           }}
         >
-          <div 
-            className={item.floatAnim}
-            style={{ 
-              transform: `rotate(${item.rotate}deg)`,
-              transformOrigin: "center center"
-            }}
-          >
-            {item.type === "nicci" ? (
-              <Nicci size={isMobile ? item.size * 0.6 : item.size} />
-            ) : (
-              <Nicco size={isMobile ? item.size * 0.6 : item.size} />
-            )}
-          </div>
+          <item.Icon size={isMobile ? item.size * 0.6 : item.size} strokeWidth={1.5} />
         </div>
       ))}
       

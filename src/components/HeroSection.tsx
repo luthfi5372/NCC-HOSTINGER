@@ -143,19 +143,25 @@ export default function HeroSection() {
             <span className="font-bold text-slate-800 text-xs md:text-sm tracking-widest text-center">NCC 13TH</span>
           </motion.div>
 
-          {/* Orbiting / Floating Category Cards */}
+          {/* Orbiting / Floating Nicco Mascot (Blue) */}
           <motion.div 
-            animate={{ y: [-15, 15, -15], rotate: [-2, 2, -2] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-            className="absolute top-4 right-2 md:top-10 md:right-4 lg:-right-4 scale-75 md:scale-100 origin-top-right z-10 w-52 bg-white/90 backdrop-blur-md border border-slate-100 shadow-xl rounded-2xl p-4 flex items-center gap-3"
+            animate={{ 
+              y: [-15, 15, -15], 
+              rotate: [4, -4, 4] 
+            }}
+            transition={{ 
+              duration: 5, 
+              repeat: Infinity, 
+              ease: "easeInOut", 
+              delay: 0.5 
+            }}
+            className="absolute top-0 right-0 md:top-6 md:right-0 lg:-right-8 scale-90 md:scale-110 origin-top-right z-10 w-28 md:w-36 aspect-[1275/1653] flex items-center justify-center pointer-events-none"
           >
-            <div className="w-10 h-10 rounded-xl bg-blue-100 flex py-2 shrink-0 items-center justify-center text-blue-600">
-              <LineDrawIcon icon={BookOpen} size={20} delay={1.4} />
-            </div>
-            <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kategori</div>
-              <div className="text-sm font-bold text-slate-800">Olimpiade MIPA</div>
-            </div>
+            <img 
+              src="/nicco.svg" 
+              alt="Nicco Mascot" 
+              className="w-full h-full object-contain filter drop-shadow-[0_15px_20px_rgba(99,102,241,0.15)]" 
+            />
           </motion.div>
 
           <motion.div 
@@ -172,18 +178,26 @@ export default function HeroSection() {
             </div>
           </motion.div>
 
+          {/* Orbiting / Floating Nicci Mascot (Pink) */}
           <motion.div 
-            animate={{ y: [-10, 10, -10], x: [-5, 5, -5] }}
-            transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
-            className="absolute hidden md:flex top-1/2 -translate-y-1/2 -left-4 lg:-left-16 z-10 w-48 bg-white/90 backdrop-blur-md border border-slate-100 shadow-xl rounded-2xl p-4 items-center gap-3"
+            animate={{ 
+              y: [-10, 10, -10], 
+              x: [-6, 6, -6], 
+              rotate: [-5, 5, -5] 
+            }}
+            transition={{ 
+              duration: 4.5, 
+              repeat: Infinity, 
+              ease: "easeInOut", 
+              delay: 1.5 
+            }}
+            className="absolute hidden md:flex top-1/2 -translate-y-1/2 -left-6 lg:-left-20 z-10 w-28 md:w-36 aspect-[1275/1699] items-center justify-center pointer-events-none"
           >
-            <div className="w-10 h-10 rounded-xl bg-purple-100 flex shrink-0 items-center justify-center text-purple-600">
-              <LineDrawIcon icon={Microscope} size={20} delay={1.8} />
-            </div>
-            <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kategori</div>
-              <div className="text-sm font-bold text-slate-800">LKTI Nasional</div>
-            </div>
+            <img 
+              src="/nicci.svg" 
+              alt="Nicci Mascot" 
+              className="w-full h-full object-contain filter drop-shadow-[0_15px_20px_rgba(236,72,153,0.15)]" 
+            />
           </motion.div>
 
           {/* Decorative Institution Badge */}
