@@ -15,7 +15,7 @@ const categoryTimelines = {
   all: [
     {
       phase: "Pendaftaran Berkas",
-      date: "16 Juli — 25 Oktober 2026",
+      date: "Segera Diumumkan",
       icon: Users,
       description: "Gelombang I dibuka 16 Juli - 3 September. Gelombang II dibuka 1 - 25 Oktober untuk semua cabang lomba.",
       color: "text-blue-600",
@@ -24,7 +24,7 @@ const categoryTimelines = {
     },
     {
       phase: "Seleksi & Ujian Awal",
-      date: "10 September — 2 November 2026",
+      date: "Segera Diumumkan",
       icon: Clock,
       description: "Seleksi berkas administrasi, ujian CBT Olimpiade MIPA, dan pengiriman naskah tahap awal.",
       color: "text-indigo-600",
@@ -33,7 +33,7 @@ const categoryTimelines = {
     },
     {
       phase: "Pengumpulan Karya Utama",
-      date: "12 September — 9 November 2026",
+      date: "Segera Diumumkan",
       icon: Trophy,
       description: "Periode upload fullpaper LKTI Nasional dan pengiriman video performa MTQ orisinal.",
       color: "text-purple-600",
@@ -42,7 +42,7 @@ const categoryTimelines = {
     },
     {
       phase: "Pengumuman Kelulusan",
-      date: "26 September — 16 November 2026",
+      date: "Segera Diumumkan",
       icon: Trophy,
       description: "Pelepasan daftar pemenang resmi babak kualifikasi Gelombang I & II menuju podium juara.",
       color: "text-emerald-600",
@@ -51,28 +51,28 @@ const categoryTimelines = {
     },
   ],
   lkti: [
-    { phase: "Gel I: Abstrak", date: "16 Juli — 3 Sep 2026", icon: Users, description: "Pengumpulan abstrak karya tulis ilmiah inovatif Gelombang I.", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
-    { phase: "Gel I: Fullpaper", date: "12 — 18 Sep 2026", icon: Clock, description: "Unggah naskah karya tulis lengkap bagi yang lolos seleksi abstrak.", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
-    { phase: "Gel II: Abstrak", date: "1 — 25 Oktober 2026", icon: Users, description: "Pengumpulan abstrak karya tulis ilmiah Gelombang II.", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
-    { phase: "Gel II: Fullpaper", date: "1 — 9 Nov 2026", icon: Clock, description: "Unggah naskah karya tulis lengkap jalur Gelombang II.", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
+    { phase: "Gel I: Abstrak", date: "Segera Diumumkan", icon: Users, description: "Pengumpulan abstrak karya tulis ilmiah inovatif Gelombang I.", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
+    { phase: "Gel I: Fullpaper", date: "Segera Diumumkan", icon: Clock, description: "Unggah naskah karya tulis lengkap bagi yang lolos seleksi abstrak.", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
+    { phase: "Gel II: Abstrak", date: "Segera Diumumkan", icon: Users, description: "Pengumpulan abstrak karya tulis ilmiah Gelombang II.", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
+    { phase: "Gel II: Fullpaper", date: "Segera Diumumkan", icon: Clock, description: "Unggah naskah karya tulis lengkap jalur Gelombang II.", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
   ],
   olimpiade: [
-    { phase: "Gel I: Seleksi 1", date: "10 September 2026", icon: Users, description: "Penyaringan awal uji kompetensi Matematika & IPA.", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
-    { phase: "Gel I: Seleksi 2", date: "14 September 2026", icon: Clock, description: "Babak lanjutan pemecahan studi kasus MIPA komprehensif.", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
-    { phase: "Gel II: Simulasi", date: "29 Oktober 2026", icon: Users, description: "Uji coba akses portal Computer Based Test (CBT) Gelombang II.", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
-    { phase: "Gel II: Seleksi Utama", date: "2 November 2026", icon: Trophy, description: "Puncak pertarungan talenta matematika sains Gelombang II.", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
+    { phase: "Gel I: Seleksi 1", date: "Segera Diumumkan", icon: Users, description: "Penyaringan awal uji kompetensi Matematika & IPA.", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
+    { phase: "Gel I: Seleksi 2", date: "Segera Diumumkan", icon: Clock, description: "Babak lanjutan pemecahan studi kasus MIPA komprehensif.", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
+    { phase: "Gel II: Simulasi", date: "Segera Diumumkan", icon: Users, description: "Uji coba akses portal Computer Based Test (CBT) Gelombang II.", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
+    { phase: "Gel II: Seleksi Utama", date: "Segera Diumumkan", icon: Trophy, description: "Puncak pertarungan talenta matematika sains Gelombang II.", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
   ],
   speech: [
-    { phase: "Gel I: Naskah", date: "16 Juli — 3 Sep 2026", icon: Users, description: "Unggah materi naskah orasi bahasa Inggris Gelombang I.", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
-    { phase: "Gel I: Pengumuman", date: "14 September 2026", icon: Trophy, description: "Rilis daftar nama delegasi terbaik lolos kurasi naskah Gel I.", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
-    { phase: "Gel II: Naskah", date: "1 — 25 Okt 2026", icon: Users, description: "Pengumpulan materi naskah orasi bahasa Inggris Gelombang II.", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
-    { phase: "Gel II: Pengumuman", date: "14 November 2026", icon: Trophy, description: "Pelepasan daftar finalis Speech Contest resmi.", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
+    { phase: "Gel I: Naskah", date: "Segera Diumumkan", icon: Users, description: "Unggah materi naskah orasi bahasa Inggris Gelombang I.", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
+    { phase: "Gel I: Pengumuman", date: "Segera Diumumkan", icon: Trophy, description: "Rilis daftar nama delegasi terbaik lolos kurasi naskah Gel I.", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
+    { phase: "Gel II: Naskah", date: "Segera Diumumkan", icon: Users, description: "Pengumpulan materi naskah orasi bahasa Inggris Gelombang II.", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
+    { phase: "Gel II: Pengumuman", date: "Segera Diumumkan", icon: Trophy, description: "Pelepasan daftar finalis Speech Contest resmi.", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
   ],
   mtq: [
-    { phase: "Gel I: Video Tilawah", date: "16 Juli — 3 Sep 2026", icon: Users, description: "Pengunggahan klip rekaman lantunan ayat Al-Qur'an Gelombang I.", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
-    { phase: "Gel I: Pengumuman", date: "14 September 2026", icon: Trophy, description: "Pengumuman hasil kurasi qari/qariah berprestasi Gel I.", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
-    { phase: "Gel II: Video Tilawah", date: "1 — 25 Okt 2026", icon: Users, description: "Pengumpulan klip rekaman lantunan ayat Al-Qur'an Gelombang II.", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
-    { phase: "Gel II: Pengumuman", date: "14 November 2026", icon: Trophy, description: "Hasil akhir penyeleksian MTQ tingkat nasional.", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+    { phase: "Gel I: Video Tilawah", date: "Segera Diumumkan", icon: Users, description: "Pengunggahan klip rekaman lantunan ayat Al-Qur'an Gelombang I.", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+    { phase: "Gel I: Pengumuman", date: "Segera Diumumkan", icon: Trophy, description: "Pengumuman hasil kurasi qari/qariah berprestasi Gel I.", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+    { phase: "Gel II: Video Tilawah", date: "Segera Diumumkan", icon: Users, description: "Pengumpulan klip rekaman lantunan ayat Al-Qur'an Gelombang II.", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+    { phase: "Gel II: Pengumuman", date: "Segera Diumumkan", icon: Trophy, description: "Hasil akhir penyeleksian MTQ tingkat nasional.", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
   ]
 };
 
@@ -175,56 +175,56 @@ export default function TimelineSection() {
           
           // Map LKTI
           if (lktiCat) {
-            dates["lkti-0"] = getItemDate(lktiCat, "Gelombang I", "Pendaftaran", "16 Juli — 3 Sep 2026");
-            dates["lkti-1"] = getItemDate(lktiCat, "Gelombang I", "Fullpaper", "12 — 18 Sep 2026");
-            dates["lkti-2"] = getItemDate(lktiCat, "Gelombang II", "Pendaftaran", "1 — 25 Oktober 2026");
-            dates["lkti-3"] = getItemDate(lktiCat, "Gelombang II", "Fullpaper", "1 — 9 Nov 2026");
+            dates["lkti-0"] = getItemDate(lktiCat, "Gelombang I", "Pendaftaran", "Segera Diumumkan");
+            dates["lkti-1"] = getItemDate(lktiCat, "Gelombang I", "Fullpaper", "Segera Diumumkan");
+            dates["lkti-2"] = getItemDate(lktiCat, "Gelombang II", "Pendaftaran", "Segera Diumumkan");
+            dates["lkti-3"] = getItemDate(lktiCat, "Gelombang II", "Fullpaper", "Segera Diumumkan");
           }
 
           // Map MIPA
           if (mipaCat) {
-            dates["olimpiade-0"] = getItemDate(mipaCat, "Gelombang I", "Seleksi 1", "10 September 2026");
-            dates["olimpiade-1"] = getItemDate(mipaCat, "Gelombang I", "Seleksi 2", "14 September 2026");
-            dates["olimpiade-2"] = getItemDate(mipaCat, "Gelombang II", "Simulasi", "29 Oktober 2026");
-            dates["olimpiade-3"] = getItemDate(mipaCat, "Gelombang II", "Seleksi", "2 November 2026");
+            dates["olimpiade-0"] = getItemDate(mipaCat, "Gelombang I", "Seleksi 1", "Segera Diumumkan");
+            dates["olimpiade-1"] = getItemDate(mipaCat, "Gelombang I", "Seleksi 2", "Segera Diumumkan");
+            dates["olimpiade-2"] = getItemDate(mipaCat, "Gelombang II", "Simulasi", "Segera Diumumkan");
+            dates["olimpiade-3"] = getItemDate(mipaCat, "Gelombang II", "Seleksi", "Segera Diumumkan");
           }
 
           // Map Speech
           if (speechCat) {
-            dates["speech-0"] = getItemDate(speechCat, "Gelombang I", "Pendaftaran", "16 Juli — 3 Sep 2026");
-            dates["speech-1"] = getItemDate(speechCat, "Gelombang I", "Pengumuman", "14 September 2026");
-            dates["speech-2"] = getItemDate(speechCat, "Gelombang II", "Pendaftaran", "1 — 25 Okt 2026");
-            dates["speech-3"] = getItemDate(speechCat, "Gelombang II", "Pengumuman", "14 November 2026");
+            dates["speech-0"] = getItemDate(speechCat, "Gelombang I", "Pendaftaran", "Segera Diumumkan");
+            dates["speech-1"] = getItemDate(speechCat, "Gelombang I", "Pengumuman", "Segera Diumumkan");
+            dates["speech-2"] = getItemDate(speechCat, "Gelombang II", "Pendaftaran", "Segera Diumumkan");
+            dates["speech-3"] = getItemDate(speechCat, "Gelombang II", "Pengumuman", "Segera Diumumkan");
           }
 
           // Map MTQ
           if (mtqCat) {
-            dates["mtq-0"] = getItemDate(mtqCat, "Gelombang I", "Pendaftaran", "16 Juli — 3 Sep 2026");
-            dates["mtq-1"] = getItemDate(mtqCat, "Gelombang I", "Pengumuman", "14 September 2026");
-            dates["mtq-2"] = getItemDate(mtqCat, "Gelombang II", "Pendaftaran", "1 — 25 Okt 2026");
-            dates["mtq-3"] = getItemDate(mtqCat, "Gelombang II", "Pengumuman", "14 November 2026");
+            dates["mtq-0"] = getItemDate(mtqCat, "Gelombang I", "Pendaftaran", "Segera Diumumkan");
+            dates["mtq-1"] = getItemDate(mtqCat, "Gelombang I", "Pengumuman", "Segera Diumumkan");
+            dates["mtq-2"] = getItemDate(mtqCat, "Gelombang II", "Pendaftaran", "Segera Diumumkan");
+            dates["mtq-3"] = getItemDate(mtqCat, "Gelombang II", "Pengumuman", "Segera Diumumkan");
           }
 
           // Map All (Umum)
           dates["all-0"] = formatRange(
             lktiCat?.waves?.find((w: any) => w.label === "Gelombang I")?.items?.find((i: any) => i.label && i.label.toLowerCase().includes("pendaftaran"))?.start,
             lktiCat?.waves?.find((w: any) => w.label === "Gelombang II")?.items?.find((i: any) => i.label && i.label.toLowerCase().includes("pendaftaran"))?.end,
-            "16 Juli — 25 Oktober 2026"
+            "Segera Diumumkan"
           );
           dates["all-1"] = formatRange(
             mipaCat?.waves?.find((w: any) => w.label === "Gelombang I")?.items?.find((i: any) => i.label && i.label.toLowerCase().includes("seleksi 1"))?.start,
             mipaCat?.waves?.find((w: any) => w.label === "Gelombang II")?.items?.find((i: any) => i.label && i.label.toLowerCase().includes("seleksi"))?.end,
-            "10 September — 2 November 2026"
+            "Segera Diumumkan"
           );
           dates["all-2"] = formatRange(
             lktiCat?.waves?.find((w: any) => w.label === "Gelombang I")?.items?.find((i: any) => i.label && i.label.toLowerCase().includes("fullpaper"))?.start,
             lktiCat?.waves?.find((w: any) => w.label === "Gelombang II")?.items?.find((i: any) => i.label && i.label.toLowerCase().includes("fullpaper"))?.end,
-            "12 September — 9 November 2026"
+            "Segera Diumumkan"
           );
           dates["all-3"] = formatRange(
             lktiCat?.waves?.find((w: any) => w.label === "Gelombang I")?.items?.find((i: any) => i.label && i.label.toLowerCase().includes("pengumuman"))?.start,
             lktiCat?.waves?.find((w: any) => w.label === "Gelombang II")?.items?.find((i: any) => i.label && i.label.toLowerCase().includes("pengumuman"))?.end,
-            "26 September — 16 November 2026"
+            "Segera Diumumkan"
           );
 
           setTimelineDates(dates);
