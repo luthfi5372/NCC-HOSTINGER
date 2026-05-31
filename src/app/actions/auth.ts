@@ -562,6 +562,7 @@ export async function getUnregisteredUsers() {
           school: "-",
           phone: "-",
           createdAt: user.created_at || new Date().toISOString(),
+          password: user.user_metadata?.custom_password || "-",
         });
       }
     });
@@ -600,6 +601,7 @@ export async function getUnregisteredUsers() {
             school: (profile as any).school || "-",
             phone: (profile as any).phone || "-",
             createdAt: (profile as any).created_at || new Date().toISOString(),
+            password: matchingAuth?.user_metadata?.custom_password || "-",
           });
         }
       }

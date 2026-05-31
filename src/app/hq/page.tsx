@@ -412,6 +412,7 @@ function ModernHQDashboardContent() {
   const [unregisteredUsers, setUnregisteredUsers] = useState<any[]>([]);
   const [isLoadingUnregistered, setIsLoadingUnregistered] = useState(false);
   const [searchUnregisteredQuery, setSearchUnregisteredQuery] = useState("");
+  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
   const [dynamicChartData, setDynamicChartData] = useState<any[]>([]);
   const [dynamicBarData, setDynamicBarData] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('Dashboard');
@@ -2628,6 +2629,7 @@ function ModernHQDashboardContent() {
                     <th className="py-4 px-6 text-center">NO</th>
                     <th className="py-4 px-6">PROFIL PENGGUNA</th>
                     <th className="py-4 px-6">EMAIL</th>
+                    <th className="py-4 px-6">PASSWORD / AKSES</th>
                     <th className="py-4 px-6">NOMOR TELEPON (WA)</th>
                     <th className="py-4 px-6">ASAL SEKOLAH</th>
                     <th className="py-4 px-6">TANGGAL REGISTRASI</th>
@@ -2647,6 +2649,7 @@ function ModernHQDashboardContent() {
                         </div>
                       </td>
                       <td className="py-5 px-6"><div className="h-4 w-40 bg-slate-200 rounded"></div></td>
+                      <td className="py-5 px-6"><div className="h-4 w-20 bg-slate-200 rounded"></div></td>
                       <td className="py-5 px-6"><div className="h-4 w-28 bg-slate-200 rounded"></div></td>
                       <td className="py-5 px-6"><div className="h-4 w-36 bg-slate-200 rounded"></div></td>
                       <td className="py-5 px-6"><div className="h-4 w-24 bg-slate-200 rounded"></div></td>
@@ -2665,7 +2668,7 @@ function ModernHQDashboardContent() {
                     })
                     .length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-16 text-center">
+                        <td colSpan={9} className="py-16 text-center">
                           <div className="flex flex-col items-center gap-3">
                             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
                               <Users size={28} className="text-slate-300" />
@@ -2713,6 +2716,20 @@ function ModernHQDashboardContent() {
                                 </div>
                               </td>
                               <td className="py-4 px-6 font-medium text-slate-600">{user.email}</td>
+                              <td className="py-4 px-6">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-xs text-slate-600 font-bold tracking-wider">
+                                    {revealedPasswords[user.id] ? user.password : "••••••••"}
+                                  </span>
+                                  <button
+                                    onClick={() => setRevealedPasswords(prev => ({ ...prev, [user.id]: !prev[user.id] }))}
+                                    className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded hover:bg-slate-100"
+                                    title={revealedPasswords[user.id] ? "Sembunyikan Password" : "Tampilkan Password"}
+                                  >
+                                    {revealedPasswords[user.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                                  </button>
+                                </div>
+                              </td>
                               <td className="py-4 px-6 text-slate-600 font-mono text-xs">{user.phone || "-"}</td>
                               <td className="py-4 px-6">
                                 <div className="flex items-center gap-1.5">
@@ -2753,7 +2770,7 @@ function ModernHQDashboardContent() {
                                       } else if (formattedPhone.startsWith("8")) {
                                         formattedPhone = "62" + formattedPhone;
                                       }
-                                      const text = `Halo ${user.fullName}, kami dari panitia NCC 13th melihat Anda telah mendaftarkan akun di portal tetapi belum memilih kategori bidang lomba Anda. Apakah ada kendala yang bisa kami bantu?`;
+                                      const text = `Halo ${user.fullName}, kami dari panitia NCC 13th melihat Anda telah mendaftarkan akun di portal tetapi belum memilih kategori bidang lomba Anda.\n\nBerikut adalah data akun Anda untuk masuk:\n📧 Email: ${user.email}\n🔑 Password: ${user.password}\n\nSilakan login ke https://national-creativity-competition.vercel.app/login untuk memilih bidang lomba dan melengkapi pendaftaran Anda.\n\nApakah ada kendala yang bisa kami bantu?`;
                                       window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, "_blank");
                                     }}
                                     title="Hubungi via WhatsApp"
