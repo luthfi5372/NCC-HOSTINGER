@@ -482,3 +482,138 @@ export async function getAdminCompetitionEntries() {
     return { data: null, error: err.message || "Gagal mengambil data." };
   }
 }
+
+/** Mengambil list user yang sudah register (di profiles / auth.users) tapi belum memilih lomba */
+export async function getUnregisteredUsers() {
+  try {
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!serviceRoleKey) {
+      console.warn("[SA] getUnregisteredUsers: Missing SUPABASE_SERVICE_ROLE_KEY. Falling back to anon client.");
+    }
+
+    // Gunakan service role client jika tersedia agar 100% bypass RLS, jika tidak gunakan anon client
+    const client = serviceRoleKey
+      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        })
+      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+
+    // 1. Ambil semua entries dari competition_entries untuk disilang
+    const { data: entries, error: entriesError } = await client
+      .from('competition_entries')
+      .select('user_id, email');
+
+    if (entriesError) {
+      console.error("[SA] Gagal mengambil competition_entries:", entriesError);
+      return { data: [], error: entriesError.message };
+    }
+
+    const registeredUserIds = new Set<string>();
+    const registeredEmails = new Set<string>();
+
+    entries?.forEach(entry => {
+      if (entry.user_id) registeredUserIds.add(entry.user_id);
+      if (entry.email) registeredEmails.add(entry.email.toLowerCase().trim());
+    });
+
+    // 2. Ambil semua profiles
+    const { data: profiles, error: profilesError } = await client
+      .from('profiles')
+      .select('*');
+
+    if (profilesError) {
+      console.error("[SA] Gagal mengambil profiles:", profilesError);
+      return { data: [], error: profilesError.message };
+    }
+
+    // 3. Ambil data auth users dari admin list jika service role tersedia
+    let authUsers: any[] = [];
+    if (serviceRoleKey) {
+      try {
+        const { data: authData, error: authError } = await client.auth.admin.listUsers();
+        if (!authError && authData?.users) {
+          authUsers = authData.users;
+        }
+      } catch (err) {
+        console.warn("[SA] Gagal melist auth users dari admin API:", err);
+      }
+    }
+
+    const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "halo.ncc@gmail.com"];
+    const unregisteredMap = new Map<string, any>();
+
+    // Masukkan data dari auth users terlebih dahulu
+    authUsers.forEach(user => {
+      const email = user.email?.toLowerCase().trim() || "";
+      if (adminEmails.includes(email)) return; // Lewati admin
+
+      const hasUserId = registeredUserIds.has(user.id);
+      const hasEmail = registeredEmails.has(email);
+
+      if (!hasUserId && !hasEmail) {
+        unregisteredMap.set(user.id, {
+          id: user.id,
+          email: user.email || "",
+          fullName: user.user_metadata?.full_name || user.email?.split('@')[0] || "User Tanpa Nama",
+          username: user.user_metadata?.username || "-",
+          school: "-",
+          phone: "-",
+          createdAt: user.created_at || new Date().toISOString(),
+        });
+      }
+    });
+
+    // Perkaya atau tambahkan data dari tabel profiles
+    profiles?.forEach(profile => {
+      const hasUserId = registeredUserIds.has(profile.id);
+      const emailFromMeta = (profile as any).email || "";
+      const hasEmail = emailFromMeta ? registeredEmails.has(emailFromMeta.toLowerCase().trim()) : false;
+
+      if (!hasUserId && !hasEmail) {
+        const existing = unregisteredMap.get(profile.id);
+        if (existing) {
+          // Update data yang ada dengan data profile yang lebih lengkap
+          unregisteredMap.set(profile.id, {
+            ...existing,
+            fullName: profile.full_name || existing.fullName,
+            username: profile.username || existing.username,
+            school: (profile as any).school || existing.school,
+            phone: (profile as any).phone || existing.phone,
+            createdAt: (profile as any).created_at || existing.createdAt,
+          });
+        } else {
+          // check email jika profiles ada email atau coba cari di authUsers jika ada
+          const matchingAuth = authUsers.find(u => u.id === profile.id);
+          const email = matchingAuth?.email || (profile as any).email || "";
+          
+          if (email && adminEmails.includes(email.toLowerCase().trim())) return; // Lewati admin
+          if (email && registeredEmails.has(email.toLowerCase().trim())) return; // Lewati jika email sudah mendaftar
+
+          unregisteredMap.set(profile.id, {
+            id: profile.id,
+            email: email,
+            fullName: profile.full_name || "User Tanpa Nama",
+            username: profile.username || "-",
+            school: (profile as any).school || "-",
+            phone: (profile as any).phone || "-",
+            createdAt: (profile as any).created_at || new Date().toISOString(),
+          });
+        }
+      }
+    });
+
+    // Ubah ke array dan urutkan berdasarkan waktu registrasi terbaru
+    const result = Array.from(unregisteredMap.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    return { data: result, error: null };
+  } catch (err: any) {
+    console.error("[Server Action] Exception getUnregisteredUsers:", err);
+    return { data: [], error: err.message || "Gagal mengambil data." };
+  }
+}
+

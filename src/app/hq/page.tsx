@@ -7,13 +7,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client"; 
 import { generateTicketCode } from "@/lib/utils"; 
-import { getAdminCompetitionEntries } from "@/app/actions/auth";
+import { getAdminCompetitionEntries, getUnregisteredUsers } from "@/app/actions/auth";
 
 import { 
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
   Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight, Save, MessageSquare,
-  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, EyeOff, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck, Pencil, History, MegaphoneOff, Forward
+  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, EyeOff, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck, Pencil, History, MegaphoneOff, Forward, AlertTriangle
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -409,6 +409,9 @@ function ModernHQDashboardContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [realEntries, setRealEntries] = useState<any[]>([]);
+  const [unregisteredUsers, setUnregisteredUsers] = useState<any[]>([]);
+  const [isLoadingUnregistered, setIsLoadingUnregistered] = useState(false);
+  const [searchUnregisteredQuery, setSearchUnregisteredQuery] = useState("");
   const [dynamicChartData, setDynamicChartData] = useState<any[]>([]);
   const [dynamicBarData, setDynamicBarData] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('Dashboard');
@@ -1770,6 +1773,22 @@ function ModernHQDashboardContent() {
       }
     };
 
+    const fetchUnregisteredData = async () => {
+      try {
+        setIsLoadingUnregistered(true);
+        const { data, error } = await getUnregisteredUsers();
+        if (!error && data) {
+          setUnregisteredUsers(data);
+        } else {
+          console.error("Gagal menarik data user belum daftar:", error);
+        }
+      } catch (err) {
+        console.error("Error mengambil user belum daftar:", err);
+      } finally {
+        setIsLoadingUnregistered(false);
+      }
+    };
+
     const fetchPortalSettings = async () => {
       try {
         const { data: existing } = await supabase
@@ -1798,6 +1817,7 @@ function ModernHQDashboardContent() {
       await fetchRealData();
       fetchPortalSettings();
       fetchBroadcasts();
+      fetchUnregisteredData();
     };
 
     initializeData();
@@ -1815,6 +1835,7 @@ function ModernHQDashboardContent() {
     const pollingInterval = setInterval(async () => {
       console.log("[Admin HQ] Polling: refreshing participant data...");
       await fetchRealData(true); // isRetry=true agar tidak loop retry
+      fetchUnregisteredData();
     }, 30000);
 
     // 2. 📡 AKTIFKAN SENSOR RADAR (Supabase WebSockets)
@@ -1828,6 +1849,7 @@ function ModernHQDashboardContent() {
           // Pastikan sesi valid sebelum re-fetch dari radar (jalankan di background)
           ensureAdminSession();
           await fetchRealData();
+          fetchUnregisteredData();
         }
       )
       .subscribe();
@@ -2100,6 +2122,7 @@ function ModernHQDashboardContent() {
           {[
             { id: "Dashboard", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
             { id: "Peserta", icon: <Users size={18} />, label: "Buku Peserta", count: realEntries.filter((e: any) => e.payment_status === 'Verified' || e.payment_status === 'success').length },
+            { id: "BelumDaftar", icon: <AlertTriangle size={18} />, label: "Belum Pilih Lomba", count: unregisteredUsers.length },
             { id: "Verifikasi", icon: <CheckCircle size={18} />, label: "Verifikasi Berkas", count: realEntries.filter((e: any) => e.payment_status === 'Pending').length },
             { id: "Karya", icon: <FolderOpen size={18} />, label: "Pengumpulan Karya", count: realEntries.filter((e: any) => {
               if (!e.notes) return false;
@@ -2169,11 +2192,12 @@ function ModernHQDashboardContent() {
         <header className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">
-              {activeTab === "ForumSekolah" ? "Forum Sekolah (NPSN)" : activeTab}
+              {activeTab === "BelumDaftar" ? "Belum Pilih Bidang Lomba" : activeTab === "ForumSekolah" ? "Forum Sekolah (NPSN)" : activeTab}
             </h1>
             <p className="text-slate-500 text-sm mt-1">
               {activeTab === "Dashboard" && "Pantau pergerakan data pendaftaran NCC 13th."}
               {activeTab === "Peserta" && "Manajemen seluruh data peserta kompetisi."}
+              {activeTab === "BelumDaftar" && "Daftar pengguna terdaftar yang belum memilih bidang lomba/kompetisi."}
               {activeTab === "Verifikasi" && "Pusat verifikasi pembayaran dan dokumen."}
               {activeTab === "Karya" && "Manajemen dan direktori pengumpulan karya tulis, video, dan naskah peserta."}
               {activeTab === "ForumSekolah" && "Pantau dan interaksi langsung pada obrolan forum Ruang Sekolah secara real-time."}
@@ -2207,13 +2231,15 @@ function ModernHQDashboardContent() {
               </>
             )}
 
-            <button 
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shadow-blue-200"
-            >
-              <Download size={18} />
-              Export CSV
-            </button>
+            {activeTab !== "BelumDaftar" && (
+              <button 
+                onClick={handleExportCSV}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shadow-blue-200"
+              >
+                <Download size={18} />
+                Export CSV
+              </button>
+            )}
             <div className="h-10 w-10 bg-white/50 backdrop-blur-md border border-white/60 rounded-full flex items-center justify-center text-slate-600 shadow-sm ml-2 relative">
               <Bell size={18} />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
@@ -2549,6 +2575,205 @@ function ModernHQDashboardContent() {
             </div>
           </div>
         )}
+
+        {/* 🎛️ KONTEN TAB: BELUM PILIH LOMBA */}
+        {activeTab === "BelumDaftar" && (
+          <div className="bg-white border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.02)] rounded-2xl overflow-hidden flex flex-col animate-in fade-in duration-500">
+            <div className="p-6 border-b border-slate-100">
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+                <div>
+                  <h3 className="font-bold text-slate-800">Daftar Pengguna Belum Pilih Lomba</h3>
+                  <p className="text-xs text-slate-500 mt-1">Daftar peserta terdaftar yang belum melakukan pengisian formulir bidang lomba.</p>
+                </div>
+                
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <span className="bg-amber-50 text-amber-700 px-3.5 py-1.5 rounded-xl text-xs font-black border border-amber-100 shadow-sm flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    Belum Pilih Bidang: {isLoadingUnregistered ? (
+                      <span className="inline-block w-6 h-3 bg-amber-200/50 rounded animate-pulse"></span>
+                    ) : (
+                      unregisteredUsers.length
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* 🔍 BARIS PENCARI */}
+              <div className="flex gap-4 items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="text"
+                    value={searchUnregisteredQuery}
+                    onChange={(e) => setSearchUnregisteredQuery(e.target.value)}
+                    placeholder="Cari berdasarkan nama lengkap, username, email, atau sekolah..."
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition-all font-medium placeholder-slate-400 text-slate-700 shadow-inner"
+                  />
+                  {searchUnregisteredQuery && (
+                    <button
+                      onClick={() => setSearchUnregisteredQuery("")}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-600 whitespace-nowrap">
+                <thead className="bg-slate-50/50 text-slate-500 font-bold border-b border-slate-100 text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th className="py-4 px-6 text-center">NO</th>
+                    <th className="py-4 px-6">PROFIL PENGGUNA</th>
+                    <th className="py-4 px-6">EMAIL</th>
+                    <th className="py-4 px-6">NOMOR TELEPON (WA)</th>
+                    <th className="py-4 px-6">ASAL SEKOLAH</th>
+                    <th className="py-4 px-6">TANGGAL REGISTRASI</th>
+                    <th className="py-4 px-6">STATUS</th>
+                    <th className="py-4 px-6 text-center">AKSI</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                {isLoadingUnregistered ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="py-5 px-6 text-center"><div className="h-4 w-4 bg-slate-200 rounded mx-auto"></div></td>
+                      <td className="py-5 px-6">
+                        <div className="flex flex-col gap-2">
+                          <div className="h-4 w-32 bg-slate-200 rounded"></div>
+                          <div className="h-3 w-20 bg-slate-200 rounded"></div>
+                        </div>
+                      </td>
+                      <td className="py-5 px-6"><div className="h-4 w-40 bg-slate-200 rounded"></div></td>
+                      <td className="py-5 px-6"><div className="h-4 w-28 bg-slate-200 rounded"></div></td>
+                      <td className="py-5 px-6"><div className="h-4 w-36 bg-slate-200 rounded"></div></td>
+                      <td className="py-5 px-6"><div className="h-4 w-24 bg-slate-200 rounded"></div></td>
+                      <td className="py-5 px-6"><div className="h-6 w-28 bg-slate-200 rounded"></div></td>
+                      <td className="py-5 px-6 text-center"><div className="h-8 w-16 bg-slate-200 rounded mx-auto"></div></td>
+                    </tr>
+                  ))
+                ) : unregisteredUsers
+                    .filter(u => {
+                      if (!searchUnregisteredQuery) return true;
+                      const q = searchUnregisteredQuery.toLowerCase();
+                      return (u.fullName || "").toLowerCase().includes(q) ||
+                             (u.email || "").toLowerCase().includes(q) ||
+                             (u.username || "").toLowerCase().includes(q) ||
+                             (u.school || "").toLowerCase().includes(q);
+                    })
+                    .length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-16 text-center">
+                          <div className="flex flex-col items-center gap-3">
+                            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
+                              <Users size={28} className="text-slate-300" />
+                            </div>
+                            <p className="text-slate-500 font-semibold text-sm">
+                              {unregisteredUsers.length === 0 
+                                ? "Semua pengguna terdaftar sudah memilih bidang lomba!"
+                                : "Tidak ada pengguna yang cocok dengan pencarian Anda."
+                              }
+                            </p>
+                            {unregisteredUsers.length === 0 && (
+                              <p className="text-slate-400 text-xs max-w-xs text-center">
+                                Kerja bagus! Seluruh pendaftar di database Anda telah sukses melakukan pendaftaran kategori lomba secara lengkap.
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      unregisteredUsers
+                        .filter(u => {
+                          if (!searchUnregisteredQuery) return true;
+                          const q = searchUnregisteredQuery.toLowerCase();
+                          return (u.fullName || "").toLowerCase().includes(q) ||
+                                 (u.email || "").toLowerCase().includes(q) ||
+                                 (u.username || "").toLowerCase().includes(q) ||
+                                 (u.school || "").toLowerCase().includes(q);
+                        })
+                        .map((user: any, index: number) => {
+                          const formattedDate = new Date(user.createdAt).toLocaleDateString('id-ID', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          });
+
+                          return (
+                            <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
+                              <td className="py-4 px-6 text-center font-bold text-slate-400 text-xs">{index + 1}</td>
+                              <td className="py-4 px-6">
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors text-sm">{user.fullName}</span>
+                                  <span className="text-xs text-slate-400 font-mono mt-0.5">@{user.username}</span>
+                                </div>
+                              </td>
+                              <td className="py-4 px-6 font-medium text-slate-600">{user.email}</td>
+                              <td className="py-4 px-6 text-slate-600 font-mono text-xs">{user.phone || "-"}</td>
+                              <td className="py-4 px-6">
+                                <div className="flex items-center gap-1.5">
+                                  <School size={14} className="text-slate-400" />
+                                  <span className="font-semibold text-slate-600 text-xs">{user.school || "-"}</span>
+                                </div>
+                              </td>
+                              <td className="py-4 px-6 text-slate-400 text-xs font-medium">{formattedDate}</td>
+                              <td className="py-4 px-6">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-100 shadow-sm animate-pulse">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                  Belum Pilih Lomba
+                                </span>
+                              </td>
+                              <td className="py-4 px-6 text-center">
+                                <div className="flex items-center justify-center gap-2">
+                                  <button
+                                    onClick={() => {
+                                      if (user.email) {
+                                        navigator.clipboard.writeText(user.email);
+                                        showToast("Email berhasil disalin!", "success");
+                                      }
+                                    }}
+                                    title="Salin Email"
+                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active:scale-95 border border-transparent hover:border-blue-100 shadow-sm"
+                                  >
+                                    <Send size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (!user.phone || user.phone === "-") {
+                                        showToast("Nomor HP tidak dicantumkan oleh pengguna.", "error");
+                                        return;
+                                      }
+                                      let formattedPhone = user.phone.replace(/[^0-9]/g, "");
+                                      if (formattedPhone.startsWith("0")) {
+                                        formattedPhone = "62" + formattedPhone.slice(1);
+                                      } else if (formattedPhone.startsWith("8")) {
+                                        formattedPhone = "62" + formattedPhone;
+                                      }
+                                      const text = `Halo ${user.fullName}, kami dari panitia NCC 13th melihat Anda telah mendaftarkan akun di portal tetapi belum memilih kategori bidang lomba Anda. Apakah ada kendala yang bisa kami bantu?`;
+                                      window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, "_blank");
+                                    }}
+                                    title="Hubungi via WhatsApp"
+                                    className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all active:scale-95 border border-transparent hover:border-emerald-100 shadow-sm"
+                                  >
+                                    <MessageSquare size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                    )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* 🎛️ KONTEN TAB: PENGUMPULAN KARYAN */}
 
         {/* 🎛️ KONTEN TAB: PENGUMPULAN KARYA */}
         {activeTab === "Karya" && (
