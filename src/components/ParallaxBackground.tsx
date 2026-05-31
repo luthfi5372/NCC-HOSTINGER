@@ -4,33 +4,17 @@ import { useRef, useEffect, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import {
-  Mic,
-  MessageCircle,
-  Volume2,
-  BookOpen,
-  PenTool,
-  Microscope,
-  Atom,
-  Star,
-  Moon,
-  Book,
-  Rocket,
-  Calculator,
-  Telescope,
-  Dna,
-} from "lucide-react";
 
-const categoryIcons = [
-  { icons: [Mic, MessageCircle, Volume2], color: "text-red-400" },          // Speech
-  { icons: [BookOpen, PenTool, Microscope, Atom], color: "text-emerald-400" }, // LKTI
-  { icons: [Star, Moon, Book], color: "text-amber-400" },                   // MTQ
-  { icons: [Rocket, Calculator, Telescope, Dna], color: "text-blue-400" }     // MIPA
-];
+const Nicci = ({ size }: { size: number }) => (
+  <svg viewBox="0 0 1500 1925" width={size} height={size * 1.283} style={{ overflow: "visible" }}>
+    <image href="/NICCI_NICCO_DEPAN/NICCI NICCO.png" x="0" y="0" width="3000" height="1925" />
+  </svg>
+);
 
-// Flat array to pick randomly but know the color
-const allIconsMapped = categoryIcons.flatMap(cat => 
-  cat.icons.map(Icon => ({ Icon, color: cat.color }))
+const Nicco = ({ size }: { size: number }) => (
+  <svg viewBox="0 0 1500 1925" width={size} height={size * 1.283} style={{ overflow: "visible" }}>
+    <image href="/NICCI_NICCO_DEPAN/NICCI NICCO.png" x="-1500" y="0" width="3000" height="1925" />
+  </svg>
 );
 
 // Pre-generated positions to avoid hydration mismatch
@@ -38,30 +22,31 @@ const generateElements = () => {
   const elements = [];
   // Generate 80 elements to ensure the whole long page is populated (plenty for 600vh)
   for (let i = 0; i < 80; i++) {
-    const itemConfig = allIconsMapped[i % allIconsMapped.length];
+    const isNicci = i % 2 === 0;
     
     // Spread vertically across 600vh (6 screen heights)
     const factorLevel = (i * 29) % 650; // 0 to 650 vh
     // Spread horizontally across 100vw
     const factorX = (i * 13) % 100;
     
-    const size = 32 + ((i * 7) % 100); // 32px to 132px
+    const size = 48 + ((i * 7) % 52); // 48px to 100px for a visible but clean background size
     const depth = 1 + ((i * 19) % 4); // 1 to 4 parallax speed
-    const opacity = 0.20 + (((i * 11) % 25) / 100); 
-    const rotate = (i * 45) % 360;
-    const blur = depth > 3 ? "blur(5px)" : depth > 2 ? "blur(2px)" : "blur(0px)";
+    const opacity = 0.08 + (((i * 11) % 12) / 100); // 8% to 20% opacity for perfect background blending
+    const rotate = (i * 15) % 40 - 20; // Slight rotation (-20 to 20 deg)
+    const blur = depth > 3 ? "blur(3px)" : depth > 2 ? "blur(1px)" : "blur(0px)";
+    const floatAnim = i % 2 === 0 ? "mascot-float-normal" : "mascot-float-reverse";
 
     elements.push({
       id: i,
-      Icon: itemConfig.Icon,
-      color: itemConfig.color,
+      type: isNicci ? "nicci" : "nicco",
       x: factorX,        // vw
       y: factorLevel,    // vh starting
       size,
       depth,             // parallax speed multiplier
       opacity,
       rotate,
-      blur
+      blur,
+      floatAnim
     });
   }
   return elements;
@@ -89,11 +74,10 @@ export default function ParallaxBackground() {
     gsap.registerPlugin(ScrollTrigger);
 
     // Group-based animation by depth levels (1 to 4)
-    // Collapses ScrollTrigger footprint from 300 instances to just 4!
     for (let d = 1; d <= 4; d++) {
       gsap.to(`.parallax-depth-${d}`, {
         y: () => -1 * window.innerHeight * d,
-        rotation: "+=45",
+        rotation: "+=15", // Subtle secondary rotation on scroll
         ease: "none",
         scrollTrigger: {
           trigger: document.body,
@@ -110,7 +94,7 @@ export default function ParallaxBackground() {
   if (!mounted) return null;
 
   // Reduce background clutter and nodes on mobile to keep scrolling silky-smooth
-  const displayedItems = isMobile ? items.slice(0, 25) : items;
+  const displayedItems = isMobile ? items.slice(0, 20) : items;
 
   return (
     <div 
@@ -118,23 +102,55 @@ export default function ParallaxBackground() {
       className="fixed inset-0 pointer-events-none overflow-hidden"
       style={{ zIndex: 0 }} // Put behind everything
     >
+      <style>{`
+        @keyframes mascotFloatNormal {
+          0% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-12px) rotate(3deg); }
+          100% { transform: translateY(0px) rotate(0deg); }
+        }
+        @keyframes mascotFloatReverse {
+          0% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(12px) rotate(-3deg); }
+          100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .mascot-float-normal {
+          animation: mascotFloatNormal 8s ease-in-out infinite;
+          will-change: transform;
+        }
+        .mascot-float-reverse {
+          animation: mascotFloatReverse 10s ease-in-out infinite;
+          will-change: transform;
+        }
+      `}</style>
+
       <div className="absolute inset-0 bg-slate-50" /> {/* Solid background at the very back */}
       
       {displayedItems.map((item) => (
         <div
           key={item.id}
-          className={`parallax-item parallax-depth-${item.depth} absolute ${item.color}`}
+          className={`parallax-item parallax-depth-${item.depth} absolute`}
           data-depth={item.depth}
           style={{
             left: `${item.x}vw`,
             top: `${item.y}vh`,
-            opacity: isMobile ? item.opacity * 0.6 : item.opacity, // Fader on mobile for high readability
-            transform: `rotate(${item.rotate}deg)`,
+            opacity: isMobile ? item.opacity * 0.5 : item.opacity, // Fader on mobile for high readability
             filter: isMobile ? "blur(3px)" : item.blur, // Soft blur on mobile to avoid clashing with text
             willChange: "transform",
           }}
         >
-          <item.Icon size={isMobile ? item.size * 0.6 : item.size} strokeWidth={1.5} />
+          <div 
+            className={item.floatAnim}
+            style={{ 
+              transform: `rotate(${item.rotate}deg)`,
+              transformOrigin: "center center"
+            }}
+          >
+            {item.type === "nicci" ? (
+              <Nicci size={isMobile ? item.size * 0.6 : item.size} />
+            ) : (
+              <Nicco size={isMobile ? item.size * 0.6 : item.size} />
+            )}
+          </div>
         </div>
       ))}
       
