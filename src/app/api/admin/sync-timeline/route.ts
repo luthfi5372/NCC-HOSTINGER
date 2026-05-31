@@ -61,6 +61,8 @@ export async function POST(request: Request) {
 
     // ⚡ REVALIDASI CACHE
     revalidatePath('/dashboard');
+    revalidatePath('/');
+
 
     return NextResponse.json({ success: true, message: 'Sync Success' }, { status: 200 });
   } catch (error: any) {

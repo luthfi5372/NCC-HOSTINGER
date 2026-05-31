@@ -24,7 +24,7 @@ const categoryTimelines = {
     },
     {
       phase: "Seleksi & Ujian Awal",
-      date: "10 September — 2 November",
+      date: "10 September — 2 November 2026",
       icon: Clock,
       description: "Seleksi berkas administrasi, ujian CBT Olimpiade MIPA, dan pengiriman naskah tahap awal.",
       color: "text-indigo-600",
@@ -33,7 +33,7 @@ const categoryTimelines = {
     },
     {
       phase: "Pengumpulan Karya Utama",
-      date: "12 September — 9 November",
+      date: "12 September — 9 November 2026",
       icon: Trophy,
       description: "Periode upload fullpaper LKTI Nasional dan pengiriman video performa MTQ orisinal.",
       color: "text-purple-600",
@@ -42,7 +42,7 @@ const categoryTimelines = {
     },
     {
       phase: "Pengumuman Kelulusan",
-      date: "26 September — 16 November",
+      date: "26 September — 16 November 2026",
       icon: Trophy,
       description: "Pelepasan daftar pemenang resmi babak kualifikasi Gelombang I & II menuju podium juara.",
       color: "text-emerald-600",
@@ -80,6 +80,7 @@ export default function TimelineSection() {
   const containerRef = useRef<HTMLElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const [activeCategory, setActiveCategory] = useState<"all" | "lkti" | "olimpiade" | "speech" | "mtq">("all");
+  const [timelines, setTimelines] = useState(categoryTimelines);
   
   // Track scroll within this section
   const { scrollYProgress } = useScroll({
@@ -102,12 +103,135 @@ export default function TimelineSection() {
     };
     checkMobile();
     window.addEventListener("resize", checkMobile);
+    
+    // 📡 DYNAMIC REAL-TIME SINKRONISASI DARI DATABASE SUPABASE
+    const fetchTimeline = async () => {
+      try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('announcements')
+          .select('content')
+          .eq('title', 'SYSTEM_TIMELINE_CONFIG')
+          .single();
+
+        if (data && data.content) {
+          const config = JSON.parse(data.content);
+          
+          const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+          const formatDate = (dateStr: string) => {
+            if (!dateStr) return "";
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+          };
+          
+          const formatRange = (start?: string, end?: string, fallback?: string) => {
+            if (start && end) {
+              const s = new Date(start);
+              const e = new Date(end);
+              if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+                if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
+                  return `${s.getDate()} — ${e.getDate()} ${months[s.getMonth()]} ${s.getFullYear()}`;
+                } else if (s.getFullYear() === e.getFullYear()) {
+                  return `${s.getDate()} ${months[s.getMonth()]} — ${e.getDate()} ${months[e.getMonth()]} ${s.getFullYear()}`;
+                } else {
+                  return `${s.getDate()} ${months[s.getMonth()]} ${s.getFullYear()} — ${e.getDate()} ${months[e.getMonth()]} ${e.getFullYear()}`;
+                }
+              }
+            }
+            if (start) return formatDate(start);
+            if (end) return `s.d. ${formatDate(end)}`;
+            return fallback || "Belum Ditentukan";
+          };
+
+          const lktiCat = config.find((c: any) => c.category.includes("LKTI"));
+          const mipaCat = config.find((c: any) => c.category.includes("Olimpiade") || c.category.includes("MIPA"));
+          const speechCat = config.find((c: any) => c.category.includes("Speech"));
+          const mtqCat = config.find((c: any) => c.category.includes("MTQ"));
+
+          const getItemDate = (catObj: any, waveLabel: string, itemLabel: string, fallback: string) => {
+            if (!catObj) return fallback;
+            const wave = catObj.waves.find((w: any) => w.label === waveLabel);
+            if (!wave) return fallback;
+            const item = wave.items.find((i: any) => i.label.toLowerCase().includes(itemLabel.toLowerCase()));
+            if (!item) return fallback;
+            return formatRange(item.start, item.end, fallback);
+          };
+
+          setTimelines(prev => {
+            const next = JSON.parse(JSON.stringify(prev));
+            
+            // Map LKTI
+            if (lktiCat) {
+              next.lkti[0].date = getItemDate(lktiCat, "Gelombang I", "Pendaftaran", "16 Juli — 3 Sep 2026");
+              next.lkti[1].date = getItemDate(lktiCat, "Gelombang I", "Fullpaper", "12 — 18 Sep 2026");
+              next.lkti[2].date = getItemDate(lktiCat, "Gelombang II", "Pendaftaran", "1 — 25 Oktober 2026");
+              next.lkti[3].date = getItemDate(lktiCat, "Gelombang II", "Fullpaper", "1 — 9 Nov 2026");
+            }
+
+            // Map MIPA
+            if (mipaCat) {
+              next.olimpiade[0].date = getItemDate(mipaCat, "Gelombang I", "Seleksi 1", "10 September 2026");
+              next.olimpiade[1].date = getItemDate(mipaCat, "Gelombang I", "Seleksi 2", "14 September 2026");
+              next.olimpiade[2].date = getItemDate(mipaCat, "Gelombang II", "Simulasi", "29 Oktober 2026");
+              next.olimpiade[3].date = getItemDate(mipaCat, "Gelombang II", "Seleksi", "2 November 2026");
+            }
+
+            // Map Speech
+            if (speechCat) {
+              next.speech[0].date = getItemDate(speechCat, "Gelombang I", "Pendaftaran", "16 Juli — 3 Sep 2026");
+              next.speech[1].date = getItemDate(speechCat, "Gelombang I", "Pengumuman", "14 September 2026");
+              next.speech[2].date = getItemDate(speechCat, "Gelombang II", "Pendaftaran", "1 — 25 Okt 2026");
+              next.speech[3].date = getItemDate(speechCat, "Gelombang II", "Pengumuman", "14 November 2026");
+            }
+
+            // Map MTQ
+            if (mtqCat) {
+              next.mtq[0].date = getItemDate(mtqCat, "Gelombang I", "Pendaftaran", "16 Juli — 3 Sep 2026");
+              next.mtq[1].date = getItemDate(mtqCat, "Gelombang I", "Pengumuman", "14 September 2026");
+              next.mtq[2].date = getItemDate(mtqCat, "Gelombang II", "Pendaftaran", "1 — 25 Okt 2026");
+              next.mtq[3].date = getItemDate(mtqCat, "Gelombang II", "Pengumuman", "14 November 2026");
+            }
+
+            // Map All (Umum)
+            next.all[0].date = formatRange(
+              lktiCat?.waves.find((w: any) => w.label === "Gelombang I")?.items.find((i: any) => i.label.toLowerCase().includes("pendaftaran"))?.start,
+              lktiCat?.waves.find((w: any) => w.label === "Gelombang II")?.items.find((i: any) => i.label.toLowerCase().includes("pendaftaran"))?.end,
+              "16 Juli — 25 Oktober 2026"
+            );
+            next.all[1].date = formatRange(
+              mipaCat?.waves.find((w: any) => w.label === "Gelombang I")?.items.find((i: any) => i.label.toLowerCase().includes("seleksi 1"))?.start,
+              mipaCat?.waves.find((w: any) => w.label === "Gelombang II")?.items.find((i: any) => i.label.toLowerCase().includes("seleksi"))?.end,
+              "10 September — 2 November"
+            );
+            next.all[2].date = formatRange(
+              lktiCat?.waves.find((w: any) => w.label === "Gelombang I")?.items.find((i: any) => i.label.toLowerCase().includes("fullpaper"))?.start,
+              lktiCat?.waves.find((w: any) => w.label === "Gelombang II")?.items.find((i: any) => i.label.toLowerCase().includes("fullpaper"))?.end,
+              "12 September — 9 November"
+            );
+            next.all[3].date = formatRange(
+              lktiCat?.waves.find((w: any) => w.label === "Gelombang I")?.items.find((i: any) => i.label.toLowerCase().includes("pengumuman"))?.start,
+              lktiCat?.waves.find((w: any) => w.label === "Gelombang II")?.items.find((i: any) => i.label.toLowerCase().includes("pengumuman"))?.end,
+              "26 September — 16 November"
+            );
+
+            return next;
+          });
+        }
+      } catch (err) {
+        console.error("Gagal load timeline config di landing page:", err);
+      }
+    };
+
+    fetchTimeline();
+
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // Update traveler position based on smoothProgress
   useMotionValueEvent(smoothProgress, "change", (latest) => {
-    if (isMobile) return; // Completely skip heavy SVG calculations on mobile devices!
+    if (isMobile) return;
     if (isMounted && pathRef.current) {
       const path = pathRef.current;
       try {
@@ -116,7 +240,6 @@ export default function TimelineSection() {
         
         const currentPoint = path.getPointAtLength(latest * length);
         
-        // Calculate angle for rotation (lookahead point)
         const lookAhead = 1; 
         const nextPoint = path.getPointAtLength(Math.min(length, latest * length + lookAhead));
         const angle = Math.atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x) * (180 / Math.PI);
@@ -128,7 +251,7 @@ export default function TimelineSection() {
     }
   });
 
-  const currentTimeline = categoryTimelines[activeCategory];
+  const currentTimeline = timelines[activeCategory];
 
   return (
     <section ref={containerRef} id="jadwal" className="relative z-10 min-h-screen w-full py-24 px-6 sm:px-10 bg-transparent overflow-hidden flex flex-col items-center justify-center">
@@ -220,10 +343,10 @@ export default function TimelineSection() {
           </div>
 
           {/* Nodes */}
-          <TimelineNode index={0} top="9.09%" left="25%" align="left" progress={smoothProgress} trigger={0.15} activeCategory={activeCategory} />
-          <TimelineNode index={1} top="36.36%" left="75%" align="right" progress={smoothProgress} trigger={0.4} activeCategory={activeCategory} />
-          <TimelineNode index={2} top="63.63%" left="25%" align="left" progress={smoothProgress} trigger={0.7} activeCategory={activeCategory} />
-          <TimelineNode index={3} top="90.9%" left="75%" align="right" progress={smoothProgress} trigger={0.9} activeCategory={activeCategory} />
+          {currentTimeline && currentTimeline[0] && <TimelineNode item={currentTimeline[0]} top="9.09%" left="25%" align="left" progress={smoothProgress} trigger={0.15} />}
+          {currentTimeline && currentTimeline[1] && <TimelineNode item={currentTimeline[1]} top="36.36%" left="75%" align="right" progress={smoothProgress} trigger={0.4} />}
+          {currentTimeline && currentTimeline[2] && <TimelineNode item={currentTimeline[2]} top="63.63%" left="25%" align="left" progress={smoothProgress} trigger={0.7} />}
+          {currentTimeline && currentTimeline[3] && <TimelineNode item={currentTimeline[3]} top="90.9%" left="75%" align="right" progress={smoothProgress} trigger={0.9} />}
         </div>
       )}
 
@@ -237,7 +360,7 @@ export default function TimelineSection() {
         
         <div className="space-y-12">
           {currentTimeline.map((item, i) => (
-            <MobileTimelineNode key={`${activeCategory}-${i}`} index={i} activeCategory={activeCategory} />
+            <MobileTimelineNode key={`${activeCategory}-${i}`} item={item} />
           ))}
         </div>
       </div>
@@ -263,17 +386,15 @@ export default function TimelineSection() {
  ============================================================== */
 
 interface TimelineNodeProps {
-  index: number;
+  item: any;
   top: string;
   left: string;
   align: "left" | "right";
   progress: MotionValue<number>;
   trigger: number;
-  activeCategory: keyof typeof categoryTimelines;
 }
 
-function TimelineNode({ index, top, left, align, progress, trigger, activeCategory }: TimelineNodeProps) {
-  const item = categoryTimelines[activeCategory][index];
+function TimelineNode({ item, top, left, align, progress, trigger }: TimelineNodeProps) {
   const Icon = item.icon;
   const [active, setActive] = useState(false);
   
@@ -313,12 +434,10 @@ function TimelineNode({ index, top, left, align, progress, trigger, activeCatego
 }
 
 interface MobileTimelineNodeProps {
-  index: number;
-  activeCategory: keyof typeof categoryTimelines;
+  item: any;
 }
 
-function MobileTimelineNode({ index, activeCategory }: MobileTimelineNodeProps) {
-  const item = categoryTimelines[activeCategory][index];
+function MobileTimelineNode({ item }: MobileTimelineNodeProps) {
   const Icon = item.icon;
   const [active, setActive] = useState(false);
 
