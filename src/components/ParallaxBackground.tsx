@@ -9,10 +9,10 @@ const Nicci = ({ size }: { size: number }) => (
   <div 
     style={{
       width: `${size}px`,
-      height: `${size * 1.283}px`,
-      backgroundImage: 'url("/NICCI_NICCO_DEPAN/NICCI%20NICCO.png")',
-      backgroundSize: '200% 100%',
-      backgroundPosition: 'left center',
+      height: `${size * 1.333}px`,
+      backgroundImage: 'url("/nicci.svg")',
+      backgroundSize: 'contain',
+      backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat'
     }}
   />
@@ -22,10 +22,10 @@ const Nicco = ({ size }: { size: number }) => (
   <div 
     style={{
       width: `${size}px`,
-      height: `${size * 1.283}px`,
-      backgroundImage: 'url("/NICCI_NICCO_DEPAN/NICCI%20NICCO.png")',
-      backgroundSize: '200% 100%',
-      backgroundPosition: 'right center',
+      height: `${size * 1.297}px`,
+      backgroundImage: 'url("/nicco.svg")',
+      backgroundSize: 'contain',
+      backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat'
     }}
   />
