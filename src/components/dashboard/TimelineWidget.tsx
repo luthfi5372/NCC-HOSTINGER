@@ -1,6 +1,6 @@
 import React from "react";
 import { 
-  Calendar, Pin, Trophy, Brain, Zap, MonitorPlay, Star, Video, FileText, Megaphone, Upload 
+  Calendar, Pin, Trophy, Brain, Zap, MonitorPlay, Star, Video, FileText, Megaphone, Upload, Users 
 } from "lucide-react";
 
 const TIMELINE_DATA = [
@@ -95,8 +95,9 @@ export default function TimelineWidget({ userCategory, userStatus, notes, global
     if (l.includes('pendaftaran') || l.includes('naskah') || l.includes('video')) return FileText;
     if (l.includes('pengumuman')) return Megaphone;
     if (l.includes('fullpaper') || l.includes('unggah') || l.includes('karya')) return Upload;
-    if (l.includes('seleksi') || l.includes('simulasi')) return Brain;
-    if (l.includes('final') || l.includes('juara')) return Trophy;
+    if (l.includes('seleksi') || l.includes('simulasi') || l.includes('ujian') || l.includes('cbt')) return Brain;
+    if (l.includes('final') || l.includes('juara') || l.includes('puncak')) return Trophy;
+    if (l.includes('technical') || l.includes('meeting') || l.includes('wawancara') || l.includes('mentoring') || l.includes('diskusi') || l.includes('pembekalan')) return Users;
     return Zap;
   };
 
@@ -143,7 +144,9 @@ export default function TimelineWidget({ userCategory, userStatus, notes, global
               label: item.label,
               start: item.start || "",
               end: item.end || "",
-              date: item.date || ""
+              date: item.date || "",
+              type: item.type || "",
+              isCustom: item.isCustom || false
             }))
           };
         })
@@ -303,7 +306,9 @@ export default function TimelineWidget({ userCategory, userStatus, notes, global
                             </div>
                               <div className="mt-auto">
                                 <p className={`text-[10px] ${itemStyles.accent} font-black bg-white border ${itemStyles.border} px-3 py-1.5 rounded-lg inline-block break-all sm:break-normal`}>
-                                  {item.start && item.end ? (
+                                  {item.type === 'single' ? (
+                                    item.start ? formatIndoDate(item.start) : "Belum Ditentukan"
+                                  ) : (item.start && item.end) || (item.type === 'range' && item.start && item.end) ? (
                                     <>
                                       {formatIndoDate(item.start)} – {formatIndoDate(item.end)}
                                     </>

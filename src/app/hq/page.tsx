@@ -21,7 +21,7 @@ import {
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
   Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight, Save, MessageSquare,
-  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, EyeOff, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck, Pencil, History, MegaphoneOff, Forward, AlertTriangle
+  CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, EyeOff, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck, Pencil, History, MegaphoneOff, Forward, AlertTriangle, Plus
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -727,6 +727,18 @@ function ModernHQDashboardContent() {
   const [isSavingTimeline, setIsSavingTimeline] = useState(false);
   const [isTimelineLoaded, setIsTimelineLoaded] = useState(false);
   const [isPortalLoaded, setIsPortalLoaded] = useState(false);
+  
+  // States for custom stages (Saran 1)
+  const [showAddStageModal, setShowAddStageModal] = useState(false);
+  const [addStageForm, setAddStageForm] = useState({
+    categoryName: "",
+    waveLabel: "",
+    label: "",
+    type: "single" as "single" | "range",
+    start: "",
+    end: ""
+  });
+
   // ⚡ Ref untuk selalu baca timelineData TERBARU (hindari stale closure di saveTimeline)
   const timelineDataRef = React.useRef<any[]>(timelineData);
   React.useEffect(() => { timelineDataRef.current = timelineData; }, [timelineData]);
@@ -796,6 +808,99 @@ function ModernHQDashboardContent() {
     });
     setTimelineData(updatedData);
   };
+
+  const openAddStageModal = (categoryName: string, waveLabel: string) => {
+    setAddStageForm({
+      categoryName,
+      waveLabel,
+      label: "",
+      type: "single",
+      start: "",
+      end: ""
+    });
+    setShowAddStageModal(true);
+  };
+
+  const handleAddStage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addStageForm.label.trim()) {
+      showToast("Nama tahapan tidak boleh kosong!", "error");
+      return;
+    }
+    if (!addStageForm.start) {
+      showToast("Tanggal mulai tidak boleh kosong!", "error");
+      return;
+    }
+    if (addStageForm.type === 'range' && !addStageForm.end) {
+      showToast("Tanggal selesai tidak boleh kosong untuk tipe rentang!", "error");
+      return;
+    }
+
+    const newStageItem = {
+      label: addStageForm.label.trim(),
+      type: addStageForm.type,
+      start: addStageForm.start,
+      end: addStageForm.type === 'range' ? addStageForm.end : "",
+      isCustom: true
+    };
+
+    const updatedData = timelineData.map(cat => {
+      if (cat.category === addStageForm.categoryName) {
+        return {
+          ...cat,
+          waves: cat.waves.map((wave: any) => {
+            if (wave.label === addStageForm.waveLabel) {
+              if (wave.items.some((item: any) => item.label.toLowerCase() === newStageItem.label.toLowerCase())) {
+                showToast("Tahapan dengan nama ini sudah ada di gelombang ini!", "error");
+                return wave;
+              }
+              return {
+                ...wave,
+                items: [...wave.items, newStageItem]
+              };
+            }
+            return wave;
+          })
+        };
+      }
+      return cat;
+    });
+
+    setTimelineData(updatedData);
+    setShowAddStageModal(false);
+    showToast(`Tahap "${newStageItem.label}" berhasil ditambahkan! Menyimpan...`, "success");
+    // Trigger auto-save immediately
+    setTimeout(() => {
+      saveTimeline();
+    }, 100);
+  };
+
+  const handleDeleteStage = (categoryName: string, waveLabel: string, itemLabel: string) => {
+    const updatedData = timelineData.map(cat => {
+      if (cat.category === categoryName) {
+        return {
+          ...cat,
+          waves: cat.waves.map((wave: any) => {
+            if (wave.label === waveLabel) {
+              return {
+                ...wave,
+                items: wave.items.filter((item: any) => item.label !== itemLabel)
+              };
+            }
+            return wave;
+          })
+        };
+      }
+      return cat;
+    });
+
+    setTimelineData(updatedData);
+    showToast(`Tahap "${itemLabel}" berhasil dihapus! Menyimpan...`, "success");
+    setTimeout(() => {
+      saveTimeline();
+    }, 100);
+  };
+
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
@@ -3585,9 +3690,12 @@ function ModernHQDashboardContent() {
 
                               <div className="space-y-5">
                                 {wave.items.map((item: any) => {
-                                  const isRange = item.label.toLowerCase().includes("pendaftaran") || 
-                                                 item.label.toLowerCase().includes("pengumpulan") || 
-                                                 item.label.toLowerCase().includes("seleksi");
+                                  const isRange = item.type === 'range' || 
+                                                 (item.type !== 'single' && (
+                                                   item.label.toLowerCase().includes("pendaftaran") || 
+                                                   item.label.toLowerCase().includes("pengumpulan") || 
+                                                   item.label.toLowerCase().includes("seleksi")
+                                                 ));
 
                                   // Inline MiniCalendarPicker renderer
                                   const renderCalPicker = (type: 'start' | 'end') => {
@@ -3858,9 +3966,26 @@ function ModernHQDashboardContent() {
                                   return (
                                     <div key={`${cat.category}-${wave.label}-${item.label}`} className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3 transition-all hover:border-indigo-200 hover:shadow-sm">
                                       <div className="flex items-center justify-between">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                          {item.label}
-                                        </label>
+                                        <div className="flex items-center gap-2">
+                                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                            {item.label}
+                                          </label>
+                                          {item.isCustom && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (confirm(`Apakah Anda yakin ingin menghapus tahapan "${item.label}"?`)) {
+                                                  handleDeleteStage(cat.category, wave.label, item.label);
+                                                }
+                                              }}
+                                              className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1 rounded-md transition-colors"
+                                              title="Hapus tahapan kustom"
+                                            >
+                                              <Trash2 size={12} />
+                                            </button>
+                                          )}
+                                        </div>
                                         <div className="flex items-center gap-1.5">
                                           <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></div>
                                           <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
@@ -3884,6 +4009,16 @@ function ModernHQDashboardContent() {
                                     </div>
                                   );
                                 })}
+
+                                {/* ➕ Button Tambah Tahap Baru */}
+                                <button
+                                  type="button"
+                                  onClick={() => openAddStageModal(cat.category, wave.label)}
+                                  className="w-full flex items-center justify-center gap-1.5 py-3 border border-dashed border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/20 rounded-2xl text-xs font-bold transition-all active:scale-[0.98] mt-4 animate-in fade-in duration-300"
+                                >
+                                  <Plus size={14} />
+                                  <span>Tambah Tahap Baru</span>
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -5179,6 +5314,108 @@ function ModernHQDashboardContent() {
           </div>
         </div>
       </div>
+
+      {/* ➕ MODAL TAMBAH TAHAPAN BARU */}
+      {showAddStageModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white/95 backdrop-blur-md border border-slate-100 rounded-[2rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200 relative">
+            <button
+              onClick={() => setShowAddStageModal(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 transition-colors text-lg"
+            >
+              ✕
+            </button>
+            
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+                <Plus size={20} />
+              </div>
+              <div>
+                <h3 className="font-black text-slate-800 text-lg">Tambah Tahap Baru</h3>
+                <p className="text-xs text-slate-500 font-medium">Gelombang: {addStageForm.waveLabel} • {addStageForm.categoryName}</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleAddStage} className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Nama Tahapan</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Technical Meeting, Mentoring, Wawancara, CBT Ujian"
+                  value={addStageForm.label}
+                  onChange={(e) => setAddStageForm(prev => ({ ...prev, label: e.target.value }))}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:bg-white rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700 placeholder:text-slate-400 shadow-inner"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Tipe Tanggal</label>
+                <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setAddStageForm(prev => ({ ...prev, type: 'single' }))}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all ${addStageForm.type === 'single' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    Satu Hari Saja
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddStageForm(prev => ({ ...prev, type: 'range' }))}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all ${addStageForm.type === 'range' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    Rentang Tanggal
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                    {addStageForm.type === 'single' ? 'Tanggal Pelaksanaan' : 'Tanggal Mulai'}
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={addStageForm.start}
+                    onChange={(e) => setAddStageForm(prev => ({ ...prev, start: e.target.value }))}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700 shadow-inner"
+                  />
+                </div>
+
+                {addStageForm.type === 'range' && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Tanggal Selesai</label>
+                    <input
+                      type="date"
+                      required
+                      value={addStageForm.end}
+                      onChange={(e) => setAddStageForm(prev => ({ ...prev, end: e.target.value }))}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700 shadow-inner"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setShowAddStageModal(false)}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-slate-600 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 transition-all"
+                >
+                  Tambah Tahapan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ✏️ HQ EDIT MESSAGE MODAL */}
       {hqEditingMsg && (
