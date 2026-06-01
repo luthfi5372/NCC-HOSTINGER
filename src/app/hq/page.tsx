@@ -30,6 +30,7 @@ import {
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import Papa from "papaparse";
+import HomepageCMS from "@/components/admin/HomepageCMS";
 
 // --- ⚡ COMPONENT SINKRONISASI & OPTIMASI KINERJA TINGGI ---
 
@@ -2136,7 +2137,8 @@ function ModernHQDashboardContent() {
             { id: "Pengumuman", icon: <Megaphone size={18} />, label: "Siaran Info" },
             { id: "ForumSekolah", icon: <MessageSquare size={18} />, label: "Forum Sekolah" },
             { id: "Kegiatan", icon: <CalendarDays size={18} />, label: "Kegiatan" },
-            { id: "Schedule", icon: <Calendar size={18} />, label: "Schedule Lomba" },
+            { id: "Schedule", icon: <FileText size={18} />, label: "Kelola Halaman Depan" },
+            { id: "Timeline", icon: <Calendar size={18} />, label: "Kelola Timeline Lomba" },
             { id: "Media", icon: <ImageIcon size={18} />, label: "Kelola Media" },
             { id: "LLMS", icon: <GraduationCap size={18} />, label: "Manajemen LLMS", badge: "New" },
             { id: "Pengaturan", icon: <Settings size={18} />, label: "Pengaturan" }
@@ -2193,7 +2195,7 @@ function ModernHQDashboardContent() {
         <header className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">
-              {activeTab === "BelumDaftar" ? "Belum Pilih Bidang Lomba" : activeTab === "ForumSekolah" ? "Forum Sekolah (NPSN)" : activeTab}
+              {activeTab === "BelumDaftar" ? "Belum Pilih Bidang Lomba" : activeTab === "ForumSekolah" ? "Forum Sekolah (NPSN)" : activeTab === "Schedule" ? "Kelola Halaman Depan" : activeTab === "Timeline" ? "Kelola Timeline Lomba" : activeTab}
             </h1>
             <p className="text-slate-500 text-sm mt-1">
               {activeTab === "Dashboard" && "Pantau pergerakan data pendaftaran NCC 13th."}
@@ -2203,6 +2205,8 @@ function ModernHQDashboardContent() {
               {activeTab === "Karya" && "Manajemen dan direktori pengumpulan karya tulis, video, dan naskah peserta."}
               {activeTab === "ForumSekolah" && "Pantau dan interaksi langsung pada obrolan forum Ruang Sekolah secara real-time."}
               {activeTab === "Kegiatan" && "Kawal gerbang pendaftaran dan fail karya."}
+              {activeTab === "Schedule" && "Manajemen dinamis penjelasan, deskripsi, dan benefits di halaman awal website."}
+              {activeTab === "Timeline" && "Kelola tanggal penting, gelombang pendaftaran, dan alur lomba peserta."}
               {activeTab === "Pengaturan" && "Konfigurasi sistem Markas Besar."}
             </p>
           </div>
@@ -3485,7 +3489,409 @@ function ModernHQDashboardContent() {
 
                         {/* 6. TAB: DYNAMIC HOMEPAGE CMS */}
           {activeTab === 'Schedule' && (
-            <HomepageCMS />
+          <HomepageCMS />
+        )}
+
+        {/* 6B. TAB: DYNAMIC USER TIMELINE CONFIGURATION (RE-LOCATED) */}
+        {/* 6. TAB: SCHEDULE LOMBA (MASTER SCHEDULE) */}
+          {activeTab === 'Timeline' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-black text-slate-800">Master Schedule Lomba</h2>
+                  <p className="text-slate-500 font-medium">Atur semua tanggal perlombaan secara terpusat dan real-time.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => {
+                      const currentYear = new Date().getFullYear();
+                      const fixed = timelineData.map(cat => ({
+                        ...cat,
+                        waves: cat.waves.map((wave: any) => ({
+                          ...wave,
+                          items: wave.items.map((item: any) => ({
+                            ...item,
+                            start: item.start ? `${currentYear}${item.start.substring(4)}` : "",
+                            end: item.end ? `${currentYear}${item.end.substring(4)}` : ""
+                          }))
+                        }))
+                      }));
+                      setTimelineData(fixed);
+                      showToast(`Tahun ${currentYear} berhasil diterapkan!`, "success");
+                    }}
+                    className="flex items-center gap-2 px-4 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all text-xs"
+                    title={`Update semua jadwal ke tahun ${new Date().getFullYear()}`}
+                  >
+                    <Sparkles size={14} /> Update Tahun ({new Date().getFullYear()})
+                  </button>
+                  <button 
+                    onClick={saveTimeline}
+                    disabled={isSavingTimeline}
+                    className={`flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:scale-105 transition-all ${isSavingTimeline ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {isSavingTimeline ? <Clock className="animate-spin" size={18} /> : <Save size={18} />} 
+                    {isSavingTimeline ? 'Menyimpan...' : 'Simpan Semua Perubahan'}
+                  </button>
+                </div>
+              </div>
+
+              {/* 🏷️ Filter Kategori Cepat */}
+                <div className="flex flex-wrap items-center gap-3 mb-8">
+                  <div className="text-xs font-black text-slate-400 uppercase tracking-widest mr-2">Filter Cepat:</div>
+                  {['All', 'LKTI', 'MIPA', 'Speech', 'MTQ'].map(cat => (
+                    <button 
+                      key={cat} 
+                      onClick={() => setFilterCategory(cat)}
+                      className={`px-5 py-2 rounded-2xl font-bold text-xs transition-all active:scale-95 border ${
+                        filterCategory === cat 
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' 
+                          : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600 shadow-sm'
+                      }`}
+                    >
+                      {cat === 'All' ? 'Semua Mapel' : cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 📂 Grid Konten Berdasarkan Kategori */}
+                <div className="grid grid-cols-1 gap-10">
+                  {timelineData
+                    .filter(cat => filterCategory === 'All' || cat.category.toLowerCase().includes(filterCategory.toLowerCase()))
+                    .map((cat) => (
+                      <div key={cat.category} className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        {/* Header Kategori */}
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+                          <div className="flex items-center gap-3 bg-white px-6 py-2 rounded-full border border-slate-100 shadow-sm">
+                            <Sparkles size={16} className="text-amber-500" />
+                            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">{cat.category}</h3>
+                          </div>
+                          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+                        </div>
+
+                        {/* Gelombang Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                          {cat.waves.map((wave: any) => (
+                            <div key={`${cat.category}-${wave.label}`} className="bg-white/60 backdrop-blur-sm rounded-[2rem] p-8 border border-white/80 shadow-sm hover:shadow-md transition-all group">
+                              <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-2 h-8 rounded-full ${wave.label.includes('I') && !wave.label.includes('II') ? 'bg-indigo-500' : 'bg-emerald-500'}`}></div>
+                                  <h4 className="text-lg font-black text-slate-800 tracking-tight">{wave.label}</h4>
+                                </div>
+                                <div className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${wave.label.includes('I') && !wave.label.includes('II') ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                  Active Phase
+                                </div>
+                              </div>
+
+                              <div className="space-y-5">
+                                {wave.items.map((item: any) => {
+                                  const isRange = item.label.toLowerCase().includes("pendaftaran") || 
+                                                 item.label.toLowerCase().includes("pengumpulan") || 
+                                                 item.label.toLowerCase().includes("seleksi");
+
+                                  // Inline MiniCalendarPicker renderer
+                                  const renderCalPicker = (type: 'start' | 'end') => {
+                                    const calKey = `${cat.category}-${wave.label}-${item.label}-${type}`;
+                                    const isOpen = openCalendar === calKey;
+                                    const currentVal = type === 'start' ? (item.start || '') : (item.end || '');
+                                    const today = new Date();
+
+                                    // Get view date for this calendar
+                                    let viewYear = calViewDate[calKey]?.year;
+                                    let viewMonth = calViewDate[calKey]?.month;
+                                    if (viewYear === undefined) {
+                                      const base = currentVal ? new Date(currentVal) : today;
+                                      viewYear = base.getFullYear();
+                                      viewMonth = base.getMonth();
+                                    }
+
+                                    const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+                                    const MONTHS_FULL = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                                    const DAYS = ['Sen','Sel','Rab','Kam','Jum','Sab','Min'];
+
+                                    const firstDay = new Date(viewYear, viewMonth, 1);
+                                    const lastDay = new Date(viewYear, viewMonth + 1, 0);
+                                    // Adjust: getDay() returns 0=Sun, we want 0=Mon
+                                    const startOffset = (firstDay.getDay() + 6) % 7;
+                                    const totalCells = startOffset + lastDay.getDate();
+                                    const cells = Array.from({ length: Math.ceil(totalCells / 7) * 7 }, (_, i) => {
+                                      const d = i - startOffset + 1;
+                                      return d >= 1 && d <= lastDay.getDate() ? d : null;
+                                    });
+
+                                    const selectedDate = currentVal ? new Date(currentVal) : null;
+                                    const isSelectedDay = (d: number) => selectedDate &&
+                                      selectedDate.getFullYear() === viewYear &&
+                                      selectedDate.getMonth() === viewMonth &&
+                                      selectedDate.getDate() === d;
+                                    const isTodayDay = (d: number) =>
+                                      today.getFullYear() === viewYear &&
+                                      today.getMonth() === viewMonth &&
+                                      today.getDate() === d;
+
+                                    const navigateMonth = (delta: number) => {
+                                      let nm = viewMonth + delta;
+                                      let ny = viewYear;
+                                      if (nm < 0) { nm = 11; ny -= 1; }
+                                      if (nm > 11) { nm = 0; ny += 1; }
+                                      setCalViewDate(prev => ({ ...prev, [calKey]: { year: ny, month: nm } }));
+                                    };
+
+                                    const selectDay = (d: number) => {
+                                      const mm = String(viewMonth + 1).padStart(2, '0');
+                                      const dd = String(d).padStart(2, '0');
+                                      updateTimelineItem(cat.category, wave.label, item.label, type, `${viewYear}-${mm}-${dd}`);
+                                      // Tidak auto-close — user harus klik Selesai
+                                    };
+
+                                    const labelText = type === 'start' ? 'Mulai' : 'Selesai';
+                                    const displayVal = currentVal
+                                      ? (() => { const d = new Date(currentVal); return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`; })()
+                                      : 'Pilih tanggal';
+
+                                    return (
+                                      <div key={type} className="space-y-1 relative">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase ml-1">{labelText}</p>
+                                        {/* Trigger button */}
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (isOpen) {
+                                              setOpenCalendar(null);
+                                            } else {
+                                              // Init view to current value's month
+                                              if (currentVal && !calViewDate[calKey]) {
+                                                const base = new Date(currentVal);
+                                                setCalViewDate(prev => ({ ...prev, [calKey]: { year: base.getFullYear(), month: base.getMonth() } }));
+                                              } else if (!calViewDate[calKey]) {
+                                                setCalViewDate(prev => ({ ...prev, [calKey]: { year: today.getFullYear(), month: today.getMonth() } }));
+                                              }
+                                              setOpenCalendar(calKey);
+                                            }
+                                          }}
+                                          className={`cal-picker-trigger w-full flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                                            currentVal
+                                              ? 'bg-white border-indigo-200 text-indigo-700 hover:border-indigo-400 shadow-sm'
+                                              : 'bg-white border-dashed border-slate-300 text-slate-400 hover:border-indigo-300 hover:text-indigo-500'
+                                          }`}
+                                        >
+                                          <Calendar size={12} className={currentVal ? 'text-indigo-500' : 'text-slate-300'} />
+                                          <span>{displayVal}</span>
+                                          {currentVal && (
+                                            <span
+                                              role="button"
+                                              onClick={(e) => { e.stopPropagation(); updateTimelineItem(cat.category, wave.label, item.label, type, ''); }}
+                                              className="ml-auto text-slate-300 hover:text-rose-400 transition-colors"
+                                            >
+                                              ✕
+                                            </span>
+                                          )}
+                                        </button>
+
+                                        {/* Calendar Popover */}
+                                        {isOpen && (
+                                          <div
+                                            className="cal-picker-popover absolute z-50 top-full mt-2 left-0 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                                            style={{ width: '280px' }}
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {/* ── HEADER ── */}
+                                            <div className="bg-indigo-600 px-4 pt-4 pb-3">
+                                              <div className="flex items-center justify-between">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => navigateMonth(-1)}
+                                                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors text-base font-bold"
+                                                >‹</button>
+
+                                                {/* Clickable month+year → toggle year picker */}
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setCalViewDate(prev => ({
+                                                    ...prev,
+                                                    [calKey]: { year: viewYear, month: viewMonth, showYearPicker: !(prev[calKey]?.showYearPicker) } as any
+                                                  }))}
+                                                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition-colors group"
+                                                >
+                                                  <span className="text-sm font-black text-white tracking-wide">
+                                                    {(calViewDate[calKey] as any)?.showYearPicker
+                                                      ? `Pilih Tahun`
+                                                      : `${MONTHS_FULL[viewMonth]} ${viewYear}`
+                                                    }
+                                                  </span>
+                                                  <span className="text-white/70 text-xs group-hover:text-white transition-colors">
+                                                    {(calViewDate[calKey] as any)?.showYearPicker ? '▲' : '▼'}
+                                                  </span>
+                                                </button>
+
+                                                <button
+                                                  type="button"
+                                                  onClick={() => navigateMonth(1)}
+                                                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors text-base font-bold"
+                                                >›</button>
+                                              </div>
+
+                                              {/* Selected date display */}
+                                              {currentVal && !((calViewDate[calKey] as any)?.showYearPicker) && (
+                                                <div className="mt-2 text-center">
+                                                  <span className="text-white/80 text-xs font-medium">
+                                                    {(() => { const d = new Date(currentVal); return `${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`; })()}
+                                                  </span>
+                                                </div>
+                                              )}
+                                            </div>
+
+                                            {/* ── YEAR PICKER MODE ── */}
+                                            {(calViewDate[calKey] as any)?.showYearPicker ? (() => {
+                                              const decadeStart = (calViewDate[calKey] as any)?.decadeStart ?? Math.floor(viewYear / 20) * 20;
+                                              const years = Array.from({ length: 20 }, (_, i) => decadeStart + i);
+                                              return (
+                                                <div className="p-3">
+                                                  {/* Decade nav */}
+                                                  <div className="flex items-center justify-between mb-2 px-1">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setCalViewDate(prev => ({ ...prev, [calKey]: { ...(prev[calKey] as any), decadeStart: decadeStart - 20 } as any }))}
+                                                      className="text-xs font-black text-slate-500 hover:text-indigo-600 px-2 py-1 rounded-lg hover:bg-indigo-50 transition-colors"
+                                                    >‹ {decadeStart - 20}s</button>
+                                                    <span className="text-xs font-black text-slate-600">{decadeStart} – {decadeStart + 19}</span>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setCalViewDate(prev => ({ ...prev, [calKey]: { ...(prev[calKey] as any), decadeStart: decadeStart + 20 } as any }))}
+                                                      className="text-xs font-black text-slate-500 hover:text-indigo-600 px-2 py-1 rounded-lg hover:bg-indigo-50 transition-colors"
+                                                    >{decadeStart + 20}s ›</button>
+                                                  </div>
+                                                  <div className="grid grid-cols-4 gap-1">
+                                                    {years.map(y => (
+                                                      <button
+                                                        key={y}
+                                                        type="button"
+                                                        onClick={() => setCalViewDate(prev => ({ ...prev, [calKey]: { year: y, month: viewMonth, showYearPicker: false } as any }))}
+                                                        className={`py-2 rounded-xl text-xs font-black transition-all ${
+                                                          y === viewYear
+                                                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100'
+                                                            : y === today.getFullYear()
+                                                              ? 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-300'
+                                                              : 'text-slate-600 hover:bg-slate-100'
+                                                        }`}
+                                                      >{y}</button>
+                                                    ))}
+                                                  </div>
+                                                  <div className="mt-3 pt-2 border-t border-slate-100 flex justify-center">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setCalViewDate(prev => ({ ...prev, [calKey]: { year: today.getFullYear(), month: today.getMonth(), showYearPicker: false, decadeStart: Math.floor(today.getFullYear() / 20) * 20 } as any }))}
+                                                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                                                    >Kembali ke tahun ini</button>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })() : (
+                                              /* ── CALENDAR DATE GRID MODE ── */
+                                              <div className="p-3">
+                                                {/* Day Headers */}
+                                                <div className="grid grid-cols-7 mb-1">
+                                                  {DAYS.map(d => (
+                                                    <div key={d} className="text-center text-[9px] font-black text-slate-400 uppercase py-1">{d}</div>
+                                                  ))}
+                                                </div>
+
+                                                {/* Date Grid */}
+                                                <div className="grid grid-cols-7 gap-0.5">
+                                                  {cells.map((d, ci) => (
+                                                    <button
+                                                      key={ci}
+                                                      type="button"
+                                                      disabled={d === null}
+                                                      onClick={() => d && selectDay(d)}
+                                                      className={`h-8 w-full text-[11px] rounded-lg font-bold transition-all ${
+                                                        d === null
+                                                          ? 'invisible'
+                                                          : isSelectedDay(d!)
+                                                            ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200 scale-105'
+                                                            : isTodayDay(d!)
+                                                              ? 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-300 font-black'
+                                                              : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
+                                                      }`}
+                                                    >{d}</button>
+                                                  ))}
+                                                </div>
+
+                                                {/* Footer */}
+                                                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+                                                      updateTimelineItem(cat.category, wave.label, item.label, type, todayStr);
+                                                      // Tidak auto-close — user harus klik Selesai
+                                                    }}
+                                                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
+                                                  >
+                                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full inline-block" />
+                                                    Hari ini
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      setOpenCalendar(null);
+                                                      saveTimeline();
+                                                    }}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black rounded-lg transition-all shadow-sm shadow-emerald-100 active:scale-95"
+                                                  >
+                                                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                                      <path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    </svg>
+                                                    Selesai & Simpan
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+
+                                      </div>
+                                    );
+                                  };
+
+                                  return (
+                                    <div key={`${cat.category}-${wave.label}-${item.label}`} className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3 transition-all hover:border-indigo-200 hover:shadow-sm">
+                                      <div className="flex items-center justify-between">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                          {item.label}
+                                        </label>
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></div>
+                                          <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                                            {item.start && item.end ? (
+                                              `${formatIndoDate(item.start)} – ${formatIndoDate(item.end)}`
+                                            ) : item.start ? (
+                                              formatIndoDate(item.start)
+                                            ) : item.end ? (
+                                              `s.d. ${formatIndoDate(item.end)}`
+                                            ) : (
+                                              <span className="text-slate-400">Belum Set</span>
+                                            )}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div className={`grid gap-3 ${isRange ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                                        {renderCalPicker('start')}
+                                        {isRange && renderCalPicker('end')}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
           )}
         {/* ========================================================= */}
         {/* 🌟 TAB KEGIATAN (PUSAT KAWALAN PENDAFTARAN & FAIL) */}
