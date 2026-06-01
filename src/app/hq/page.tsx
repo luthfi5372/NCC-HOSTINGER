@@ -739,6 +739,10 @@ function ModernHQDashboardContent() {
     end: ""
   });
 
+  // States for inline renaming (Pencil/Edit action)
+  const [editingItemKey, setEditingItemKey] = useState<string | null>(null);
+  const [editingItemValue, setEditingItemValue] = useState("");
+
   // ⚡ Ref untuk selalu baca timelineData TERBARU (hindari stale closure di saveTimeline)
   const timelineDataRef = React.useRef<any[]>(timelineData);
   React.useEffect(() => { timelineDataRef.current = timelineData; }, [timelineData]);
@@ -900,6 +904,46 @@ function ModernHQDashboardContent() {
       saveTimeline();
     }, 100);
   };
+
+  const renameTimelineItem = (catName: string, waveLabel: string, oldLabel: string, newLabel: string) => {
+    if (!newLabel.trim()) {
+      showToast("Nama tahapan tidak boleh kosong!", "error");
+      return;
+    }
+    const updatedData = timelineData.map(cat => {
+      if (cat.category === catName) {
+        return {
+          ...cat,
+          waves: cat.waves.map((wave: any) => {
+            if (wave.label === waveLabel) {
+              if (wave.items.some((item: any) => item.label.toLowerCase() === newLabel.trim().toLowerCase() && item.label !== oldLabel)) {
+                showToast("Tahapan dengan nama ini sudah ada di gelombang ini!", "error");
+                return wave;
+              }
+              return {
+                ...wave,
+                items: wave.items.map((item: any) => {
+                  if (item.label === oldLabel) {
+                    return { ...item, label: newLabel.trim() };
+                  }
+                  return item;
+                })
+              };
+            }
+            return wave;
+          })
+        };
+      }
+      return cat;
+    });
+
+    setTimelineData(updatedData);
+    showToast(`Tahap berhasil diubah nama menjadi "${newLabel.trim()}"! Menyimpan...`, "success");
+    setTimeout(() => {
+      saveTimeline();
+    }, 100);
+  };
+
 
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -3965,27 +4009,93 @@ function ModernHQDashboardContent() {
 
                                   return (
                                     <div key={`${cat.category}-${wave.label}-${item.label}`} className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3 transition-all hover:border-indigo-200 hover:shadow-sm">
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                            {item.label}
-                                          </label>
-                                          {item.isCustom && (
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (confirm(`Apakah Anda yakin ingin menghapus tahapan "${item.label}"?`)) {
-                                                  handleDeleteStage(cat.category, wave.label, item.label);
+                                      <div className="flex items-center justify-between min-h-[28px]">
+                                        {editingItemKey === `${cat.category}-${wave.label}-${item.label}` ? (
+                                          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                            <input
+                                              type="text"
+                                              value={editingItemValue}
+                                              onChange={(e) => setEditingItemValue(e.target.value)}
+                                              className="px-2 py-1 bg-slate-50 border border-slate-200 focus:bg-white rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-700 font-bold w-44 shadow-inner"
+                                              autoFocus
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                  renameTimelineItem(cat.category, wave.label, item.label, editingItemValue);
+                                                  setEditingItemKey(null);
+                                                } else if (e.key === 'Escape') {
+                                                  setEditingItemKey(null);
                                                 }
                                               }}
-                                              className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1 rounded-md transition-colors"
-                                              title="Hapus tahapan kustom"
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                renameTimelineItem(cat.category, wave.label, item.label, editingItemValue);
+                                                setEditingItemKey(null);
+                                              }}
+                                              className="text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 p-1.5 rounded-xl transition-colors"
+                                              title="Simpan nama"
                                             >
-                                              <Trash2 size={12} />
+                                              <CheckCircle size={14} />
                                             </button>
-                                          )}
-                                        </div>
+                                            <button
+                                              type="button"
+                                              onClick={() => setEditingItemKey(null)}
+                                              className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1.5 rounded-xl transition-colors"
+                                              title="Batal"
+                                            >
+                                              <XCircle size={14} />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-2 group/label">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">
+                                              {item.label}
+                                            </label>
+                                            {item.isCustom ? (
+                                              <span className="text-[8px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100 shrink-0 select-none">
+                                                KUSTOM
+                                              </span>
+                                            ) : (
+                                              <span className="text-[8px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100 shrink-0 select-none">
+                                                SISTEM
+                                              </span>
+                                            )}
+                                            
+                                            {/* Action buttons (contextual hover action) */}
+                                            <div className="opacity-0 group-hover/label:opacity-100 transition-opacity duration-200 flex items-center gap-0.5">
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditingItemKey(`${cat.category}-${wave.label}-${item.label}`);
+                                                  setEditingItemValue(item.label);
+                                                }}
+                                                className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-1 rounded-md transition-all active:scale-90"
+                                                title="Ubah nama tahapan"
+                                              >
+                                                <Pencil size={11} />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  const isSystem = !item.isCustom;
+                                                  const msg = isSystem 
+                                                    ? `PERINGATAN KELOLA TIMELINE:\n\n"${item.label}" adalah tahapan SISTEM BAWAAN.\nMenghapus tahapan bawaan sistem ini dapat memengaruhi alur standar peserta.\n\nApakah Anda yakin ingin menghapus tahapan sistem ini?`
+                                                    : `Apakah Anda yakin ingin menghapus tahapan kustom "${item.label}"?`;
+                                                  if (confirm(msg)) {
+                                                    handleDeleteStage(cat.category, wave.label, item.label);
+                                                  }
+                                                }}
+                                                className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-1 rounded-md transition-all active:scale-90"
+                                                title="Hapus tahapan"
+                                              >
+                                                <Trash2 size={11} />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )}
                                         <div className="flex items-center gap-1.5">
                                           <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></div>
                                           <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
