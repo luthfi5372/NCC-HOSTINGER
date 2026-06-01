@@ -1,5 +1,42 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Trophy, Banknote, ScrollText, GraduationCap, Medal, Award, Users } from "lucide-react";
+import { 
+  CheckCircle2, 
+  Trophy, 
+  Banknote, 
+  ScrollText, 
+  GraduationCap, 
+  Medal, 
+  Award, 
+  Users,
+  BookOpen,
+  Heart,
+  Zap,
+  Sparkles,
+  Smartphone,
+  Globe
+} from "lucide-react";
+import { fetchHomepageDescriptions } from "@/lib/supabase/service";
+
+// Icon mapper from string storage to Lucide icons
+const iconMap: Record<string, any> = {
+  Trophy,
+  Banknote,
+  ScrollText,
+  GraduationCap,
+  Medal,
+  Award,
+  Users,
+  CheckCircle2,
+  BookOpen,
+  Heart,
+  Zap,
+  Sparkles,
+  Smartphone,
+  Globe
+};
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -15,6 +52,63 @@ const itemVariants = {
 };
 
 export default function FeatureGrid() {
+  // Default fallback items for "What is NCC?" about bullet points
+  const [abouts, setAbouts] = useState<any[]>([
+    { id: 1, title: "Tingkat Nasional Sejak 1 Dekade" },
+    { id: 2, title: "Mengasah Potensi Multidisiplin" },
+    { id: 3, title: "Piala Bergilir Bergengsi" }
+  ]);
+
+  // Default fallback items for "Benefits" cards
+  const [benefits, setBenefits] = useState<any[]>([
+    { id: 4, title: "Trophies Of Award", icon: "Trophy", color: "text-amber-500", bg: "bg-amber-50", borderColor: "hover:border-amber-200" },
+    { id: 5, title: "Counseling Money", icon: "Banknote", color: "text-emerald-500", bg: "bg-emerald-50", borderColor: "hover:border-emerald-200" },
+    { id: 6, title: "Certificate Of Award", icon: "ScrollText", color: "text-indigo-500", bg: "bg-indigo-50", borderColor: "hover:border-indigo-200" },
+    { id: 7, title: "Get 25% Scholarship Senior High School", icon: "GraduationCap", color: "text-blue-500", bg: "bg-blue-50", borderColor: "hover:border-blue-200" },
+  ]);
+
+  useEffect(() => {
+    const loadDescriptions = async () => {
+      try {
+        const { data, error } = await fetchHomepageDescriptions();
+        if (!error && data && data.length > 0) {
+          const dbAbouts = data.filter((d: any) => d.category === 'about');
+          const dbBenefits = data.filter((d: any) => d.category === 'benefit');
+          
+          if (dbAbouts.length > 0) {
+            setAbouts(dbAbouts);
+          }
+          if (dbBenefits.length > 0) {
+            const colorSchemes: Record<string, any> = {
+              Trophy: { color: "text-amber-500", bg: "bg-amber-50", borderColor: "hover:border-amber-200" },
+              Banknote: { color: "text-emerald-500", bg: "bg-emerald-50", borderColor: "hover:border-emerald-200" },
+              ScrollText: { color: "text-indigo-500", bg: "bg-indigo-50", borderColor: "hover:border-indigo-200" },
+              GraduationCap: { color: "text-blue-500", bg: "bg-blue-50", borderColor: "hover:border-blue-200" },
+              Medal: { color: "text-rose-500", bg: "bg-rose-50", borderColor: "hover:border-rose-200" },
+              Award: { color: "text-violet-500", bg: "bg-violet-50", borderColor: "hover:border-violet-200" },
+              Users: { color: "text-teal-500", bg: "bg-teal-50", borderColor: "hover:border-teal-200" },
+              Smartphone: { color: "text-cyan-500", bg: "bg-cyan-50", borderColor: "hover:border-cyan-200" },
+              Globe: { color: "text-pink-500", bg: "bg-pink-50", borderColor: "hover:border-pink-200" },
+              default: { color: "text-indigo-500", bg: "bg-indigo-50", borderColor: "hover:border-indigo-200" }
+            };
+
+            const mapped = dbBenefits.map((b: any) => {
+              const scheme = colorSchemes[b.icon] || colorSchemes.default;
+              return {
+                ...b,
+                ...scheme
+              };
+            });
+            setBenefits(mapped);
+          }
+        }
+      } catch (err) {
+        console.error("FeatureGrid database pull fallback active:", err);
+      }
+    };
+    loadDescriptions();
+  }, []);
+
   return (
     <section className="relative z-10 max-w-7xl mx-auto px-6 py-12 flex flex-col gap-12 sm:gap-20">
       
@@ -91,10 +185,10 @@ export default function FeatureGrid() {
             National creativity competition atau biasa disebut dengan NCC adalah event lomba tingkat Nasional untuk siswa/i SMP/MTs sederajat di seluruh Indonesia yang diselenggarakan oleh SMA Darul Ulum 1 Unggulan Peterongan Jombang. Guna meningkatkan kecerdasan dan kreatifitas anak bangsa dalam bidang Penelitian, Agama, Akademik dan Bahasa.
           </p>
           <ul className="flex flex-col gap-4">
-            {["Tingkat Nasional Sejak 1 Dekade", "Mengasah Potensi Multidisiplin", "Piala Bergilir Bergengsi"].map((item, i) => (
-              <li key={i} className="flex items-center gap-3 text-slate-700 font-medium">
-                <CheckCircle2 className="text-indigo-600" size={20} />
-                {item}
+            {abouts.map((item) => (
+              <li key={item.id} className="flex items-start sm:items-center gap-3 text-slate-700 font-medium">
+                <CheckCircle2 className="text-indigo-600 shrink-0 mt-1 sm:mt-0" size={20} />
+                <span className="leading-snug">{item.title || item.content}</span>
               </li>
             ))}
           </ul>
@@ -115,20 +209,21 @@ export default function FeatureGrid() {
         </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full text-left cursor-default">
-          {[
-            { title: "Trophies Of Award", icon: Trophy, color: "text-amber-500", bg: "bg-amber-50", borderColor: "hover:border-amber-200" },
-            { title: "Counseling Money", icon: Banknote, color: "text-emerald-500", bg: "bg-emerald-50", borderColor: "hover:border-emerald-200" },
-            { title: "Certificate Of Award", icon: ScrollText, color: "text-indigo-500", bg: "bg-indigo-50", borderColor: "hover:border-indigo-200" },
-            { title: "Get 25% Scholarship Senior High School", icon: GraduationCap, color: "text-blue-500", bg: "bg-blue-50", borderColor: "hover:border-blue-200" },
-          ].map((feat, i) => (
-            <motion.div key={i} variants={itemVariants} className={`glass-panel p-4 sm:p-8 rounded-3xl flex items-center gap-4 sm:gap-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all bg-white group border border-slate-100 ${feat.borderColor}`}>
-              <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl ${feat.bg} flex items-center justify-center shrink-0 ${feat.color} group-hover:scale-110 transition-transform duration-300 shadow-inner`}>
-                <feat.icon size={24} className="sm:hidden" strokeWidth={1.5} />
-                <feat.icon size={32} className="hidden sm:block" strokeWidth={1.5} />
-              </div>
-               <h4 className="text-base sm:text-xl font-bold text-slate-700 leading-snug">{feat.title}</h4>
-            </motion.div>
-          ))}
+          {benefits.map((feat) => {
+            const IconComponent = iconMap[feat.icon] || Trophy;
+            return (
+              <motion.div key={feat.id} variants={itemVariants} className={`glass-panel p-4 sm:p-8 rounded-3xl flex items-center gap-4 sm:gap-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all bg-white group border border-slate-100 ${feat.borderColor}`}>
+                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl ${feat.bg} flex items-center justify-center shrink-0 ${feat.color} group-hover:scale-110 transition-transform duration-300 shadow-inner`}>
+                  <IconComponent size={24} className="sm:hidden" strokeWidth={1.5} />
+                  <IconComponent size={32} className="hidden sm:block" strokeWidth={1.5} />
+                </div>
+                 <div className="flex flex-col gap-1 pr-4">
+                   <h4 className="text-base sm:text-xl font-bold text-slate-700 leading-snug">{feat.title}</h4>
+                   {feat.content && <p className="text-xs text-slate-400 font-medium leading-relaxed">{feat.content}</p>}
+                 </div>
+              </motion.div>
+            );
+          })}
         </div>
       </motion.div>
 

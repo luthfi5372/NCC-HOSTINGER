@@ -548,5 +548,69 @@ export async function fetchPublicLeaderboard() {
   }
 }
 
+/** 📝 HOMEPAGE DYNAMIC CONTENT: Fetch all dynamic homepage descriptions/benefits */
+export async function fetchHomepageDescriptions() {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('homepage_descriptions')
+      .select('*')
+      .order('category', { ascending: true })
+      .order('order_index', { ascending: true })
+      .order('id', { ascending: true });
 
+    if (error) throw error;
+    return { data: data || [], error: null };
+  } catch (err: any) {
+    console.error("Fetch homepage descriptions error:", err);
+    return { data: [], error: err.message };
+  }
+}
 
+/** 📝 HOMEPAGE DYNAMIC CONTENT: Add or Update a homepage description */
+export async function adminUpsertHomepageDescription(desc: {
+  id?: number | string;
+  category: string;
+  title: string;
+  content: string;
+  icon?: string;
+  order_index?: number;
+}) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('homepage_descriptions')
+      .upsert({
+        id: desc.id ? Number(desc.id) : undefined,
+        category: desc.category,
+        title: desc.title,
+        content: desc.content,
+        icon: desc.icon || 'Trophy',
+        order_index: desc.order_index || 0
+      })
+      .select();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (err: any) {
+    console.error("Admin upsert description error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+/** 📝 HOMEPAGE DYNAMIC CONTENT: Delete a homepage description */
+export async function adminDeleteHomepageDescription(id: number | string) {
+  const supabase = createClient();
+  try {
+    const { error } = await supabase
+      .from('homepage_descriptions')
+      .delete()
+      .eq('id', Number(id));
+
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error("Admin delete description error:", err);
+    return { success: false, error: err.message };
+  }
+}
