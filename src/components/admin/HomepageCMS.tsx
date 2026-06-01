@@ -74,6 +74,11 @@ export default function HomepageCMS() {
   // Subcategory for Curvy Timeline editing
   const [timelineCategory, setTimelineCategory] = useState<"lkti" | "olimpiade" | "speech" | "mtq">("lkti");
 
+  // Calendar Picker specific states
+  const [dateMode, setDateMode] = useState<"calendar" | "manual">("calendar");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
   const [toast, setToast] = useState<{ show: boolean; message: string; type: "success" | "error" }>({
     show: false,
     message: "",
@@ -93,6 +98,111 @@ export default function HomepageCMS() {
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 4000);
+  };
+
+  // Dynamic date ranges generator in Indonesian
+  const formatIndoDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+  };
+
+  const generateDateRangeString = (start: string, end?: string) => {
+    if (!start) return "Segera Diumumkan";
+    const s = new Date(start);
+    if (isNaN(s.getTime())) return start;
+    const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+    if (end) {
+      const e = new Date(end);
+      if (!isNaN(e.getTime())) {
+        if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
+          return `${s.getDate()} — ${e.getDate()} ${months[s.getMonth()]} ${s.getFullYear()}`;
+        } else if (s.getFullYear() === e.getFullYear()) {
+          return `${s.getDate()} ${months[s.getMonth()]} — ${e.getDate()} ${months[e.getMonth()]} ${s.getFullYear()}`;
+        } else {
+          return `${s.getDate()} ${months[s.getMonth()]} ${s.getFullYear()} — ${e.getDate()} ${months[e.getMonth()]} ${e.getFullYear()}`;
+        }
+      }
+    }
+    return formatIndoDate(start);
+  };
+
+  // Sync manual input text whenever calendar dates change
+  useEffect(() => {
+    if (dateMode === "calendar" && (startDate || endDate)) {
+      const combined = generateDateRangeString(startDate, endDate);
+      setForm(prev => ({ ...prev, date_range: combined }));
+    }
+  }, [startDate, endDate, dateMode]);
+
+  // Dynamic date ranges parser in Indonesian to pre-populate calendar pickers when editing
+  const parseIndoDateRange = (dateStr: string) => {
+    if (!dateStr) return { start: "", end: "" };
+    
+    const monthMap: Record<string, string> = {
+      "januari": "01", "februari": "02", "maret": "03", "april": "04", "mei": "05", "juni": "06",
+      "juli": "07", "agustus": "08", "september": "09", "oktober": "10", "november": "11", "desember": "12"
+    };
+
+    const cleanStr = dateStr.trim();
+    // Split on em-dash (—), en-dash (–), or hyphen (-)
+    const parts = cleanStr.split(/\s*[\u2014\u2013-]\s*/);
+    
+    const parseSingle = (str: string) => {
+      // Matches e.g. "16 Juni 2026" or "16 Juni" or "16"
+      const matchFull = str.match(/^(\d+)\s+([a-zA-Z]+)\s+(\d{4})$/);
+      if (matchFull) {
+        const day = matchFull[1].padStart(2, "0");
+        const month = monthMap[matchFull[2].toLowerCase()] || "01";
+        const year = matchFull[3];
+        return { day, month, year };
+      }
+      
+      const matchMonth = str.match(/^(\d+)\s+([a-zA-Z]+)$/);
+      if (matchMonth) {
+        const day = matchMonth[1].padStart(2, "0");
+        const month = monthMap[matchMonth[2].toLowerCase()] || "01";
+        return { day, month, year: null as string | null };
+      }
+      
+      const matchDayOnly = str.match(/^(\d+)$/);
+      if (matchDayOnly) {
+        const day = matchDayOnly[1].padStart(2, "0");
+        return { day, month: null as string | null, year: null as string | null };
+      }
+      
+      return null;
+    };
+
+    if (parts.length === 1) {
+      const parsed = parseSingle(parts[0]);
+      if (parsed && parsed.year) {
+        return { start: `${parsed.year}-${parsed.month}-${parsed.day}`, end: "" };
+      }
+    } else if (parts.length === 2) {
+      const startParsed = parseSingle(parts[0]);
+      const endParsed = parseSingle(parts[1]);
+      
+      if (endParsed && endParsed.year) {
+        const endYear = endParsed.year;
+        const endMonth = endParsed.month;
+        const endDay = endParsed.day;
+        
+        const startYear = startParsed ? (startParsed.year || endYear) : endYear;
+        const startMonth = startParsed ? (startParsed.month || endMonth) : endMonth;
+        const startDay = startParsed ? startParsed.day : endDay;
+        
+        return {
+          start: `${startYear}-${startMonth}-${startDay}`,
+          end: `${endYear}-${endMonth}-${endDay}`
+        };
+      }
+    }
+    
+    return { start: "", end: "" };
   };
 
   const loadData = async () => {
@@ -167,6 +277,12 @@ export default function HomepageCMS() {
     else if (category === "lkti" || category === "olimpiade" || category === "speech" || category === "mtq") defaultIcon = "Users";
 
     const orderIndex = homepageDescriptions.filter(d => d.category === category).length + 1;
+    
+    // Reset calendar states
+    setStartDate("");
+    setEndDate("");
+    setDateMode("calendar");
+
     setForm({
       id: undefined,
       category,
@@ -180,6 +296,24 @@ export default function HomepageCMS() {
   };
 
   const openEditModal = (item: any) => {
+    // Reset calendar states, parse existing date range if applicable
+    let startVal = "";
+    let endVal = "";
+    let modeVal: "calendar" | "manual" = "manual";
+
+    if (item.date_range && item.date_range !== "Segera Diumumkan" && !item.date_range.includes("Reward") && !item.date_range.includes("Aktif")) {
+      const parsed = parseIndoDateRange(item.date_range);
+      if (parsed.start) {
+        startVal = parsed.start;
+        endVal = parsed.end;
+        modeVal = "calendar";
+      }
+    }
+
+    setStartDate(startVal);
+    setEndDate(endVal);
+    setDateMode(modeVal);
+
     setForm({
       id: item.id,
       category: item.category,
@@ -631,7 +765,7 @@ export default function HomepageCMS() {
 
             <form onSubmit={handleSave} className="space-y-4 text-left">
               
-              {/* Category / Lomba Selector (ReadOnly when adding from specific category) */}
+              {/* Category / Lomba Selector (ReadOnly) */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kategori / Cabang</label>
                 <input
@@ -661,18 +795,71 @@ export default function HomepageCMS() {
                 />
               </div>
 
-              {/* Date Range (ONLY for timeline steps) */}
+              {/* Date Selection Mode (ONLY for timeline steps) */}
               {!(form.category === 'about' || form.category === 'benefit') && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tanggal Pelaksanaan (Date Range)</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-700 outline-none focus:border-indigo-400 text-sm font-medium transition-all"
-                    placeholder="Contoh: 16 Juni — 22 September 2026 atau Segera Diumumkan"
-                    value={form.date_range}
-                    onChange={(e) => setForm(prev => ({ ...prev, date_range: e.target.value }))}
-                  />
+                <div className="space-y-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                  <div className="flex items-center justify-between border-b border-slate-200/50 pb-2">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Tanggal Pelaksanaan</label>
+                    
+                    {/* Mode Toggle Selector */}
+                    <div className="flex bg-slate-200 p-0.5 rounded-lg border border-slate-300">
+                      <button
+                        type="button"
+                        onClick={() => setDateMode("calendar")}
+                        className={`py-1 px-2.5 rounded-md font-bold text-[10px] transition-all uppercase ${dateMode === 'calendar' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-700'}`}
+                      >
+                        Kalender
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDateMode("manual")}
+                        className={`py-1 px-2.5 rounded-md font-bold text-[10px] transition-all uppercase ${dateMode === 'manual' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-700'}`}
+                      >
+                        Teks Manual
+                      </button>
+                    </div>
+                  </div>
+
+                  {dateMode === "calendar" ? (
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Mulai</label>
+                        <input
+                          type="date"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 outline-none focus:border-indigo-400 text-xs font-semibold transition-all cursor-pointer"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Selesai (Opsional)</label>
+                        <input
+                          type="date"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 outline-none focus:border-indigo-400 text-xs font-semibold transition-all cursor-pointer"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1 pt-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">Tulis Tanggal Bebas</label>
+                      <input
+                        type="text"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 outline-none focus:border-indigo-400 text-xs font-medium transition-all"
+                        placeholder="Contoh: Segera Diumumkan / TBD / Selalu Aktif"
+                        value={form.date_range}
+                        onChange={(e) => setForm(prev => ({ ...prev, date_range: e.target.value }))}
+                      />
+                    </div>
+                  )}
+
+                  {/* Real-time formatted preview of computed date */}
+                  {dateMode === "calendar" && (
+                    <div className="mt-2 text-[10px] font-black text-indigo-600 bg-indigo-50/50 border border-indigo-100 p-2.5 rounded-xl flex items-center gap-1.5 justify-center">
+                      <Clock size={12} /> Hasil Format: &quot;{form.date_range}&quot;
+                    </div>
+                  )}
                 </div>
               )}
 
