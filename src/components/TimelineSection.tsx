@@ -18,6 +18,12 @@ const iconMap: Record<string, any> = {
   Trophy, Banknote, ScrollText, GraduationCap, Medal, Award, Users, BookOpen, Heart, Zap, Sparkles, Smartphone, Globe, CheckCircle2, Clock, Brain, Star, Video, Upload, Calendar
 };
 
+const getIconComponent = (iconName?: string) => {
+  if (!iconName) return Users;
+  const match = Object.keys(iconMap).find(k => k.toLowerCase() === iconName.toLowerCase());
+  return match ? iconMap[match] : Users;
+};
+
 const categoryTimelines = {
   all: [
     {
@@ -153,7 +159,7 @@ export default function TimelineSection() {
           const lktiSteps = dbItems.filter((item: any) => item.category === 'lkti').map(item => ({
             phase: item.title,
             date: item.date_range || 'Segera Diumumkan',
-            icon: iconMap[item.icon] || Users,
+            icon: getIconComponent(item.icon),
             description: item.content,
             color: "text-blue-600",
             bg: "bg-blue-50",
@@ -163,7 +169,7 @@ export default function TimelineSection() {
           const mipaSteps = dbItems.filter((item: any) => item.category === 'olimpiade').map(item => ({
             phase: item.title,
             date: item.date_range || 'Segera Diumumkan',
-            icon: iconMap[item.icon] || Users,
+            icon: getIconComponent(item.icon),
             description: item.content,
             color: "text-amber-600",
             bg: "bg-amber-50",
@@ -173,7 +179,7 @@ export default function TimelineSection() {
           const speechSteps = dbItems.filter((item: any) => item.category === 'speech').map(item => ({
             phase: item.title,
             date: item.date_range || 'Segera Diumumkan',
-            icon: iconMap[item.icon] || Users,
+            icon: getIconComponent(item.icon),
             description: item.content,
             color: "text-purple-600",
             bg: "bg-purple-50",
@@ -183,7 +189,7 @@ export default function TimelineSection() {
           const mtqSteps = dbItems.filter((item: any) => item.category === 'mtq').map(item => ({
             phase: item.title,
             date: item.date_range || 'Segera Diumumkan',
-            icon: iconMap[item.icon] || Users,
+            icon: getIconComponent(item.icon),
             description: item.content,
             color: "text-emerald-600",
             bg: "bg-emerald-50",
@@ -436,7 +442,6 @@ export default function TimelineSection() {
               <TimelineNode 
                 key={`${activeCategory}-${i}`}
                 item={item} 
-                dateOverride={timelineDates[`${activeCategory}-${i}`] || item.date}
                 top={`${50 + i * 200}px`}
                 left={i % 2 === 0 ? "35%" : "65%"}
                 align={i % 2 === 0 ? "left" : "right"}
@@ -461,7 +466,6 @@ export default function TimelineSection() {
             <MobileTimelineNode 
               key={`${activeCategory}-${i}`} 
               item={item} 
-              dateOverride={timelineDates[`${activeCategory}-${i}`]}
             />
           ))}
         </div>
@@ -489,7 +493,6 @@ export default function TimelineSection() {
 
 interface TimelineNodeProps {
   item: any;
-  dateOverride?: string;
   top: string;
   left: string;
   align: "left" | "right";
@@ -497,7 +500,7 @@ interface TimelineNodeProps {
   trigger: number;
 }
 
-function TimelineNode({ item, dateOverride, top, left, align, progress, trigger }: TimelineNodeProps) {
+function TimelineNode({ item, top, left, align, progress, trigger }: TimelineNodeProps) {
   const Icon = item.icon;
   const [active, setActive] = useState(false);
   
@@ -544,9 +547,9 @@ function TimelineNode({ item, dateOverride, top, left, align, progress, trigger 
         >
           <div className="glass-panel w-[260px] sm:w-72 lg:w-80 p-6 bg-white border border-slate-100 rounded-3xl shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl">
             <div className={`flex items-center gap-3 mb-3 ${align === 'left' ? 'justify-end' : 'justify-start'} ${item.color}`}>
-               {align !== 'left' && <Calendar size={14} />}
-               <span className="text-xs font-bold uppercase tracking-wider">{dateOverride || item.date}</span>
-               {align === 'left' && <Calendar size={14} />}
+               {align !== 'left' && <Icon size={14} className="shrink-0" />}
+               <span className="text-xs font-bold uppercase tracking-wider">{item.date}</span>
+               {align === 'left' && <Icon size={14} className="shrink-0" />}
             </div>
             <h3 className="text-xl font-bold mb-2 text-slate-900">{item.phase}</h3>
             <p className="text-sm text-slate-600 leading-relaxed">{item.description}</p>
@@ -559,10 +562,9 @@ function TimelineNode({ item, dateOverride, top, left, align, progress, trigger 
 
 interface MobileTimelineNodeProps {
   item: any;
-  dateOverride?: string;
 }
 
-function MobileTimelineNode({ item, dateOverride }: MobileTimelineNodeProps) {
+function MobileTimelineNode({ item }: MobileTimelineNodeProps) {
   const Icon = item.icon;
   const [active, setActive] = useState(false);
 
@@ -585,8 +587,8 @@ function MobileTimelineNode({ item, dateOverride }: MobileTimelineNodeProps) {
 
       <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm w-full transition-all duration-300 hover:shadow-md">
         <div className={`flex items-center gap-2 mb-2 ${item.color}`}>
-          <Calendar size={12} />
-          <span className="text-xs font-bold uppercase">{dateOverride || item.date}</span>
+          <Icon size={12} className="shrink-0" />
+          <span className="text-xs font-bold uppercase">{item.date}</span>
         </div>
         <h3 className="text-lg font-bold mb-2 text-slate-900">{item.phase}</h3>
         <p className="text-sm text-slate-600 leading-relaxed">{item.description}</p>
