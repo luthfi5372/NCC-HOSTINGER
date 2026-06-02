@@ -25,8 +25,6 @@ export default function IntegratedLLMSDashboard() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [securityLogs, setSecurityLogs] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const [liveTokens, setLiveTokens] = useState<Record<string, string>>({});
   
   // Custom filter and UI states for premium dashboard (similar to reference image)
   const [activeFilter, setActiveFilter] = useState<'active' | 'inactive' | 'all'>('active');
@@ -226,32 +224,8 @@ export default function IntegratedLLMSDashboard() {
     };
   }, []);
 
-  useEffect(() => {
-    const updateTimerAndTokens = () => {
-      const now = Math.floor(Date.now() / 1000);
-      const interval10Min = 600; 
-      const currentInterval = Math.floor(now / interval10Min);
-      const secondsLeft = interval10Min - (now % interval10Min);
-      setCountdown(secondsLeft);
-      const newTokens: Record<string, string> = {};
-      sessions.forEach(s => {
-        const charPool = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        let token = "";
-        let idSum = 0;
-        for (let i = 0; i < s.id.length; i++) { idSum += s.id.charCodeAt(i); }
-        let seed = (idSum + currentInterval) % 10000;
-        for(let i=0; i<6; i++) { 
-          seed = (seed * 9301 + 49297) % 233280; 
-          token += charPool[Math.floor((seed / 233280) * charPool.length)]; 
-        }
-        newTokens[s.id] = token;
-      });
-      setLiveTokens(newTokens);
-    };
-    updateTimerAndTokens(); 
-    const timer = setInterval(updateTimerAndTokens, 1000);
-    return () => clearInterval(timer);
-  }, [sessions]);
+
+
 
   // Click outside to close dropdowns
   useEffect(() => {
@@ -310,7 +284,7 @@ export default function IntegratedLLMSDashboard() {
 
   const renderSessionCard = (session: any) => {
     const isActive = session.is_active;
-    const sessionToken = liveTokens[session.id] || session.token || "------";
+    const sessionToken = getLiveToken(session.id) || session.token || "------";
 
     // Scoring system badge content
     let scoringLabel = "CBT Ujian";
@@ -875,24 +849,7 @@ export default function IntegratedLLMSDashboard() {
                 )}
               </div>
 
-              {/* Token Info */}
-              <div className="bg-gradient-to-br from-indigo-500/5 via-violet-500/5 to-purple-500/5 border border-indigo-100 rounded-3xl p-5 shadow-lg shadow-indigo-100/5">
-                <div className="flex items-center gap-2 mb-3.5">
-                  <div className="w-7 h-7 bg-indigo-500/10 border border-indigo-200/50 rounded-xl flex items-center justify-center shadow-sm">
-                    <Lock className="w-4 h-4 text-indigo-600" />
-                  </div>
-                  <h3 className="text-xs font-black text-indigo-900 uppercase tracking-widest">Info Token</h3>
-                </div>
-                <p className="text-[11px] text-indigo-950/80 leading-relaxed font-medium">
-                  Token berubah otomatis setiap <span className="font-extrabold text-indigo-600 bg-indigo-100/50 px-1.5 py-0.5 rounded border border-indigo-200/30">10 menit</span>. Bagikan ke peserta sebelum ujian dimulai.
-                </p>
-                <div className="mt-4 flex items-center gap-2.5 p-3 bg-white/80 backdrop-blur-md border border-indigo-100/80 rounded-2xl shadow-sm">
-                  <Clock className="w-4 h-4 text-indigo-500 animate-spin" style={{ animationDuration: '6s' }} />
-                  <span className="text-xs font-mono text-indigo-900 font-extrabold tracking-wide">
-                    Rotasi dalam: <span className="text-indigo-600 font-black">{Math.floor(countdown/60)}:{(countdown%60).toString().padStart(2,'0')}</span>
-                  </span>
-                </div>
-              </div>
+              <TokenRotationWidget />
             </div>
           </div>
         </div>
@@ -1077,3 +1034,64 @@ export default function IntegratedLLMSDashboard() {
     </div>
   );
 }
+
+// ─── ⚡ PURE UTILITY FUNCTIONS (COMPILATION & MEMORY OPTIMIZATION) ───
+
+const getLiveToken = (sessionId: string) => {
+  if (!sessionId) return "------";
+  const charPool = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const now = Math.floor(Date.now() / 1000);
+  const interval10Min = 600; 
+  const currentInterval = Math.floor(now / interval10Min);
+  
+  let token = "";
+  let idSum = 0;
+  for (let i = 0; i < sessionId.length; i++) { 
+    idSum += sessionId.charCodeAt(i); 
+  }
+  let seed = (idSum + currentInterval) % 10000;
+  for (let i = 0; i < 6; i++) { 
+    seed = (seed * 9301 + 49297) % 233280; 
+    token += charPool[Math.floor((seed / 233280) * charPool.length)]; 
+  }
+  return token;
+};
+
+// ─── ⚡ SELF-CONTAINED MINI WIDGET (ELIMINATES FULL-DASHBOARD RE-RENDERS) ───
+
+function TokenRotationWidget() {
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const now = Math.floor(Date.now() / 1000);
+      const interval10Min = 600; 
+      const secondsLeft = interval10Min - (now % interval10Min);
+      setCountdown(secondsLeft);
+    };
+    updateTimer(); 
+    const timer = setInterval(updateTimer, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="bg-gradient-to-br from-indigo-500/5 via-violet-500/5 to-purple-500/5 border border-indigo-100 rounded-3xl p-5 shadow-lg shadow-indigo-100/5">
+      <div className="flex items-center gap-2 mb-3.5">
+        <div className="w-7 h-7 bg-indigo-500/10 border border-indigo-200/50 rounded-xl flex items-center justify-center shadow-sm">
+          <Lock className="w-4 h-4 text-indigo-600" />
+        </div>
+        <h3 className="text-xs font-black text-indigo-900 uppercase tracking-widest">Info Token</h3>
+      </div>
+      <p className="text-[11px] text-indigo-950/80 leading-relaxed font-medium">
+        Token berubah otomatis setiap <span className="font-extrabold text-indigo-600 bg-indigo-100/50 px-1.5 py-0.5 rounded border border-indigo-200/30">10 menit</span>. Bagikan ke peserta sebelum ujian dimulai.
+      </p>
+      <div className="mt-4 flex items-center gap-2.5 p-3 bg-white/80 backdrop-blur-md border border-indigo-100/80 rounded-2xl shadow-sm">
+        <Clock className="w-4 h-4 text-indigo-500 animate-spin" style={{ animationDuration: '6s' }} />
+        <span className="text-xs font-mono text-indigo-900 font-extrabold tracking-wide">
+          Rotasi dalam: <span className="text-indigo-600 font-black">{Math.floor(countdown/60)}:{(countdown%60).toString().padStart(2,'0')}</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
