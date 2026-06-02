@@ -20,7 +20,7 @@ import {
 import { 
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
-  Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight, Save, MessageSquare,
+  Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight, Save, MessageSquare, ArrowDown,
   CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, EyeOff, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck, Pencil, History, MegaphoneOff, Forward, AlertTriangle, Plus
 } from "lucide-react";
 import { 
@@ -446,6 +446,12 @@ function ModernHQDashboardContent() {
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [activeNotification, setActiveNotification] = useState<any | null>(null);
 
+  // Premium Chat Enhancements States & Refs
+  const [chatSearchQuery, setChatSearchQuery] = useState("");
+  const [showScrollDown, setShowScrollDown] = useState(false);
+  const adminChatEndRef = useRef<HTMLDivElement>(null);
+  const adminChatContainerRef = useRef<HTMLDivElement>(null);
+
   // Keep refs to avoid stale closures in WebSockets real-time handler
   const selectedSchoolGroupRef = useRef<any>(null);
   const activeTabRef = useRef<string>("Dashboard");
@@ -627,6 +633,27 @@ function ModernHQDashboardContent() {
       return () => clearTimeout(timer);
     }
   }, [activeNotification]);
+
+  // Helper to scroll to bottom of the Admin chat thread
+  const scrollToAdminChatBottom = (behavior: "smooth" | "auto" = "smooth") => {
+    setTimeout(() => {
+      adminChatEndRef.current?.scrollIntoView({ behavior });
+    }, 50);
+  };
+
+  // Scroll to bottom automatically when school changes (instantly) or when a new message is added (smoothly)
+  useEffect(() => {
+    if (selectedSchoolGroup) {
+      scrollToAdminChatBottom("auto");
+      setChatSearchQuery(""); // Reset search query when switching schools
+    }
+  }, [selectedSchoolGroup]);
+
+  useEffect(() => {
+    if (groupMessages.length > 0) {
+      scrollToAdminChatBottom("smooth");
+    }
+  }, [groupMessages]);
 
   const handleSendGroupMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -5034,17 +5061,47 @@ function ModernHQDashboardContent() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => setShowSchoolMembers(true)}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100/80 hover:border-indigo-200/80 rounded-2xl text-xs font-bold transition-all shadow-sm hover:shadow active:scale-95"
-                    >
-                      <Users size={14} />
-                      Daftar Anggota
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* 🔍 INTERNAL CHAT SEARCH BOX */}
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Search size={12} className="text-slate-400" />
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Cari obrolan..."
+                          value={chatSearchQuery}
+                          onChange={(e) => setChatSearchQuery(e.target.value)}
+                          className="w-40 pl-8 pr-7 py-2 bg-white border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/10 rounded-xl text-[11px] font-medium focus:outline-none transition-all text-slate-700 placeholder:text-slate-400 shadow-inner"
+                        />
+                        {chatSearchQuery && (
+                          <button 
+                            type="button"
+                            onClick={() => setChatSearchQuery("")} 
+                            className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowSchoolMembers(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100/80 hover:border-indigo-200/80 rounded-2xl text-xs font-bold transition-all shadow-sm hover:shadow active:scale-95"
+                      >
+                        <Users size={14} />
+                        Daftar Anggota
+                      </button>
+                    </div>
                   </div>
 
                   {/* Message Thread Scroll Area */}
-                  <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar bg-slate-50/20 flex flex-col">
+                  <div 
+                    ref={adminChatContainerRef}
+                    onScroll={handleAdminChatScroll}
+                    className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar bg-slate-50/20 flex flex-col relative"
+                  >
                     {isLoadingGroupMessages ? (
                       <div className="h-full flex flex-col items-center justify-center">
                         <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2"></div>
@@ -5058,79 +5115,160 @@ function ModernHQDashboardContent() {
                           Belum ada peserta yang memulai diskusi di forum sekolah ini.
                         </p>
                       </div>
-                    ) : (
-                      groupMessages.map((msg, index) => {
-                        const isAdmin = msg.sender_id === "hq-admin" || msg.sender_id === "admin1";
-                        const isMsgByAdmin = msg.sender_id === "hq-admin" || msg.sender_id === "admin1";
-                        const dateObj = new Date(msg.created_at);
-                        const timeStr = dateObj.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+                    ) : (() => {
+                      const filteredMessages = groupMessages.filter(msg => {
+                        if (!chatSearchQuery.trim()) return true;
+                        const query = chatSearchQuery.toLowerCase();
+                        return msg.message.toLowerCase().includes(query) || msg.sender_name.toLowerCase().includes(query);
+                      });
 
+                      if (filteredMessages.length === 0) {
                         return (
-                          <div
-                            key={msg.id || index}
-                            className={`flex flex-col max-w-[80%] relative group/bubble ${isAdmin ? "self-end items-end" : "self-start items-start"}`}
-                          >
-                            <span className="text-[10px] text-slate-400 font-bold mb-1 ml-1.5 uppercase tracking-wider flex items-center gap-1.5">
-                              {msg.sender_name}
-                              {isAdmin && (
-                                <span className="bg-amber-100 text-amber-700 border border-amber-200/50 font-black text-[8px] uppercase px-1.5 rounded-md shadow-sm">
-                                  HQ STAFF
-                                </span>
-                              )}
-                            </span>
-                            
-                            {/* Hover Options Menu (WhatsApp style) */}
-                            <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white border border-slate-100 shadow-md rounded-full px-2 py-1 z-10 opacity-0 group-hover/bubble:opacity-100 transition-all duration-200 ${isAdmin ? "-left-24" : "-right-24"}`}>
-                              {(isMsgByAdmin) && (
-                                <button 
-                                  onClick={() => { setHqEditingMsg(msg); setHqEditInput(msg.message.replace(/^↪ Diteruskan:\n/, "")); }}
-                                  className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-indigo-600 transition-colors"
-                                  title="Edit"
-                                >
-                                  <Pencil size={11} />
-                                </button>
-                              )}
-                              {(isMsgByAdmin || !isAdmin) && (
-                                <button 
-                                  onClick={() => handleDeleteHqMessage(msg.id)}
-                                  className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-rose-600 transition-colors"
-                                  title={isMsgByAdmin ? "Hapus" : "Hapus (Moderasi)"}
-                                >
-                                  <Trash2 size={11} />
-                                </button>
-                              )}
-                              <button 
-                                onClick={() => setHqForwardingMsg(msg)}
-                                className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-blue-600 transition-colors"
-                                title="Teruskan"
-                              >
-                                <Forward size={11} />
-                              </button>
-                            </div>
-
-                            <div
-                              className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed shadow-sm border ${
-                                isAdmin
-                                  ? "bg-slate-900 text-white border-slate-950 rounded-tr-none shadow-slate-200"
-                                  : "bg-white text-slate-700 border-slate-100 rounded-tl-none"
-                              }`}
-                            >
-                              {msg.message.startsWith("↪ Diteruskan:\n") && (
-                                <div className={`text-[9px] font-bold flex items-center gap-1 mb-1 pb-1 border-b ${isAdmin ? "text-slate-400 border-slate-800" : "text-slate-400 border-slate-200"}`}>
-                                  <Forward size={10} className="italic" />
-                                  Diteruskan
-                                </div>
-                              )}
-                              {msg.message.replace(/^↪ Diteruskan:\n/, "")}
-                            </div>
-                            <span className="text-[9px] text-slate-400 font-medium mt-1 mx-1.5">
-                              {timeStr} WIB
-                            </span>
+                          <div className="h-full flex flex-col items-center justify-center text-center py-10 opacity-60">
+                            <Search size={36} className="text-slate-200 mb-3 animate-pulse" />
+                            <h4 className="font-bold text-slate-600 text-xs">Pencarian Tidak Ditemukan</h4>
+                            <p className="text-[11px] text-slate-400 mt-1 max-w-[240px]">
+                              Tidak ada pesan yang cocok dengan kata kunci "{chatSearchQuery}".
+                            </p>
                           </div>
                         );
-                      })
-                    )}
+                      }
+
+                      return (
+                        <>
+                          {filteredMessages.map((msg, index) => {
+                            const isAdmin = msg.sender_id === "hq-admin" || msg.sender_id === "admin1";
+                            const isMsgByAdmin = msg.sender_id === "hq-admin" || msg.sender_id === "admin1";
+                            const dateObj = new Date(msg.created_at);
+                            const timeStr = dateObj.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+
+                            // Lookup student dynamically for status tags
+                            const student = selectedSchoolGroup.students.find((s: any) => s.user_id === msg.sender_id || s.id === msg.sender_id || s.email === msg.sender_id);
+                            let studentBadge = null;
+                            if (student) {
+                              let stageText = "Tahap 1";
+                              if (student.notes) {
+                                try {
+                                  const n = JSON.parse(student.notes);
+                                  if (n.current_stage === 2) stageText = n.is_failed ? "Gagal T2" : "Tahap 2";
+                                  else if (n.current_stage >= 3 || n.current_stage === "final") stageText = "Final";
+                                  else if (n.is_failed) stageText = "Gagal T1";
+                                } catch (e) {}
+                              }
+                              studentBadge = (
+                                <span className="bg-indigo-50 text-indigo-600 border border-indigo-100/50 font-black text-[8.5px] px-1.5 py-0.2 rounded-md uppercase tracking-wider scale-90 inline-block">
+                                  {student.competition_type || student.category || "Peserta"} • {stageText}
+                                </span>
+                              );
+                            }
+
+                            return (
+                              <div
+                                key={msg.id || index}
+                                className={`flex flex-col max-w-[80%] relative group/bubble ${isAdmin ? "self-end items-end" : "self-start items-start"}`}
+                              >
+                                <span className="text-[10px] text-slate-400 font-bold mb-1 ml-1.5 uppercase tracking-wider flex items-center gap-1.5">
+                                  {msg.sender_name}
+                                  {isAdmin ? (
+                                    <span className="bg-amber-100 text-amber-700 border border-amber-200/50 font-black text-[8px] uppercase px-1.5 rounded-md shadow-sm">
+                                      HQ STAFF
+                                    </span>
+                                  ) : (
+                                    studentBadge
+                                  )}
+                                </span>
+                                
+                                {/* Hover Options Menu (WhatsApp style) */}
+                                <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white border border-slate-100 shadow-md rounded-full px-2 py-1 z-10 opacity-0 group-hover/bubble:opacity-100 transition-all duration-200 ${isAdmin ? "-left-24" : "-right-24"}`}>
+                                  {(isMsgByAdmin) && (
+                                    <button 
+                                      onClick={() => { setHqEditingMsg(msg); setHqEditInput(msg.message.replace(/^↪ Diteruskan:\n/, "")); }}
+                                      className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-indigo-600 transition-colors"
+                                      title="Edit"
+                                    >
+                                      <Pencil size={11} />
+                                    </button>
+                                  )}
+                                  {(isMsgByAdmin || !isAdmin) && (
+                                    <button 
+                                      onClick={() => handleDeleteHqMessage(msg.id)}
+                                      className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-rose-600 transition-colors"
+                                      title={isMsgByAdmin ? "Hapus" : "Hapus (Moderasi)"}
+                                    >
+                                      <Trash2 size={11} />
+                                    </button>
+                                  )}
+                                  <button 
+                                    onClick={() => setHqForwardingMsg(msg)}
+                                    className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-blue-600 transition-colors"
+                                    title="Teruskan"
+                                  >
+                                    <Forward size={11} />
+                                  </button>
+                                </div>
+
+                                <div
+                                  className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed shadow-sm border ${
+                                    isAdmin
+                                      ? "bg-slate-900 text-white border-slate-950 rounded-tr-none shadow-slate-200"
+                                      : "bg-white text-slate-700 border-slate-100 rounded-tl-none"
+                                  }`}
+                                >
+                                  {msg.message.startsWith("↪ Diteruskan:\n") && (
+                                    <div className={`text-[9px] font-bold flex items-center gap-1 mb-1 pb-1 border-b ${isAdmin ? "text-slate-400 border-slate-800" : "text-slate-400 border-slate-200"}`}>
+                                      <Forward size={10} className="italic" />
+                                      Diteruskan
+                                    </div>
+                                  )}
+                                  {msg.message.replace(/^↪ Diteruskan:\n/, "")}
+                                </div>
+                                <span className="text-[9px] text-slate-400 font-medium mt-1 mx-1.5">
+                                  {timeStr} WIB
+                                </span>
+                              </div>
+                            );
+                          })}
+                          <div ref={adminChatEndRef} />
+                        </>
+                      );
+                    })()}
                   </div>
+
+                  {/* ⚡ BALAS CEPAT: QUICK TEMPLATES */}
+                  {groupMessages.length > 0 && (
+                    <div className="px-4 py-2.5 bg-slate-50/50 border-t border-slate-100 flex items-center gap-2 overflow-x-auto shrink-0 custom-scrollbar">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0 mr-1">
+                        ⚡ Balas Cepat:
+                      </span>
+                      {[
+                        "Gelombang Pendaftaran sudah diaktifkan kembali. Silakan cek dashboard Anda! 🚀",
+                        "Karya Anda telah berhasil diverifikasi oleh Panitia. Selamat berjuang! ✨",
+                        "Harap lengkapi biodata pendaftaran dan unggah bukti pembayaran di menu pendaftaran. 🙏",
+                        "Ada yang bisa kami bantu mengenai kendala teknis atau materi kompetisi? 💬"
+                      ].map((text, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setGroupMsgText(text)}
+                          className="px-3 py-1 bg-white hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 hover:border-indigo-100 text-slate-600 rounded-full text-[10px] font-medium transition-all duration-200 shrink-0 shadow-sm active:scale-95"
+                        >
+                          {text.length > 30 ? text.substring(0, 30) + "..." : text}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 🔽 TOMBOL SCROLL DOWN MELAYANG */}
+                  {showScrollDown && (
+                    <button
+                      type="button"
+                      onClick={() => scrollToAdminChatBottom("smooth")}
+                      className="absolute bottom-28 right-8 z-30 p-2.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-[0_4px_15px_rgba(79,70,229,0.4)] border border-indigo-500 hover:scale-110 active:scale-95 transition-all duration-200 flex items-center justify-center gap-1.5 font-bold text-[9px] uppercase tracking-wider animate-bounce"
+                    >
+                      <ArrowDown size={11} />
+                      Pesan Baru
+                    </button>
+                  )}
 
                   {/* Input form */}
                   <form onSubmit={handleSendGroupMessage} className="p-4 border-t border-slate-100 bg-slate-50/50 flex gap-3 items-center shrink-0">
