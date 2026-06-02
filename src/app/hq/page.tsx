@@ -720,7 +720,7 @@ function ModernHQDashboardContent() {
 
   const handleForwardHqMessage = async (targetGroup: any) => {
     if (!hqForwardingMsg) return;
-    const cleanText = hqForwardingMsg.message.replace(/^↪ Diteruskan:\n/, "");
+    const cleanText = (hqForwardingMsg?.message || "").replace(/^↪ Diteruskan:\n/, "");
     const forwardedText = `↪ Diteruskan:\n${cleanText}`;
     
     try {
@@ -5117,9 +5117,11 @@ function ModernHQDashboardContent() {
                       </div>
                     ) : (() => {
                       const filteredMessages = groupMessages.filter(msg => {
+                        const msgText = msg?.message || "";
+                        const senderName = msg?.sender_name || "";
                         if (!chatSearchQuery.trim()) return true;
                         const query = chatSearchQuery.toLowerCase();
-                        return msg.message.toLowerCase().includes(query) || msg.sender_name.toLowerCase().includes(query);
+                        return msgText.toLowerCase().includes(query) || senderName.toLowerCase().includes(query);
                       });
 
                       if (filteredMessages.length === 0) {
@@ -5137,19 +5139,27 @@ function ModernHQDashboardContent() {
                       return (
                         <>
                           {filteredMessages.map((msg, index) => {
+                            if (!msg) return null;
                             const isAdmin = msg.sender_id === "hq-admin" || msg.sender_id === "admin1";
                             const isMsgByAdmin = msg.sender_id === "hq-admin" || msg.sender_id === "admin1";
-                            const dateObj = new Date(msg.created_at);
+                            const dateObj = new Date(msg.created_at || Date.now());
                             const timeStr = dateObj.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+                            const msgText = msg.message || "";
 
-                            // Lookup student dynamically for status tags
-                            const student = selectedSchoolGroup.students.find((s: any) => s.user_id === msg.sender_id || s.id === msg.sender_id || s.email === msg.sender_id);
+                            // Lookup student dynamically for status tags safely
+                            const studentsList = selectedSchoolGroup?.students || [];
+                            const student = studentsList.find((s: any) => 
+                              (s.user_id && msg.sender_id && s.user_id === msg.sender_id) || 
+                              (s.id && msg.sender_id && s.id === msg.sender_id) || 
+                              (s.email && msg.sender_id && s.email === msg.sender_id)
+                            );
+                            
                             let studentBadge = null;
                             if (student) {
                               let stageText = "Tahap 1";
                               if (student.notes) {
                                 try {
-                                  const n = JSON.parse(student.notes);
+                                  const n = typeof student.notes === "string" ? JSON.parse(student.notes) : student.notes;
                                   if (n.current_stage === 2) stageText = n.is_failed ? "Gagal T2" : "Tahap 2";
                                   else if (n.current_stage >= 3 || n.current_stage === "final") stageText = "Final";
                                   else if (n.is_failed) stageText = "Gagal T1";
@@ -5168,7 +5178,7 @@ function ModernHQDashboardContent() {
                                 className={`flex flex-col max-w-[80%] relative group/bubble ${isAdmin ? "self-end items-end" : "self-start items-start"}`}
                               >
                                 <span className="text-[10px] text-slate-400 font-bold mb-1 ml-1.5 uppercase tracking-wider flex items-center gap-1.5">
-                                  {msg.sender_name}
+                                  {msg.sender_name || "Unknown"}
                                   {isAdmin ? (
                                     <span className="bg-amber-100 text-amber-700 border border-amber-200/50 font-black text-[8px] uppercase px-1.5 rounded-md shadow-sm">
                                       HQ STAFF
@@ -5182,7 +5192,7 @@ function ModernHQDashboardContent() {
                                 <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white border border-slate-100 shadow-md rounded-full px-2 py-1 z-10 opacity-0 group-hover/bubble:opacity-100 transition-all duration-200 ${isAdmin ? "-left-24" : "-right-24"}`}>
                                   {(isMsgByAdmin) && (
                                     <button 
-                                      onClick={() => { setHqEditingMsg(msg); setHqEditInput(msg.message.replace(/^↪ Diteruskan:\n/, "")); }}
+                                      onClick={() => { setHqEditingMsg(msg); setHqEditInput(msgText.replace(/^↪ Diteruskan:\n/, "")); }}
                                       className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-indigo-600 transition-colors"
                                       title="Edit"
                                     >
@@ -5214,13 +5224,13 @@ function ModernHQDashboardContent() {
                                       : "bg-white text-slate-700 border-slate-100 rounded-tl-none"
                                   }`}
                                 >
-                                  {msg.message.startsWith("↪ Diteruskan:\n") && (
+                                  {msgText.startsWith("↪ Diteruskan:\n") && (
                                     <div className={`text-[9px] font-bold flex items-center gap-1 mb-1 pb-1 border-b ${isAdmin ? "text-slate-400 border-slate-800" : "text-slate-400 border-slate-200"}`}>
                                       <Forward size={10} className="italic" />
                                       Diteruskan
                                     </div>
                                   )}
-                                  {msg.message.replace(/^↪ Diteruskan:\n/, "")}
+                                  {msgText.replace(/^↪ Diteruskan:\n/, "")}
                                 </div>
                                 <span className="text-[9px] text-slate-400 font-medium mt-1 mx-1.5">
                                   {timeStr} WIB
