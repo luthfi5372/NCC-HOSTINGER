@@ -946,6 +946,55 @@ function ModernHQDashboardContent() {
     }, 100);
   };
 
+  const addTimelineWave = (categoryName: string) => {
+    const romanize = (num: number) => {
+      const romans = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+      return romans[num - 1] || num.toString();
+    };
+
+    const updatedData = timelineData.map(cat => {
+      if (cat.category === categoryName) {
+        const nextWaveNum = cat.waves.length + 1;
+        const newWaveLabel = `Gelombang ${romanize(nextWaveNum)}`;
+        
+        const defaultItems = [
+          { label: "Pendaftaran & Naskah", start: "", end: "", isCustom: true },
+          { label: "Pengumuman Hasil Seleksi", start: "", end: "", isCustom: true }
+        ];
+
+        return {
+          ...cat,
+          waves: [...cat.waves, { label: newWaveLabel, items: defaultItems }]
+        };
+      }
+      return cat;
+    });
+
+    setTimelineData(updatedData);
+    showToast("Gelombang baru berhasil ditambahkan!", "success");
+    setTimeout(() => {
+      saveTimeline();
+    }, 100);
+  };
+
+  const deleteTimelineWave = (categoryName: string, waveLabel: string) => {
+    const updatedData = timelineData.map(cat => {
+      if (cat.category === categoryName) {
+        return {
+          ...cat,
+          waves: cat.waves.filter((w: any) => w.label !== waveLabel)
+        };
+      }
+      return cat;
+    });
+
+    setTimelineData(updatedData);
+    showToast(`Gelombang "${waveLabel}" berhasil dihapus!`, "success");
+    setTimeout(() => {
+      saveTimeline();
+    }, 100);
+  };
+
 
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -3728,11 +3777,33 @@ function ModernHQDashboardContent() {
                             <div key={`${cat.category}-${wave.label}`} className="bg-white/60 backdrop-blur-sm rounded-[2rem] p-8 border border-white/80 shadow-sm hover:shadow-md transition-all group">
                               <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-3">
-                                  <div className={`w-2 h-8 rounded-full ${wave.label.includes('I') && !wave.label.includes('II') ? 'bg-indigo-500' : 'bg-emerald-500'}`}></div>
+                                  <div className={`w-2 h-8 rounded-full ${
+                                    wave.label.includes('III') ? 'bg-amber-500' :
+                                    wave.label.includes('II') ? 'bg-emerald-500' : 'bg-indigo-500'
+                                  }`}></div>
                                   <h4 className="text-lg font-black text-slate-800 tracking-tight">{wave.label}</h4>
                                 </div>
-                                <div className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${wave.label.includes('I') && !wave.label.includes('II') ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                  Active Phase
+                                <div className="flex items-center gap-2">
+                                  {cat.waves.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (confirm(`Apakah Anda yakin ingin menghapus "${wave.label}" beserta seluruh tahapan di dalamnya? Tindakan ini tidak dapat dibatalkan.`)) {
+                                          deleteTimelineWave(cat.category, wave.label);
+                                        }
+                                      }}
+                                      className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl transition-all hover:scale-105 active:scale-95 border border-rose-100"
+                                      title="Hapus Gelombang"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  )}
+                                  <div className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${
+                                    wave.label.includes('III') ? 'bg-amber-50 text-amber-600' :
+                                    wave.label.includes('II') ? 'bg-emerald-50 text-emerald-600' : 'bg-indigo-50 text-indigo-600'
+                                  }`}>
+                                    Active Phase
+                                  </div>
                                 </div>
                               </div>
 
@@ -4136,6 +4207,18 @@ function ModernHQDashboardContent() {
                               </div>
                             </div>
                           ))}
+
+                          {/* ➕ Dashed Card: Tambah Gelombang Baru */}
+                          <div 
+                            onClick={() => addTimelineWave(cat.category)}
+                            className="bg-dashed-card border-2 border-dashed border-slate-200 hover:border-indigo-400 bg-slate-50/30 hover:bg-indigo-50/10 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center cursor-pointer min-h-[300px] transition-all hover:scale-[1.01] active:scale-[0.99] group/newwave"
+                          >
+                            <div className="w-14 h-14 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 group-hover/newwave:scale-110 group-hover/newwave:bg-indigo-600 group-hover/newwave:text-white transition-all shadow-inner">
+                              <Plus size={24} />
+                            </div>
+                            <h4 className="text-base font-bold text-slate-700 group-hover/newwave:text-indigo-900 transition-colors">Tambah Gelombang Baru</h4>
+                            <p className="text-xs text-slate-400 mt-1.5 max-w-[200px] font-medium leading-relaxed">Buat gelombang pendaftaran tambahan untuk cabang {cat.category}.</p>
+                          </div>
                         </div>
                       </div>
                     ))}
