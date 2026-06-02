@@ -30,7 +30,8 @@ import {
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import Papa from "papaparse";
-import HomepageCMS from "@/components/admin/HomepageCMS";
+
+
 
 // --- ⚡ COMPONENT SINKRONISASI & OPTIMASI KINERJA TINGGI ---
 
@@ -2286,7 +2287,6 @@ function ModernHQDashboardContent() {
             { id: "Pengumuman", icon: <Megaphone size={18} />, label: "Siaran Info" },
             { id: "ForumSekolah", icon: <MessageSquare size={18} />, label: "Forum Sekolah" },
             { id: "Kegiatan", icon: <CalendarDays size={18} />, label: "Kegiatan" },
-            { id: "Schedule", icon: <FileText size={18} />, label: "Kelola Halaman Depan" },
             { id: "Timeline", icon: <Calendar size={18} />, label: "Kelola Timeline Lomba" },
             { id: "Media", icon: <ImageIcon size={18} />, label: "Kelola Media" },
             { id: "LLMS", icon: <GraduationCap size={18} />, label: "Manajemen LLMS", badge: "New" },
@@ -2344,7 +2344,7 @@ function ModernHQDashboardContent() {
         <header className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">
-              {activeTab === "BelumDaftar" ? "Belum Pilih Bidang Lomba" : activeTab === "ForumSekolah" ? "Forum Sekolah (NPSN)" : activeTab === "Schedule" ? "Kelola Halaman Depan" : activeTab === "Timeline" ? "Kelola Timeline Lomba" : activeTab}
+              {activeTab === "BelumDaftar" ? "Belum Pilih Bidang Lomba" : activeTab === "ForumSekolah" ? "Forum Sekolah (NPSN)" : activeTab === "Timeline" ? "Kelola Timeline Lomba" : activeTab}
             </h1>
             <p className="text-slate-500 text-sm mt-1">
               {activeTab === "Dashboard" && "Pantau pergerakan data pendaftaran NCC 13th."}
@@ -2354,7 +2354,6 @@ function ModernHQDashboardContent() {
               {activeTab === "Karya" && "Manajemen dan direktori pengumpulan karya tulis, video, dan naskah peserta."}
               {activeTab === "ForumSekolah" && "Pantau dan interaksi langsung pada obrolan forum Ruang Sekolah secara real-time."}
               {activeTab === "Kegiatan" && "Kawal gerbang pendaftaran dan fail karya."}
-              {activeTab === "Schedule" && "Manajemen dinamis penjelasan, deskripsi, dan benefits di halaman awal website."}
               {activeTab === "Timeline" && "Kelola tanggal penting, gelombang pendaftaran, dan alur lomba peserta."}
               {activeTab === "Pengaturan" && "Konfigurasi sistem Markas Besar."}
             </p>
@@ -3636,10 +3635,7 @@ function ModernHQDashboardContent() {
           </div>
         )}
 
-                        {/* 6. TAB: DYNAMIC HOMEPAGE CMS */}
-          {activeTab === 'Schedule' && (
-          <HomepageCMS />
-        )}
+
 
         {/* 6B. TAB: DYNAMIC USER TIMELINE CONFIGURATION (RE-LOCATED) */}
         {/* 6. TAB: SCHEDULE LOMBA (MASTER SCHEDULE) */}
