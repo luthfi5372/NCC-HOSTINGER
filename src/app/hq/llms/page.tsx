@@ -13,7 +13,7 @@ import {
   RotateCcw, Key, Clock, Monitor, Trophy,
   ShieldCheck, AlertTriangle, FileDown, ChevronRight,
   Loader2, X, Save, Pencil, ToggleLeft, ToggleRight, Trash2,
-  Zap, Activity, Radio, Lock
+  Zap, Activity, Radio, Lock, MoreHorizontal, MessageSquare, Info, Check
 } from "lucide-react";
 
 export default function IntegratedLLMSDashboard() {
@@ -28,6 +28,11 @@ export default function IntegratedLLMSDashboard() {
   const [countdown, setCountdown] = useState(0);
   const [liveTokens, setLiveTokens] = useState<Record<string, string>>({});
   
+  // Custom filter and UI states for premium dashboard (similar to reference image)
+  const [activeFilter, setActiveFilter] = useState<'active' | 'inactive' | 'all'>('active');
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [activeTooltipId, setActiveTooltipId] = useState<string | null>(null);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [newSession, setNewSession] = useState({
@@ -248,6 +253,18 @@ export default function IntegratedLLMSDashboard() {
     return () => clearInterval(timer);
   }, [sessions]);
 
+  // Click outside to close dropdowns
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.dropdown-trigger') && !target.closest('.dropdown-menu')) {
+        setOpenDropdownId(null);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, []);
+
   const handleAddSession = async () => {
     if (!newSession.title || newSession.title.trim() === '') return showToast('Judul sesi tidak boleh kosong!', 'error');
     if (!newSession.duration_minutes || newSession.duration_minutes <= 0) return showToast('Durasi ujian harus lebih dari 0 menit!', 'error');
@@ -289,6 +306,206 @@ export default function IntegratedLLMSDashboard() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const renderSessionCard = (session: any) => {
+    const isActive = session.is_active;
+    const sessionToken = liveTokens[session.id] || session.token || "------";
+
+    // Scoring system badge content
+    let scoringLabel = "CBT Ujian";
+    if (session.scoring_system === "Fixed" || session.correct_point !== undefined) {
+      scoringLabel = `UTBK (+${session.correct_point || 4} / ${session.penalty_point || 0} / ${session.empty_point || 0})`;
+    }
+
+    return (
+      <div
+        key={session.id}
+        className="bg-white border border-slate-100/90 shadow-[0_4px_20px_rgba(0,0,0,0.015)] hover:border-indigo-150 rounded-[24px] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-300 relative hover:shadow-md hover:scale-[1.005] group/card"
+      >
+        {/* Kolom Kiri: Ikon & Info Judul */}
+        <div className="flex items-center gap-4 min-w-0">
+          {/* Ikon Clipboard dengan dot status di pojok kanan bawah */}
+          <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center shrink-0 relative shadow-inner">
+            <FileText className="w-5.5 h-5.5 text-slate-400" />
+            <span
+              className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-3 border-white transition-all duration-500 ${
+                isActive
+                  ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse"
+                  : "bg-slate-300"
+              }`}
+            ></span>
+          </div>
+          
+          <div className="min-w-0 space-y-1">
+            <p className="font-extrabold text-slate-800 text-sm md:text-base tracking-tight leading-snug truncate group-hover/card:text-indigo-600 transition-colors">
+              {session.title || "Ujian Tanpa Judul"}
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 text-[9px] font-black tracking-wider uppercase text-indigo-600 bg-indigo-50/50 border border-indigo-100/30 rounded-md inline-block">
+                {scoringLabel}
+              </span>
+              <span className="text-[9px] font-mono text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+                {session.id.substring(0, 8)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Kolom Tengah 1: Token & Durasi (dengan Tooltip premium) */}
+        <div className="flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start gap-1 shrink-0 px-2">
+          {/* Live Token */}
+          <div className="flex items-center gap-1.5 text-cyan-600 bg-cyan-50 border border-cyan-100/50 px-3 py-1 rounded-xl shadow-sm hover:scale-105 transition-all duration-300">
+            <Key className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+            <span className="text-xs font-mono font-black tracking-wider uppercase">
+              {sessionToken}
+            </span>
+          </div>
+
+          {/* Durasi dengan dotted border & Tooltip Gelap (Hover) */}
+          <div className="relative group/tooltip mt-1 cursor-help">
+            <span className="text-[10px] text-slate-400 font-extrabold border-b border-dashed border-slate-300 pb-0.5 transition-colors group-hover/tooltip:border-slate-500 group-hover/tooltip:text-slate-600">
+              Duration: {session.duration_minutes || 90} mins
+            </span>
+            
+            {/* Popover Tooltip */}
+            <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 hidden group-hover/tooltip:block bg-slate-950/95 backdrop-blur-md text-white text-[11px] rounded-[20px] p-4 shadow-2xl z-50 border border-slate-800 w-56 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="space-y-2.5 text-left font-sans">
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full shrink-0"></span>
+                  <div>
+                    <p className="text-[9px] text-slate-400 font-black uppercase leading-none tracking-wide">Tanggal Pembuatan</p>
+                    <p className="font-extrabold text-slate-100 mt-0.5">
+                      {new Date(session.created_at || Date.now()).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric"
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 border-t border-slate-800/80 pt-2">
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full shrink-0"></span>
+                  <div>
+                    <p className="text-[9px] text-slate-400 font-black uppercase leading-none tracking-wide">Poin Penilaian</p>
+                    <p className="font-extrabold text-slate-100 mt-0.5">
+                      Benar: +{session.correct_point || 4} · Salah: {session.penalty_point || 0} · Kosong: {session.empty_point || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-950"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Kolom Tengah 2: Proctor / Pengawas */}
+        <div className="flex items-center gap-2.5 shrink-0 px-2">
+          <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-650 shrink-0 shadow-inner">
+            <Users className="w-4 h-4 text-indigo-500" />
+          </div>
+          <div>
+            <p className="text-[11px] font-extrabold text-slate-700 leading-none">Command HQ</p>
+            <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider mt-0.5">
+              {isActive ? "Proctor Active" : "Proctor Waiting"}
+            </p>
+          </div>
+        </div>
+
+        {/* Kolom Status Pill */}
+        <div className="shrink-0 flex items-center px-1">
+          <button
+            onClick={() => handleToggleActive(session.id, isActive)}
+            className={`px-4 py-1.5 rounded-full flex items-center gap-2 text-[11px] font-black border transition-all duration-300 shadow-sm active:scale-95 ${
+              isActive
+                ? "bg-emerald-50/50 border-emerald-250 text-emerald-700 hover:bg-emerald-50"
+                : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isActive
+                  ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)] animate-pulse"
+                  : "bg-slate-350"
+              }`}
+            ></span>
+            {isActive ? "In Progress" : "Waiting Approval"}
+          </button>
+        </div>
+
+        {/* Kolom Kanan: Aksi (Siaran & Dropdown Menu `...`) */}
+        <div className="flex items-center gap-2 shrink-0 justify-end">
+          <Link
+            href="/hq/llms/broadcast"
+            className="p-2 text-slate-400 hover:text-indigo-650 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-xl transition-all duration-200 active:scale-90"
+            title="Kirim Siaran Info"
+          >
+            <MessageSquare className="w-4.5 h-4.5" />
+          </Link>
+
+          {/* EllipsisDropdown Menu */}
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenDropdownId(openDropdownId === session.id ? null : session.id);
+              }}
+              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 rounded-xl transition-all duration-200 dropdown-trigger active:scale-90"
+              title="Kelola Sesi"
+            >
+              <MoreHorizontal className="w-4.5 h-4.5" />
+            </button>
+
+            {openDropdownId === session.id && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-150 rounded-2xl shadow-xl z-[90] p-1.5 dropdown-menu animate-in fade-in slide-in-from-top-2 duration-200">
+                <Link
+                  href={`/hq/llms/${session.id}/questions`}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-slate-700 hover:text-indigo-650 hover:bg-indigo-50/50 rounded-xl font-bold tracking-tight text-left transition-all"
+                >
+                  <FileText className="w-3.5 h-3.5 text-slate-400" />
+                  Kelola Bank Soal
+                </Link>
+                <Link
+                  href={`/hq/llms/${session.id}/monitor`}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-slate-700 hover:text-blue-650 hover:bg-blue-50/50 rounded-xl font-bold tracking-tight text-left transition-all"
+                >
+                  <Monitor className="w-3.5 h-3.5 text-slate-400 animate-pulse" />
+                  Pantau Live (CCTV)
+                </Link>
+                <Link
+                  href={`/hq/llms/${session.id}/leaderboard`}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-slate-700 hover:text-amber-650 hover:bg-amber-50/50 rounded-xl font-bold tracking-tight text-left transition-all"
+                >
+                  <Trophy className="w-3.5 h-3.5 text-slate-400" />
+                  Papan Skor (Hasil)
+                </Link>
+                <button
+                  onClick={() => {
+                    openEditModal(session);
+                    setOpenDropdownId(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-slate-700 hover:text-emerald-650 hover:bg-emerald-50/50 rounded-xl font-bold tracking-tight text-left transition-all"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-slate-400" />
+                  Edit Detail Sesi
+                </button>
+                <div className="h-px bg-slate-100 my-1"></div>
+                <button
+                  onClick={() => {
+                    openDeleteModal(session);
+                    setOpenDropdownId(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-rose-600 hover:bg-rose-50 rounded-xl font-extrabold tracking-tight text-left transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                  Hapus Sesi Ujian
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading && sessions.length === 0) {
@@ -507,153 +724,73 @@ export default function IntegratedLLMSDashboard() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
             {/* SESSION TABLE */}
-            <div className="xl:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 shadow-[0_12px_40px_rgba(31,38,135,0.05)] rounded-3xl overflow-hidden transition-all duration-300">
-              <div className="px-6 py-5 border-b border-slate-100/85 bg-white/40 flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
-                    Daftar Sesi & Live Monitoring
-                  </h3>
-                  <p className="text-xs font-semibold text-slate-400 mt-1">{sessions.length} sesi terdaftar</p>
-                </div>
+            <div className="xl:col-span-2 space-y-6">
+              
+              {/* TABS (Seperti Gambar Referensi) */}
+              <div className="bg-white border border-slate-100 shadow-[0_4px_25px_rgba(0,0,0,0.015)] rounded-[24px] p-2 flex gap-1 relative z-25">
+                {[
+                  { id: 'active', label: 'Active Sessions', count: sessions.filter(s => s.is_active).length },
+                  { id: 'inactive', label: 'Draft & Inactive', count: sessions.filter(s => !s.is_active).length },
+                  { id: 'all', label: 'All Sessions', count: sessions.length }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveFilter(tab.id as any)}
+                    className={`flex-1 py-3 px-4 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 relative ${
+                      activeFilter === tab.id
+                        ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20'
+                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {tab.label} ({tab.count})
+                  </button>
+                ))}
               </div>
 
-              {sessions.length === 0 ? (
-                <div className="py-16 flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-indigo-50 to-slate-100 border border-slate-200/50 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
-                    <Server className="w-8 h-8 text-indigo-400 animate-pulse" />
-                  </div>
-                  <p className="text-slate-500 font-extrabold text-sm uppercase tracking-wider">Belum ada sesi ujian</p>
-                  <p className="text-slate-400 text-xs mt-1">Klik &quot;Sesi Baru&quot; untuk memulai ujian</p>
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="mt-5 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md shadow-indigo-200 hover:scale-105 active:scale-95"
-                  >
-                    <Plus className="w-3.5 h-3.5 inline mr-1.5 stroke-[3px]" />Buat Sesi Pertama
-                  </button>
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100/80">
-                  {sessions.map((session) => (
-                    <div 
-                      key={session.id} 
-                      className={`px-6 py-5 hover:bg-indigo-50/20 transition-all duration-300 border-l-4 ${
-                        session.is_active ? 'border-l-emerald-500' : 'border-l-slate-200 hover:border-l-amber-400'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-4">
-
-                        {/* Session info */}
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-all duration-300 ${
-                            session.is_active 
-                              ? 'bg-emerald-50 border border-emerald-200/50 shadow-emerald-100' 
-                              : 'bg-slate-50 border border-slate-200/50 shadow-slate-100'
-                          }`}>
-                            <span className={`w-3 h-3 rounded-full transition-all duration-500 ${session.is_active ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-slate-300'}`}></span>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-extrabold text-slate-800 text-sm md:text-base tracking-tight leading-snug truncate">
-                              {session.title || 'Ujian Tanpa Judul'}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2 flex-wrap">
-                              <span className="text-[9px] font-black font-mono bg-indigo-50 border border-indigo-100/50 text-indigo-600 px-2 py-0.5 rounded-md shadow-sm">{session.id.substring(0,8)}</span>
-                              <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{session.duration_minutes || 90} MNT</span>
-                              {/* Toggle */}
-                              <button
-                                onClick={() => handleToggleActive(session.id, session.is_active)}
-                                className={`relative inline-flex h-5.5 w-10 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none shadow-inner ${
-                                  session.is_active ? 'bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-emerald-200' : 'bg-slate-200 shadow-slate-200'
-                                }`}
-                              >
-                                <span className={`inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow-md transition duration-300 ${session.is_active ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
-                              </button>
-                              <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
-                                session.is_active 
-                                  ? 'bg-emerald-50 border border-emerald-100/50 text-emerald-600 animate-pulse' 
-                                  : 'bg-slate-100 border border-slate-200/50 text-slate-400'
-                              }`}>
-                                {session.is_active ? 'ON' : 'OFF'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Live Token */}
-                        <div className="hidden md:flex flex-col items-center bg-slate-900 border border-slate-800 rounded-2xl px-5 py-2.5 shrink-0 shadow-lg shadow-indigo-950/20 relative group/token hover:scale-105 transition-all duration-300">
-                          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 to-cyan-500/5 rounded-2xl opacity-0 group-hover/token:opacity-100 transition-opacity duration-300"></div>
-                          <div className="flex items-center gap-2 text-cyan-400 font-mono font-black text-sm tracking-[0.2em] relative z-10">
-                            <Key className="w-3.5 h-3.5 text-cyan-500 shrink-0 animate-bounce" />
-                            <span>{liveTokens[session.id] || '------'}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-1 relative z-10">
-                            <Clock className="w-3 h-3 text-violet-400 animate-pulse" />
-                            <span className="text-[10px] text-violet-300 font-black tracking-wider">
-                              {Math.floor(countdown/60)}:{(countdown%60).toString().padStart(2,'0')}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button 
-                            onClick={() => openEditModal(session)} 
-                            className="p-2.5 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 border border-transparent hover:border-indigo-100 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm hover:shadow-indigo-100/40" 
-                            title="Edit"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <Link 
-                            href={`/hq/llms/${session.id}/questions`} 
-                            className="p-2.5 hover:bg-violet-50 text-slate-400 hover:text-violet-600 border border-transparent hover:border-violet-100 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm hover:shadow-violet-100/40" 
-                            title="Soal"
-                          >
-                            <FileText className="w-4 h-4" />
-                          </Link>
-                          <Link 
-                            href={`/hq/llms/${session.id}/monitor`} 
-                            className="p-2.5 hover:bg-blue-50 text-slate-400 hover:text-blue-600 border border-transparent hover:border-blue-100 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 relative shadow-sm hover:shadow-blue-100/40" 
-                            title="Pantau"
-                          >
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 border border-white rounded-full animate-ping"></span>
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 border border-white rounded-full"></span>
-                            <Monitor className="w-4 h-4" />
-                          </Link>
-                          <Link 
-                            href={`/hq/llms/${session.id}/leaderboard`} 
-                            className="p-2.5 hover:bg-amber-50 text-slate-400 hover:text-amber-600 border border-transparent hover:border-amber-100 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm hover:shadow-amber-100/40" 
-                            title="Skor"
-                          >
-                            <Trophy className="w-4 h-4" />
-                          </Link>
-                          <button 
-                            onClick={() => openDeleteModal(session)} 
-                            className="p-2.5 hover:bg-rose-50 text-slate-400 hover:text-rose-500 border border-transparent hover:border-rose-100 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm hover:shadow-rose-100/40" 
-                            title="Hapus"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Action labels */}
-                      <div className="hidden sm:flex items-center justify-end gap-1.5 mt-2">
-                        {[
-                          { label: 'Edit', color: 'text-indigo-400' },
-                          { label: 'Soal', color: 'text-violet-400' },
-                          { label: 'Pantau', color: 'text-sky-400' },
-                          { label: 'Skor', color: 'text-amber-400' },
-                          { label: 'Hapus', color: 'text-rose-400' }
-                        ].map(item => (
-                          <span key={item.label} className={`text-[9px] font-black uppercase tracking-wider w-[36px] text-center ${item.color} opacity-40 hover:opacity-100 transition-opacity`}>
-                            {item.label}
-                          </span>
-                        ))}
-                      </div>
+              {/* LIST CONTAINER */}
+              <div className="space-y-6">
+                
+                {/* SECTION: CURRENT */}
+                {(activeFilter === 'active' || activeFilter === 'all') && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                      <span>CURRENT</span>
+                      <Info className="w-3.5 h-3.5 text-slate-350 cursor-help" title="Sesi ujian yang sedang aktif dan bisa diikuti peserta" />
                     </div>
-                  ))}
-                </div>
-              )}
+                    {sessions.filter(s => s.is_active).length === 0 ? (
+                      <div className="bg-white border border-slate-100 rounded-3xl p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.01)]">
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Tidak ada sesi aktif saat ini</p>
+                        <p className="text-slate-350 text-[11px] mt-1">Aktifkan sesi dari tab Draft/Semua atau buat sesi baru.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3.5">
+                        {sessions.filter(s => s.is_active).map((session) => renderSessionCard(session))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* SECTION: UP NEXT */}
+                {(activeFilter === 'inactive' || activeFilter === 'all') && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                      <span>UP NEXT</span>
+                      <Info className="w-3.5 h-3.5 text-slate-350 cursor-help" title="Sesi ujian dalam bentuk draft atau belum diaktifkan" />
+                    </div>
+                    {sessions.filter(s => !s.is_active).length === 0 ? (
+                      <div className="bg-white border border-slate-100 rounded-3xl p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.01)]">
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Semua sesi telah diaktifkan</p>
+                        <p className="text-slate-350 text-[11px] mt-1">Gunakan tab Aktif untuk memantau pengerjaan ujian.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3.5">
+                        {sessions.filter(s => !s.is_active).map((session) => renderSessionCard(session))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              </div>
             </div>
 
             {/* SIDEBAR TOOLS */}
@@ -909,6 +1046,17 @@ export default function IntegratedLLMSDashboard() {
           </div>
         </div>
       )}
+
+      {/* ➕ FLOATING ACTIONS BUTTON (Seperti Gambar Referensi) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-2.5 px-8 py-4 bg-violet-600 hover:bg-violet-750 text-white font-extrabold text-xs uppercase tracking-wider rounded-full shadow-[0_10px_30px_rgba(109,40,217,0.35)] hover:shadow-[0_15px_35px_rgba(109,40,217,0.45)] transition-all duration-300 hover:scale-105 active:scale-95 border border-white/10"
+        >
+          <Plus className="w-4 h-4 stroke-[3px]" />
+          New Session
+        </button>
+      </div>
 
       {/* ─── TOAST ─── */}
       <div className={`fixed bottom-6 right-6 z-[99999] transition-all duration-500 transform ${toast.visible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none'}`}>
