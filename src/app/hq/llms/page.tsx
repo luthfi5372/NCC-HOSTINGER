@@ -13,7 +13,7 @@ import {
   RotateCcw, Key, Clock, Monitor, Trophy,
   ShieldCheck, AlertTriangle, FileDown, ChevronRight,
   Loader2, X, Save, Pencil, ToggleLeft, ToggleRight, Trash2,
-  Zap, Activity, Radio, Lock, MoreHorizontal, MessageSquare, Info, Check
+  Zap, Activity, Radio, Lock, MoreHorizontal, MessageSquare, Info, Check, FolderOpen
 } from "lucide-react";
 
 export default function IntegratedLLMSDashboard() {
@@ -500,10 +500,13 @@ export default function IntegratedLLMSDashboard() {
   const navItems = [
     { href: "/hq", icon: LayoutGrid, label: "Dashboard" },
     { href: "/hq?tab=Peserta", icon: Users, label: "Buku Peserta", badge: "11" },
+    { href: "/hq?tab=BelumDaftar", icon: AlertTriangle, label: "Belum Pilih Lomba", badge: "15" },
     { href: "/hq?tab=Verifikasi", icon: BadgeCheck, label: "Verifikasi Berkas", badge: "0" },
+    { href: "/hq?tab=Karya", icon: FolderOpen, label: "Pengumpulan Karya", badge: "1" },
     { href: "/hq/llms/broadcast", icon: Megaphone, label: "Siaran Info" },
+    { href: "/hq?tab=ForumSekolah", icon: MessageSquare, label: "Forum Sekolah" },
     { href: "/hq?tab=Kegiatan", icon: Calendar, label: "Kegiatan" },
-    { href: "/hq?tab=Schedule", icon: Clock, label: "Schedule Lomba" },
+    { href: "/hq?tab=Timeline", icon: Calendar, label: "Kelola Timeline Lomba" },
     { href: "/hq?tab=Media", icon: ImageIcon, label: "Kelola Media" },
     { href: "/hq/settings", icon: Settings, label: "Pengaturan" },
   ];

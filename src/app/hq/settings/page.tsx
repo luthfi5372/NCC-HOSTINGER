@@ -415,9 +415,9 @@ export default function SettingsDashboard() {
             <span>Kegiatan</span>
           </Link>
 
-          <Link href="/hq?tab=Schedule" className="flex items-center space-x-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">
-            <Clock className="w-5 h-5" />
-            <span>Schedule Lomba</span>
+          <Link href="/hq?tab=Timeline" className="flex items-center space-x-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">
+            <Calendar className="w-5 h-5" />
+            <span>Kelola Timeline Lomba</span>
           </Link>
           
           <Link href="/hq?tab=Media" className="flex items-center space-x-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">
