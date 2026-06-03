@@ -15,7 +15,7 @@ import { fetchPublicLeaderboard } from "@/lib/supabase/service";
 
 const CATEGORIES = ["SEMUA", "Olimpiade MIPA", "Speech Contest", "LKTI Nasional", "MTQ Nasional"];
 // Kategori yang merupakan tim (bisa punya anggota 2 + pembina)
-const TEAM_CATEGORIES = ["LKTI Nasional", "Olimpiade MIPA"];
+const TEAM_CATEGORIES = ["LKTI Nasional"];
 
 interface HasilCek {
   nama: string;

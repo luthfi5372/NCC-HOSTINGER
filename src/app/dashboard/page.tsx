@@ -377,7 +377,7 @@ export default function UserDashboard() {
     try {
       if (!currentUser) throw new Error("Sesi berakhir, silakan login kembali.");
 
-      const isTeam = localFormData?.competition_type === "Olimpiade MIPA" || localFormData?.competition_type === "LKTI Nasional";
+      const isTeam = localFormData?.competition_type === "LKTI Nasional";
 
       const combinedMentor = [
         localFormData.mentor_name?.trim(),
@@ -467,7 +467,7 @@ export default function UserDashboard() {
     }
   };
 
-  const isTeamEvent = formData?.competition_type === "Olimpiade MIPA" || formData?.competition_type === "LKTI Nasional";
+  const isTeamEvent = formData?.competition_type === "LKTI Nasional";
 
   const calculateProgress = () => {
     let score = 0;

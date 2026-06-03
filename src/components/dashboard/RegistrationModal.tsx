@@ -26,7 +26,7 @@ export default function RegistrationModal({
   const [studentCard2, setStudentCard2] = useState<File | null>(null);
   const [twibbon2, setTwibbon2] = useState<File | null>(null);
 
-  const isTeamEvent = formData?.competition_type === "Olimpiade MIPA" || formData?.competition_type === "LKTI Nasional";
+  const isTeamEvent = formData?.competition_type === "LKTI Nasional";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

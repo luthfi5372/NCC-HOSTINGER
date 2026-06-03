@@ -659,7 +659,7 @@ export default function StatusCards({
               })()}
 
               {[
-                ...((userEntry.competition_type === "LKTI Nasional" || userEntry.category === "LKTI Nasional" || userEntry.competition_type === "Olimpiade MIPA" || userEntry.category === "Olimpiade MIPA") ? [
+                ...((userEntry.competition_type === "LKTI Nasional" || userEntry.category === "LKTI Nasional") ? [
                   { label: "Nama Ketua (Anggota 1)", value: userEntry.full_name },
                   { label: "Nama Tim", value: userEntry.team_name },
                   { label: "NISN Ketua", value: userEntry.nisn }
@@ -671,7 +671,7 @@ export default function StatusCards({
                 { label: "WhatsApp", value: userEntry.phone },
                 { label: "Provinsi", value: userEntry.province },
                 // Tambahkan data Anggota 2 jika kategori Tim
-                ...((userEntry.competition_type === "LKTI Nasional" || userEntry.category === "LKTI Nasional" || userEntry.competition_type === "Olimpiade MIPA" || userEntry.category === "Olimpiade MIPA") ? [
+                ...((userEntry.competition_type === "LKTI Nasional" || userEntry.category === "LKTI Nasional") ? [
                   { label: "Nama Anggota Tim", value: userEntry.participant2_name },
                   { label: "NISN Anggota Tim", value: userEntry.participant2_nisn }
                 ] : [])
@@ -689,9 +689,7 @@ export default function StatusCards({
                     try { n = JSON.parse(userEntry.notes); } catch(e) {}
                   }
                   
-                  const isTeam = userEntry.competition_type === "Olimpiade MIPA" || 
-                                 userEntry.competition_type === "LKTI Nasional" || 
-                                 userEntry.category === "Olimpiade MIPA" || 
+                  const isTeam = userEntry.competition_type === "LKTI Nasional" || 
                                  userEntry.category === "LKTI Nasional";
 
                   return (
@@ -861,7 +859,7 @@ export default function StatusCards({
             <form onSubmit={handleUpdateProfile} className="space-y-3 text-xs">
               <input 
                 type="text" 
-                placeholder={(userEntry.competition_type === "LKTI Nasional" || userEntry.category === "LKTI Nasional" || userEntry.competition_type === "Olimpiade MIPA" || userEntry.category === "Olimpiade MIPA") ? "Nama Ketua (Anggota 1)" : "Nama Lengkap"} 
+                placeholder={(userEntry.competition_type === "LKTI Nasional" || userEntry.category === "LKTI Nasional") ? "Nama Ketua (Anggota 1)" : "Nama Lengkap"} 
                 className="w-full p-2.5 bg-slate-50 border rounded-xl font-semibold" 
                 value={profileForm.full_name} 
                 onChange={(e) => setProfileForm({...profileForm, full_name: e.target.value})} 
@@ -871,7 +869,7 @@ export default function StatusCards({
               <div className="grid grid-cols-2 gap-2">
                 <input 
                   type="text" 
-                  placeholder={(userEntry.competition_type === "LKTI Nasional" || userEntry.category === "LKTI Nasional" || userEntry.competition_type === "Olimpiade MIPA" || userEntry.category === "Olimpiade MIPA") ? "NISN Ketua" : "NISN"} 
+                  placeholder={(userEntry.competition_type === "LKTI Nasional" || userEntry.category === "LKTI Nasional") ? "NISN Ketua" : "NISN"} 
                   className="w-full p-2.5 bg-slate-50 border rounded-xl font-semibold" 
                   value={profileForm.nisn} 
                   onChange={(e) => setProfileForm({...profileForm, nisn: e.target.value})} 
@@ -924,7 +922,7 @@ export default function StatusCards({
               </div>
               
               {/* Form Tambahan Anggota 2 jika kategori Tim */}
-              {(userEntry.competition_type === "LKTI Nasional" || userEntry.category === "LKTI Nasional" || userEntry.competition_type === "Olimpiade MIPA" || userEntry.category === "Olimpiade MIPA") && (
+              {(userEntry.competition_type === "LKTI Nasional" || userEntry.category === "LKTI Nasional") && (
                 <div className="pt-2 space-y-2 border-t border-dashed border-slate-200 mt-2">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Tim & Anggota 2</p>
                   <input type="text" placeholder="Nama Tim" className="w-full p-2.5 bg-slate-50 border rounded-xl font-bold" value={profileForm.team_name} onChange={(e) => setProfileForm({...profileForm, team_name: e.target.value})} />

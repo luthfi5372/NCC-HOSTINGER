@@ -1924,7 +1924,7 @@ function ModernHQDashboardContent() {
 
     if (!hasFiles) return null;
 
-    const isTeam = p.competition_type === "LKTI Nasional" || p.competition_type === "Olimpiade MIPA" || p.category === "LKTI Nasional" || p.category === "Olimpiade MIPA";
+    const isTeam = p.competition_type === "LKTI Nasional" || p.category === "LKTI Nasional";
 
     return (
       <div className="p-4 bg-white/60 border border-slate-100 rounded-xl shadow-sm space-y-4">
@@ -5788,7 +5788,7 @@ function ModernHQDashboardContent() {
                 </div>
 
                 {/* Tambahan Data Anggota 2 jika kategori Tim */}
-                {(selectedParticipant.competition_type === "LKTI Nasional" || selectedParticipant.competition_type === "Olimpiade MIPA") && (
+                {selectedParticipant.competition_type === "LKTI Nasional" && (
                   <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl shadow-sm space-y-3">
                     <p className="text-[11px] font-bold text-blue-400 uppercase tracking-wider mb-1">Informasi Anggota Tim</p>
                     <div>
