@@ -1769,6 +1769,89 @@ function ModernHQDashboardContent() {
     }
   };
 
+  // --- MEMORI UNREGISTERED DELETE & SELEKSI ---
+  const [selectedUnregisteredUserIds, setSelectedUnregisteredUserIds] = useState<Set<string>>(new Set());
+  const [isBulkDeletingUnregistered, setIsBulkDeletingUnregistered] = useState(false);
+  const [showBulkDeleteUnregisteredModal, setShowBulkDeleteUnregisteredModal] = useState(false);
+  const [deleteUnregisteredModal, setDeleteUnregisteredModal] = useState<{ show: boolean; id: string | null; name: string }>({ show: false, id: null, name: "" });
+  const [isDeletingUnregistered, setIsDeletingUnregistered] = useState(false);
+
+  const toggleSelectUnregisteredUser = (id: string) => {
+    setSelectedUnregisteredUserIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllUnregistered = (visibleUsers: any[]) => {
+    if (visibleUsers.every(u => selectedUnregisteredUserIds.has(u.id))) {
+      setSelectedUnregisteredUserIds(new Set());
+    } else {
+      setSelectedUnregisteredUserIds(new Set(visibleUsers.map(u => u.id)));
+    }
+  };
+
+  const executeDeleteUnregistered = async () => {
+    if (!deleteUnregisteredModal.id || isDeletingUnregistered) return;
+    setIsDeletingUnregistered(true);
+
+    try {
+      const { error } = await supabase.rpc('delete_participant_completely', {
+        target_user_id: deleteUnregisteredModal.id
+      });
+      if (error) throw error;
+
+      // Hapus dari state layar
+      setUnregisteredUsers(prev => prev.filter(u => u.id !== deleteUnregisteredModal.id));
+      setSelectedUnregisteredUserIds(prev => {
+        const next = new Set(prev);
+        next.delete(deleteUnregisteredModal.id);
+        return next;
+      });
+
+      showToast(`User ${deleteUnregisteredModal.name} berhasil dihapus permanen dari sistem!`, "success");
+    } catch (err: any) {
+      showToast(`Gagal menghapus user: ${err.message}`, "error");
+    } finally {
+      setIsDeletingUnregistered(false);
+      setDeleteUnregisteredModal({ show: false, id: null, name: "" });
+    }
+  };
+
+  const executeBulkDeleteUnregistered = async () => {
+    if (selectedUnregisteredUserIds.size === 0 || isBulkDeletingUnregistered) return;
+    setIsBulkDeletingUnregistered(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    const userIds = Array.from(selectedUnregisteredUserIds);
+
+    for (const userId of userIds) {
+      try {
+        const { error } = await supabase.rpc('delete_participant_completely', {
+          target_user_id: userId
+        });
+        if (error) throw error;
+        successCount++;
+      } catch (err) {
+        failCount++;
+        console.error(`Gagal hapus user ${userId}:`, err);
+      }
+    }
+
+    setUnregisteredUsers(prev => prev.filter(u => !selectedUnregisteredUserIds.has(u.id)));
+    setSelectedUnregisteredUserIds(new Set());
+    setShowBulkDeleteUnregisteredModal(false);
+    setIsBulkDeletingUnregistered(false);
+
+    if (failCount === 0) {
+      showToast(`✅ ${successCount} user berhasil dihapus permanen!`, "success");
+    } else {
+      showToast(`⚠️ ${successCount} berhasil, ${failCount} gagal dihapus.`, "error");
+    }
+  };
+
   // Fungsi pemanggil Toast
   const showToast = (message: string, type: "success" | "error" = "success") => {
     // Jika ada toast lama, hapus dulu agar yang baru langsung muncul (interupsi)
@@ -2611,6 +2694,18 @@ function ModernHQDashboardContent() {
       .filter(e => filterCategory === "All" || (e.competition_type || e.category) === filterCategory);
   }, [realEntries, filterProgress, filterWave, searchQuery, filterCategory]);
 
+  // --- 🔍 MEMOIZED FILTERED UNREGISTERED USERS ---
+  const filteredUnregisteredUsers = React.useMemo(() => {
+    return unregisteredUsers.filter(u => {
+      if (!searchUnregisteredQuery) return true;
+      const q = searchUnregisteredQuery.toLowerCase();
+      return (u.fullName || "").toLowerCase().includes(q) ||
+             (u.email || "").toLowerCase().includes(q) ||
+             (u.username || "").toLowerCase().includes(q) ||
+             (u.school || "").toLowerCase().includes(q);
+    });
+  }, [unregisteredUsers, searchUnregisteredQuery]);
+
   const totalUnreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
 
   return (
@@ -3150,11 +3245,49 @@ function ModernHQDashboardContent() {
                 </div>
               </div>
             </div>
+
+            {/* Bilah Aksi Massal Unregistered (Bulk Actions Bar) */}
+            {selectedUnregisteredUserIds.size > 0 && (
+              <div className="bg-rose-50/80 border-b border-rose-100 px-6 py-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-3">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                  </span>
+                  <span className="text-sm font-bold text-rose-800">
+                    {selectedUnregisteredUserIds.size} Pengguna Terpilih
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedUnregisteredUserIds(new Set())}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
+                  >
+                    Batal Pilih
+                  </button>
+                  <button
+                    onClick={() => setShowBulkDeleteUnregisteredModal(true)}
+                    className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-md shadow-red-200"
+                  >
+                    <Trash2 size={13} />
+                    Hapus Permanen {selectedUnregisteredUserIds.size} Akun
+                  </button>
+                </div>
+              </div>
+            )}
             
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-slate-600 whitespace-nowrap">
                 <thead className="bg-slate-50/50 text-slate-500 font-bold border-b border-slate-100 text-[11px] uppercase tracking-wider">
                   <tr>
+                    <th className="py-4 px-4 w-12 text-center">
+                      <input 
+                        type="checkbox" 
+                        checked={filteredUnregisteredUsers.length > 0 && filteredUnregisteredUsers.every(u => selectedUnregisteredUserIds.has(u.id))}
+                        onChange={() => toggleSelectAllUnregistered(filteredUnregisteredUsers)}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                      />
+                    </th>
                     <th className="py-4 px-6 text-center">NO</th>
                     <th className="py-4 px-6">PROFIL PENGGUNA</th>
                     <th className="py-4 px-6">EMAIL</th>
@@ -3163,41 +3296,33 @@ function ModernHQDashboardContent() {
                     <th className="py-4 px-6">ASAL SEKOLAH</th>
                     <th className="py-4 px-6">TANGGAL REGISTRASI</th>
                     <th className="py-4 px-6">STATUS</th>
-                    <th className="py-4 px-6 text-center">AKSI</th>
+                    <th className="py-4 px-6 text-center sticky right-0 bg-slate-50 border-l border-slate-100 z-10 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)]">AKSI</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                 {isLoadingUnregistered ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      <td className="py-5 px-6 text-center"><div className="h-4 w-4 bg-slate-200 rounded mx-auto"></div></td>
+                      <td className="py-5 px-4 text-center"><div className="w-4 h-4 bg-slate-200 rounded mx-auto animate-pulse"></div></td>
+                      <td className="py-5 px-6 text-center"><div className="h-4 w-4 bg-slate-200 rounded mx-auto animate-pulse"></div></td>
                       <td className="py-5 px-6">
                         <div className="flex flex-col gap-2">
-                          <div className="h-4 w-32 bg-slate-200 rounded"></div>
-                          <div className="h-3 w-20 bg-slate-200 rounded"></div>
+                          <div className="h-4 w-32 bg-slate-200 rounded animate-pulse"></div>
+                          <div className="h-3 w-20 bg-slate-200 rounded animate-pulse"></div>
                         </div>
                       </td>
-                      <td className="py-5 px-6"><div className="h-4 w-40 bg-slate-200 rounded"></div></td>
-                      <td className="py-5 px-6"><div className="h-4 w-20 bg-slate-200 rounded"></div></td>
-                      <td className="py-5 px-6"><div className="h-4 w-28 bg-slate-200 rounded"></div></td>
-                      <td className="py-5 px-6"><div className="h-4 w-36 bg-slate-200 rounded"></div></td>
-                      <td className="py-5 px-6"><div className="h-4 w-24 bg-slate-200 rounded"></div></td>
-                      <td className="py-5 px-6"><div className="h-6 w-28 bg-slate-200 rounded"></div></td>
-                      <td className="py-5 px-6 text-center"><div className="h-8 w-16 bg-slate-200 rounded mx-auto"></div></td>
+                      <td className="py-5 px-6"><div className="h-4 w-40 bg-slate-200 rounded animate-pulse"></div></td>
+                      <td className="py-5 px-6"><div className="h-4 w-20 bg-slate-200 rounded animate-pulse"></div></td>
+                      <td className="py-5 px-6"><div className="h-4 w-28 bg-slate-200 rounded animate-pulse"></div></td>
+                      <td className="py-5 px-6"><div className="h-4 w-36 bg-slate-200 rounded animate-pulse"></div></td>
+                      <td className="py-5 px-6"><div className="h-4 w-24 bg-slate-200 rounded animate-pulse"></div></td>
+                      <td className="py-5 px-6"><div className="h-6 w-28 bg-slate-200 rounded animate-pulse"></div></td>
+                      <td className="py-5 px-6 text-center"><div className="h-8 w-16 bg-slate-200 rounded mx-auto animate-pulse"></div></td>
                     </tr>
                   ))
-                ) : unregisteredUsers
-                    .filter(u => {
-                      if (!searchUnregisteredQuery) return true;
-                      const q = searchUnregisteredQuery.toLowerCase();
-                      return (u.fullName || "").toLowerCase().includes(q) ||
-                             (u.email || "").toLowerCase().includes(q) ||
-                             (u.username || "").toLowerCase().includes(q) ||
-                             (u.school || "").toLowerCase().includes(q);
-                    })
-                    .length === 0 ? (
+                ) : filteredUnregisteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="py-16 text-center">
+                        <td colSpan={10} className="py-16 text-center">
                           <div className="flex flex-col items-center gap-3">
                             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
                               <Users size={28} className="text-slate-300" />
@@ -3217,101 +3342,112 @@ function ModernHQDashboardContent() {
                         </td>
                       </tr>
                     ) : (
-                      unregisteredUsers
-                        .filter(u => {
-                          if (!searchUnregisteredQuery) return true;
-                          const q = searchUnregisteredQuery.toLowerCase();
-                          return (u.fullName || "").toLowerCase().includes(q) ||
-                                 (u.email || "").toLowerCase().includes(q) ||
-                                 (u.username || "").toLowerCase().includes(q) ||
-                                 (u.school || "").toLowerCase().includes(q);
-                        })
-                        .map((user: any, index: number) => {
-                          const formattedDate = new Date(user.createdAt).toLocaleDateString('id-ID', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          });
+                      filteredUnregisteredUsers.map((user: any, index: number) => {
+                        const formattedDate = new Date(user.createdAt).toLocaleDateString('id-ID', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        });
 
-                          return (
-                            <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
-                              <td className="py-4 px-6 text-center font-bold text-slate-400 text-xs">{index + 1}</td>
-                              <td className="py-4 px-6">
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors text-sm">{user.fullName}</span>
-                                  <span className="text-xs text-slate-400 font-mono mt-0.5">@{user.username}</span>
-                                </div>
-                              </td>
-                              <td className="py-4 px-6 font-medium text-slate-600">{user.email}</td>
-                              <td className="py-4 px-6">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono text-xs text-slate-600 font-bold tracking-wider">
-                                    {revealedPasswords[user.id] ? user.password : "••••••••"}
-                                  </span>
-                                  <button
-                                    onClick={() => setRevealedPasswords(prev => ({ ...prev, [user.id]: !prev[user.id] }))}
-                                    className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded hover:bg-slate-100"
-                                    title={revealedPasswords[user.id] ? "Sembunyikan Password" : "Tampilkan Password"}
-                                  >
-                                    {revealedPasswords[user.id] ? <EyeOff size={14} /> : <Eye size={14} />}
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="py-4 px-6 text-slate-600 font-mono text-xs">{user.phone || "-"}</td>
-                              <td className="py-4 px-6">
-                                <div className="flex items-center gap-1.5">
-                                  <School size={14} className="text-slate-400" />
-                                  <span className="font-semibold text-slate-600 text-xs">{user.school || "-"}</span>
-                                </div>
-                              </td>
-                              <td className="py-4 px-6 text-slate-400 text-xs font-medium">{formattedDate}</td>
-                              <td className="py-4 px-6">
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-100 shadow-sm animate-pulse">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                  Belum Pilih Lomba
+                        const isSelected = selectedUnregisteredUserIds.has(user.id);
+
+                        return (
+                          <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="py-4 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                              <input 
+                                type="checkbox" 
+                                checked={isSelected}
+                                onChange={() => toggleSelectUnregisteredUser(user.id)}
+                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                              />
+                            </td>
+                            <td className="py-4 px-6 text-center font-bold text-slate-400 text-xs">{index + 1}</td>
+                            <td className="py-4 px-6">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors text-sm">{user.fullName}</span>
+                                <span className="text-xs text-slate-400 font-mono mt-0.5">@{user.username}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 font-medium text-slate-600">{user.email}</td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-xs text-slate-600 font-bold tracking-wider">
+                                  {revealedPasswords[user.id] ? user.password : "••••••••"}
                                 </span>
-                              </td>
-                              <td className="py-4 px-6 text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      if (user.email) {
-                                        navigator.clipboard.writeText(user.email);
-                                        showToast("Email berhasil disalin!", "success");
-                                      }
-                                    }}
-                                    title="Salin Email"
-                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active:scale-95 border border-transparent hover:border-blue-100 shadow-sm"
-                                  >
-                                    <Send size={14} />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      if (!user.phone || user.phone === "-") {
-                                        showToast("Nomor HP tidak dicantumkan oleh pengguna.", "error");
-                                        return;
-                                      }
-                                      let formattedPhone = user.phone.replace(/[^0-9]/g, "");
-                                      if (formattedPhone.startsWith("0")) {
-                                        formattedPhone = "62" + formattedPhone.slice(1);
-                                      } else if (formattedPhone.startsWith("8")) {
-                                        formattedPhone = "62" + formattedPhone;
-                                      }
-                                      const text = `Halo ${user.fullName}, kami dari panitia NCC 13th melihat Anda telah mendaftarkan akun di portal tetapi belum memilih kategori bidang lomba Anda.\n\nBerikut adalah data akun Anda untuk masuk:\n📧 Email: ${user.email}\n🔑 Password: ${user.password}\n\nSilakan login ke https://national-creativity-competition.vercel.app/login untuk memilih bidang lomba dan melengkapi pendaftaran Anda.\n\nApakah ada kendala yang bisa kami bantu?`;
-                                      window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, "_blank");
-                                    }}
-                                    title="Hubungi via WhatsApp"
-                                    className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all active:scale-95 border border-transparent hover:border-emerald-100 shadow-sm"
-                                  >
-                                    <MessageSquare size={14} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })
+                                <button
+                                  onClick={() => setRevealedPasswords(prev => ({ ...prev, [user.id]: !prev[user.id] }))}
+                                  className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded hover:bg-slate-100"
+                                  title={revealedPasswords[user.id] ? "Sembunyikan Password" : "Tampilkan Password"}
+                                >
+                                  {revealedPasswords[user.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 text-slate-600 font-mono text-xs">{user.phone || "-"}</td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center gap-1.5">
+                                <School size={14} className="text-slate-400" />
+                                <span className="font-semibold text-slate-600 text-xs">{user.school || "-"}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 text-slate-400 text-xs font-medium">{formattedDate}</td>
+                            <td className="py-4 px-6">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-100 shadow-sm animate-pulse">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                Belum Pilih Lomba
+                              </span>
+                            </td>
+                            <td 
+                              onClick={(e) => e.stopPropagation()}
+                              className="py-4 px-6 text-center sticky right-0 bg-white group-hover:bg-[#f8fafc] transition-colors shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] border-l border-slate-100 z-10"
+                            >
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    if (user.email) {
+                                      navigator.clipboard.writeText(user.email);
+                                      showToast("Email berhasil disalin!", "success");
+                                    }
+                                  }}
+                                  title="Salin Email"
+                                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active:scale-95 border border-transparent hover:border-blue-100 shadow-sm"
+                                >
+                                  <Send size={14} />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (!user.phone || user.phone === "-") {
+                                      showToast("Nomor HP tidak dicantumkan oleh pengguna.", "error");
+                                      return;
+                                    }
+                                    let formattedPhone = user.phone.replace(/[^0-9]/g, "");
+                                    if (formattedPhone.startsWith("0")) {
+                                      formattedPhone = "62" + formattedPhone.slice(1);
+                                    } else if (formattedPhone.startsWith("8")) {
+                                      formattedPhone = "62" + formattedPhone;
+                                    }
+                                    const text = `Halo ${user.fullName}, kami dari panitia NCC 13th melihat Anda telah mendaftarkan akun di portal tetapi belum memilih kategori bidang lomba Anda.\n\nBerikut adalah data akun Anda untuk masuk:\n📧 Email: ${user.email}\n🔑 Password: ${user.password}\n\nSilakan login ke https://national-creativity-competition.vercel.app/login untuk memilih bidang lomba dan melengkapi pendaftaran Anda.\n\nApakah ada kendala yang bisa kami bantu?`;
+                                    window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, "_blank");
+                                  }}
+                                  title="Hubungi via WhatsApp"
+                                  className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all active:scale-95 border border-transparent hover:border-emerald-100 shadow-sm"
+                                >
+                                  <MessageSquare size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteUnregisteredModal({ show: true, id: user.id, name: user.fullName })}
+                                  title="Hapus Pengguna Permanen"
+                                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all active:scale-95 border border-transparent hover:border-red-100 shadow-sm"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                 </tbody>
               </table>
@@ -5869,6 +6005,88 @@ function ModernHQDashboardContent() {
               className="flex-1 py-4 rounded-2xl font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95 disabled:bg-red-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isBulkDeleting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Menghapus...
+                </>
+              ) : (
+                "Ya, Hapus Permanen"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* 🚨 MODAL KONFIRMASI DELETE UNREGISTERED (PEMUSNAH) */}
+      {/* ========================================================= */}
+      <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-200 ${deleteUnregisteredModal.show ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-slate-900/50" onClick={() => !isDeletingUnregistered && setDeleteUnregisteredModal({ ...deleteUnregisteredModal, show: false })}></div>
+        
+        <div className={`bg-white border border-red-100 shadow-2xl rounded-[2rem] p-8 max-w-md w-full relative transition-all duration-200 transform ${deleteUnregisteredModal.show ? 'scale-100 translate-y-0' : 'scale-[0.98] translate-y-2'}`}>
+          <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[1.5rem] flex items-center justify-center mb-6 shadow-inner mx-auto border border-red-100/50">
+            <Trash2 size={36} className={isDeletingUnregistered ? "animate-spin" : ""} />
+          </div>
+          <h3 className="text-2xl font-black text-slate-800 text-center mb-2 tracking-tight">Hapus Pengguna?</h3>
+          <p className="text-slate-500 text-center mb-8 text-sm leading-relaxed">
+            Anda yakin ingin menghapus akun pengguna atas nama <strong className="text-slate-800">{deleteUnregisteredModal.name}</strong>? Akun ini akan dihapus dari sistem secara permanen.
+          </p>
+          
+          <div className="flex gap-4">
+            <button 
+              disabled={isDeletingUnregistered}
+              onClick={() => setDeleteUnregisteredModal({ ...deleteUnregisteredModal, show: false })} 
+              className="flex-1 py-4 rounded-2xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button 
+              disabled={isDeletingUnregistered}
+              onClick={executeDeleteUnregistered} 
+              className="flex-1 py-4 rounded-2xl font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95 disabled:bg-red-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isDeletingUnregistered ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Menghapus...
+                </>
+              ) : (
+                "Ya, Hapus Permanen"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* 🚨 MODAL KONFIRMASI BULK DELETE UNREGISTERED (PEMUSNAH MASSAL) */}
+      {/* ========================================================= */}
+      <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-200 ${showBulkDeleteUnregisteredModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-slate-900/50" onClick={() => !isBulkDeletingUnregistered && setShowBulkDeleteUnregisteredModal(false)}></div>
+        
+        <div className={`bg-white border border-red-100 shadow-2xl rounded-[2rem] p-8 max-w-md w-full relative transition-all duration-200 transform ${showBulkDeleteUnregisteredModal ? 'scale-100 translate-y-0' : 'scale-[0.98] translate-y-2'}`}>
+          <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[1.5rem] flex items-center justify-center mb-6 shadow-inner mx-auto border border-red-100/50">
+            <Trash2 size={36} className={isBulkDeletingUnregistered ? "animate-bounce" : ""} />
+          </div>
+          <h3 className="text-2xl font-black text-slate-800 text-center mb-2 tracking-tight">Hapus Massal Akun?</h3>
+          <p className="text-slate-500 text-center mb-8 text-sm leading-relaxed">
+            Anda yakin ingin menghapus secara permanen <strong className="text-slate-800">{selectedUnregisteredUserIds.size} akun pengguna</strong> yang terpilih? Tindakan ini tidak dapat dibatalkan dan semua data terkait akan dihapus dari sistem selamanya.
+          </p>
+          
+          <div className="flex gap-4">
+            <button 
+              disabled={isBulkDeletingUnregistered}
+              onClick={() => setShowBulkDeleteUnregisteredModal(false)} 
+              className="flex-1 py-4 rounded-2xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button 
+              disabled={isBulkDeletingUnregistered}
+              onClick={executeBulkDeleteUnregistered} 
+              className="flex-1 py-4 rounded-2xl font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95 disabled:bg-red-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isBulkDeletingUnregistered ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   Menghapus...
