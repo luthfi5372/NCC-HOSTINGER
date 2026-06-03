@@ -2291,6 +2291,12 @@ function ModernHQDashboardContent() {
         newParticipant.mentor_phone?.trim()
       ].filter(Boolean).join(" | ");
 
+      const activeWave = waves.find(w => w.status === 'Aktif');
+      const notesObj: any = {};
+      if (activeWave) {
+        notesObj.registered_wave = activeWave.name;
+      }
+
       const insertData = {
         id: entryId,
         user_id: crypto.randomUUID(), // fake user_id for manual entry
@@ -2303,7 +2309,8 @@ function ModernHQDashboardContent() {
         competition_type: newParticipant.category,
         mentor_name: combinedMentor,
         phone_number: newParticipant.phone_number,
-        payment_status: 'Verified'
+        payment_status: 'Verified',
+        notes: Object.keys(notesObj).length > 0 ? JSON.stringify(notesObj) : null
       };
       
       const { error } = await supabase.from('competition_entries').insert([insertData]);
@@ -2355,6 +2362,13 @@ function ModernHQDashboardContent() {
             throw new Error("File CSV kosong atau tidak valid");
           }
           
+          const activeWave = waves.find(w => w.status === 'Aktif');
+          const notesObj: any = {};
+          if (activeWave) {
+            notesObj.registered_wave = activeWave.name;
+          }
+          const notesString = Object.keys(notesObj).length > 0 ? JSON.stringify(notesObj) : null;
+
           const insertArray = rows.map((row) => ({
             id: crypto.randomUUID(),
             user_id: crypto.randomUUID(),
@@ -2368,7 +2382,8 @@ function ModernHQDashboardContent() {
             competition_type: row.kategori_lomba || "-",
             mentor_name: row.nama_pembina || "-",
             phone_number: row.no_wa || "-",
-            payment_status: 'Verified'
+            payment_status: 'Verified',
+            notes: notesString
           }));
           
           const { error } = await supabase.from('competition_entries').insert(insertArray);
@@ -2687,7 +2702,22 @@ function ModernHQDashboardContent() {
   };
 
   // --- 🌊 DYNAMIC WAVE DETECTION HELPER ---
-  const getParticipantWave = (createdAtStr: string) => {
+  const getParticipantWave = (entryOrDateStr: any) => {
+    let createdAtStr = "";
+    if (entryOrDateStr && typeof entryOrDateStr === 'object') {
+      if (entryOrDateStr.notes) {
+        try {
+          const parsed = JSON.parse(entryOrDateStr.notes);
+          if (parsed.registered_wave) {
+            return parsed.registered_wave;
+          }
+        } catch (e) {}
+      }
+      createdAtStr = entryOrDateStr.created_at;
+    } else if (typeof entryOrDateStr === 'string') {
+      createdAtStr = entryOrDateStr;
+    }
+
     if (!createdAtStr) return waves.length > 0 ? waves[0].name : "Gelombang 1";
     const date = new Date(createdAtStr);
     
@@ -2754,7 +2784,7 @@ function ModernHQDashboardContent() {
         e.school_name || e.school || "-",
         e.province || e.city || "-",
         e.competition_type || e.category || "-",
-        getParticipantWave(e.created_at),
+        getParticipantWave(e),
         submissionUrl,
         new Date(e.created_at).toLocaleString('id-ID')
       ];
@@ -2806,14 +2836,11 @@ function ModernHQDashboardContent() {
       })
       .filter(e => {
         if (filterWave === "All") return true;
-        // Dynamic: match selected wave by checking if entry's registration date falls within the wave's date range
+        const entryWaveName = getParticipantWave(e);
         const selectedWave = waves.find(w => w.name === filterWave || w.name.split(" (")[0] === filterWave);
         if (!selectedWave) return true; // Unknown wave key — show all
-        if (!selectedWave.startDate || !selectedWave.endDate) return true;
-        const entryDate = new Date(e.created_at);
-        const start = new Date(selectedWave.startDate + "T00:00:00");
-        const end   = new Date(selectedWave.endDate   + "T23:59:59");
-        return entryDate >= start && entryDate <= end;
+        const waveClean = selectedWave.name.split(" (")[0];
+        return entryWaveName === selectedWave.name || entryWaveName.split(" (")[0] === waveClean;
       })
       .filter(e => {
         if (!searchQuery) return true;
@@ -3143,9 +3170,8 @@ function ModernHQDashboardContent() {
                     const style = statColors[idx % statColors.length];
                     const waveClean = wave.name.split(" (")[0];
                     const count = realEntries.filter(e => {
-                      if (!wave.startDate || !wave.endDate) return false;
-                      const d = new Date(e.created_at);
-                      return d >= new Date(wave.startDate + "T00:00:00") && d <= new Date(wave.endDate + "T23:59:59");
+                      const entryWaveName = getParticipantWave(e);
+                      return entryWaveName === wave.name || entryWaveName.split(" (")[0] === waveClean;
                     }).length;
                     return (
                       <span key={wave.id ?? idx} className={`${style.bg} px-3.5 py-1.5 rounded-xl text-xs font-black border shadow-sm shrink-0 flex items-center gap-1.5 min-w-[120px]`}>
@@ -3322,7 +3348,7 @@ function ModernHQDashboardContent() {
                       <ParticipantRow 
                         key={entry.id} 
                         entry={entry}
-                        waveName={getParticipantWave(entry.created_at)}
+                        waveName={getParticipantWave(entry)}
                         isSelected={selectedEntryIds.has(entry.id)}
                         onSelectToggle={() => toggleSelectEntry(entry.id)}
                         onRowClick={setSelectedParticipant}
@@ -3828,7 +3854,7 @@ function ModernHQDashboardContent() {
                           </td>
                           <td className="py-4 px-6">
                             {(() => {
-                              const wName = getParticipantWave(entry.created_at);
+                              const wName = getParticipantWave(entry);
                               const waveClean = wName.split(" (")[0];
                               const matchedWave = waves.find(w => w.name.includes(waveClean) || waveClean.includes(w.name.split(" (")[0]));
                               const waveId = matchedWave ? matchedWave.id : 1;

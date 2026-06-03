@@ -391,6 +391,12 @@ export default function UserDashboard() {
         notesObj.custom_password = customPassword;
       }
 
+      // Ambil gelombang pendaftaran aktif untuk dikunci secara permanen di database
+      const activeWave = portalWaves.find((w: any) => w.status === 'Aktif');
+      if (activeWave) {
+        notesObj.registered_wave = activeWave.name;
+      }
+
       // Helper function untuk upload berkas ke Supabase Storage
       const uploadFile = async (file: File, typeLabel: string) => {
         const fileExt = file.name.split('.').pop();
