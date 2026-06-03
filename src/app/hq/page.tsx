@@ -1339,13 +1339,13 @@ function ModernHQDashboardContent() {
     setSubmissionStatus(prev => {
       const exists = prev.some(item => item.id === id);
       if (!exists) {
-        const defaultName = id.includes('lkti') ? 'LKTI Nasional' 
-                         : id.includes('mipa') ? 'Olimpiade MIPA' 
-                         : id.includes('speech') ? 'Speech Contest' 
-                         : 'MTQ';
-        const waveId = id.split('_g')[1] || "1";
-        const waveLabel = `Gel. ${waveId}`;
-        return [...prev, { id, name: `${defaultName} (${waveLabel})`, isOpen: true, openAt: "", closeAt: "", mode: "Manual" }];
+        const catId = id.split('_g')[0];
+        const waveId = parseInt(id.split('_g')[1] || "1");
+        const matchedCat = categories.find(c => c.id === catId);
+        const matchedWave = waves.find(w => w.id === waveId);
+        const defaultName = matchedCat ? matchedCat.name : 'Kompetisi';
+        const waveCleanName = matchedWave ? matchedWave.name.split(' (')[0] : `Gel. ${waveId}`;
+        return [...prev, { id, name: `${defaultName} (${waveCleanName})`, isOpen: true, openAt: "", closeAt: "", mode: "Manual" }];
       }
       return prev.map(item => 
         item.id === id ? { ...item, isOpen: !item.isOpen, mode: "Manual" } : item
@@ -1357,13 +1357,13 @@ function ModernHQDashboardContent() {
     setSubmissionStatus(prev => {
       const exists = prev.some(item => item.id === id);
       if (!exists) {
-        const defaultName = id.includes('lkti') ? 'LKTI Nasional' 
-                         : id.includes('mipa') ? 'Olimpiade MIPA' 
-                         : id.includes('speech') ? 'Speech Contest' 
-                         : 'MTQ';
-        const waveId = id.split('_g')[1] || "1";
-        const waveLabel = `Gel. ${waveId}`;
-        return [...prev, { id, name: `${defaultName} (${waveLabel})`, isOpen: false, openAt: "", closeAt: "", mode: "Manual", [type]: value }];
+        const catId = id.split('_g')[0];
+        const waveId = parseInt(id.split('_g')[1] || "1");
+        const matchedCat = categories.find(c => c.id === catId);
+        const matchedWave = waves.find(w => w.id === waveId);
+        const defaultName = matchedCat ? matchedCat.name : 'Kompetisi';
+        const waveCleanName = matchedWave ? matchedWave.name.split(' (')[0] : `Gel. ${waveId}`;
+        return [...prev, { id, name: `${defaultName} (${waveCleanName})`, isOpen: false, openAt: "", closeAt: "", mode: "Manual", [type]: value }];
       }
       return prev.map(item => 
         item.id === id ? { ...item, [type]: value } : item
@@ -1427,15 +1427,24 @@ function ModernHQDashboardContent() {
     ));
   };
 
+  const DEFAULT_CATEGORIES = [
+    { id: 'mipa', name: 'Olimpiade MIPA', color: 'amber' },
+    { id: 'speech', name: 'Speech Contest', color: 'purple' },
+    { id: 'lkti', name: 'LKTI Nasional', color: 'blue' },
+    { id: 'mtq', name: 'MTQ Nasional', color: 'emerald' }
+  ];
+
   // Waves loaded dynamically from DB via fetchPortalSettings — do NOT hardcode here
   const [waves, setWaves] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>(DEFAULT_CATEGORIES);
 
   const toggleWaveStatus = (id: number) => {
-    setWaves(prev => prev.map(w => 
-      w.id === id 
-        ? { ...w, status: w.status === 'Aktif' ? 'Tutup' : 'Aktif' } 
-        : w
-    ));
+    setWaves(prev => prev.map(w => {
+      if (w.id === id) {
+        return { ...w, status: w.status === 'Aktif' ? 'Tutup' : 'Aktif' };
+      }
+      return w.status === 'Aktif' ? { ...w, status: 'Tutup' } : w;
+    }));
   };
 
   const [dashboardAssets, setDashboardAssets] = useState<any>({
@@ -1484,7 +1493,7 @@ function ModernHQDashboardContent() {
   };
 
   // --- 📡 PORTAL SYNC WRITER ---
-  const performSyncToDatabase = async (currentWaves = waves, currentSub = submissionStatus, currentPhase = phaseStatus, currentAssets = dashboardAssets, currentReg = isRegistrationOpen) => {
+  const performSyncToDatabase = async (currentWaves = waves, currentSub = submissionStatus, currentPhase = phaseStatus, currentAssets = dashboardAssets, currentReg = isRegistrationOpen, currentCats = categories) => {
     try {
       const { data: existing, error: fetchError } = await supabase
         .from('announcements')
@@ -1502,7 +1511,8 @@ function ModernHQDashboardContent() {
         submissionStatus: currentSub, 
         phaseStatus: currentPhase, 
         dashboardAssets: currentAssets, 
-        isRegistrationOpen: currentReg 
+        isRegistrationOpen: currentReg,
+        categories: currentCats
       };
 
       if (existing && existing.content) {
@@ -1546,7 +1556,59 @@ function ModernHQDashboardContent() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [waves, submissionStatus, phaseStatus, dashboardAssets, isRegistrationOpen, isPortalLoaded]);
+  }, [waves, submissionStatus, phaseStatus, dashboardAssets, isRegistrationOpen, categories, isPortalLoaded]);
+
+  // --- 🔄 DYNAMIC PORTAL GENERATOR SYSTEM ---
+  useEffect(() => {
+    if (!isPortalLoaded) return;
+
+    const updatedStatus = [...submissionStatus];
+    let hasChanged = false;
+
+    waves.forEach(wave => {
+      categories.forEach(cat => {
+        const id = `${cat.id}_g${wave.id}`;
+        const exists = updatedStatus.some(item => item.id === id);
+        if (!exists) {
+          const waveCleanName = wave.name.split(' (')[0];
+          updatedStatus.push({
+            id,
+            name: `${cat.name} (${waveCleanName})`,
+            isOpen: false,
+            openAt: "",
+            closeAt: "",
+            mode: "Manual"
+          });
+          hasChanged = true;
+        } else {
+          const index = updatedStatus.findIndex(item => item.id === id);
+          const waveCleanName = wave.name.split(' (')[0];
+          const expectedName = `${cat.name} (${waveCleanName})`;
+          if (updatedStatus[index].name !== expectedName) {
+            updatedStatus[index] = { ...updatedStatus[index], name: expectedName };
+            hasChanged = true;
+          }
+        }
+      });
+    });
+
+    // Remove any portals that correspond to deleted waves or deleted categories
+    const validIds = new Set(
+      waves.flatMap(wave => categories.map(cat => `${cat.id}_g${wave.id}`))
+    );
+
+    const filteredStatus = updatedStatus.filter(item => {
+      if (!validIds.has(item.id)) {
+        hasChanged = true;
+        return false;
+      }
+      return true;
+    });
+
+    if (hasChanged) {
+      setSubmissionStatus(filteredStatus);
+    }
+  }, [waves, categories, isPortalLoaded]);
 
   // --- 📡 REAL-TIME TIMELINE AUTO-SYNC ---
   useEffect(() => {
@@ -2528,6 +2590,7 @@ function ModernHQDashboardContent() {
           const parsed = JSON.parse(existing.content);
           if (parsed.submissionStatus) setSubmissionStatus(parsed.submissionStatus);
           if (parsed.waves) setWaves(parsed.waves);
+          if (parsed.categories) setCategories(parsed.categories);
           if (parsed.phaseStatus) setPhaseStatus(parsed.phaseStatus);
           if (parsed.dashboardAssets) setDashboardAssets(parsed.dashboardAssets);
           if (parsed.isRegistrationOpen !== undefined) setIsRegistrationOpen(parsed.isRegistrationOpen);
@@ -3217,10 +3280,9 @@ function ModernHQDashboardContent() {
                     className="w-full pl-4 pr-10 py-2.5 bg-white/90 backdrop-blur-md border border-white/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 appearance-none text-slate-700 font-medium shadow-sm"
                   >
                     <option value="All">Semua Kategori</option>
-                    <option value="Olimpiade MIPA">Olimpiade MIPA</option>
-                    <option value="Speech Contest">Speech Contest</option>
-                    <option value="LKTI Nasional">LKTI Nasional</option>
-                    <option value="MTQ Nasional">MTQ Nasional</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.name}>{cat.name}</option>
+                    ))}
                   </select>
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     <Filter size={14} className="text-slate-400" />
@@ -3702,24 +3764,28 @@ function ModernHQDashboardContent() {
                 {/* Selector Pembagian Kategori (LKTI, MIPA, SPEECH, MTQ) dan Filter Gelombang */}
                 <div className="flex flex-wrap gap-2.5 w-full md:w-auto items-center">
                   {/* Kategori Lomba */}
-                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60 shadow-inner">
-                    {[
-                      { value: "All", label: "Semua Lomba" },
-                      { value: "LKTI Nasional", label: "LKTI" },
-                      { value: "Olimpiade MIPA", label: "MIPA" },
-                      { value: "Speech Contest", label: "Speech" },
-                      { value: "MTQ Nasional", label: "MTQ" }
-                    ].map((tab) => (
+                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60 shadow-inner overflow-x-auto max-w-full gap-0.5">
+                    <button
+                      onClick={() => setFilterCategory("All")}
+                      className={`px-4 py-2 rounded-lg text-xs font-black transition-all shrink-0 ${
+                        filterCategory === "All"
+                          ? 'bg-white text-slate-800 shadow-sm border border-slate-200/40'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Semua Lomba
+                    </button>
+                    {categories.map((cat) => (
                       <button
-                        key={tab.value}
-                        onClick={() => setFilterCategory(tab.value)}
-                        className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
-                          filterCategory === tab.value
+                        key={cat.id}
+                        onClick={() => setFilterCategory(cat.name)}
+                        className={`px-4 py-2 rounded-lg text-xs font-black transition-all shrink-0 ${
+                          filterCategory === cat.name
                             ? 'bg-white text-slate-800 shadow-sm border border-slate-200/40'
                             : 'text-slate-500 hover:text-slate-800'
                         }`}
                       >
-                        {tab.label}
+                        {cat.name.split(' ')[0]}
                       </button>
                     ))}
                   </div>
@@ -4236,96 +4302,6 @@ function ModernHQDashboardContent() {
                   </p>
                 </div>
               )}
-            </div>
-
-            {/* 2. MANAJEMEN GELOMBANG */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-white/60">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                <div>
-                  <h3 className="text-xl font-black text-slate-800">Manajemen Gelombang</h3>
-                  <p className="text-sm text-slate-500 mt-1">Atur jadwal pendaftaran per gelombang.</p>
-                </div>
-                <button 
-                  onClick={() => {
-                    const newId = waves.length + 1;
-                    setWaves([...waves, {
-                      id: newId,
-                      name: `Gelombang ${newId}`,
-                      status: 'Tutup',
-                      startDate: '',
-                      endDate: '',
-                    }]);
-                    showToast(`Gelombang ${newId} berhasil ditambahkan.`, 'success');
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2 shrink-0"
-                >
-                  + Tambah Gelombang
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                {waves.map((wave) => (
-                  <div 
-                    key={wave.id} 
-                    className={`border-2 rounded-2xl p-6 transition-all duration-300 ${
-                      wave.status === 'Aktif' 
-                        ? 'border-blue-400 bg-blue-50/40 shadow-md shadow-blue-50' 
-                        : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <h4 className="font-bold text-lg text-slate-800">{wave.name}</h4>
-                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1 ${wave.status === 'Aktif' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-slate-100 text-slate-400'}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${wave.status === 'Aktif' ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`}></div>
-                        {wave.status === 'Aktif' ? 'Live' : 'Tutup'}
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tanggal Mulai</label>
-                        <input 
-                          type="date" 
-                          value={wave.startDate}
-                          onChange={(e) => setWaves(prev => prev.map(w => w.id === wave.id ? {...w, startDate: e.target.value} : w))}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tanggal Selesai</label>
-                        <input 
-                          type="date" 
-                          value={wave.endDate}
-                          onChange={(e) => setWaves(prev => prev.map(w => w.id === wave.id ? {...w, endDate: e.target.value} : w))}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-5 pt-4 border-t border-slate-100 flex gap-2">
-                      <button 
-                        onClick={() => toggleWaveStatus(wave.id)}
-                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
-                          wave.status === 'Aktif'
-                            ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200'
-                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
-                        }`}
-                      >
-                        {wave.status === 'Aktif' ? <><XCircle size={13}/> Nonaktifkan</> : <><CheckCircle2 size={13}/> Aktifkan</>}
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setWaves(prev => prev.filter(w => w.id !== wave.id));
-                          showToast(`${wave.name} dihapus.`, 'error');
-                        }}
-                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all active:scale-95"
-                      >
-                        <Trash2 size={13}/>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         )}
@@ -4905,6 +4881,215 @@ function ModernHQDashboardContent() {
                 </div>
               </button>
             </div>
+
+            {/* 1.5. MANAJEMEN GELOMBANG & KATEGORI LOMBA (TABEL RINGKAS) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* KOLOM KIRI: MANAJEMEN GELOMBANG */}
+              <div className="lg:col-span-7 bg-white rounded-3xl p-6 shadow-sm border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-xl animate-pulse">
+                      <Calendar size={18} />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-slate-800 text-sm">Manajemen Gelombang</h4>
+                      <p className="text-[10px] text-slate-400 font-medium">Daftar periode pendaftaran</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const newId = waves.length > 0 ? Math.max(...waves.map(w => w.id)) + 1 : 1;
+                      setWaves([...waves, {
+                        id: newId,
+                        name: `Gelombang ${newId}`,
+                        status: 'Tutup',
+                        startDate: '',
+                        endDate: ''
+                      }]);
+                      showToast("Gelombang baru berhasil ditambahkan.", "success");
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl font-bold text-[10px] shadow-sm transition-all active:scale-95 flex items-center gap-1"
+                  >
+                    + Tambah Gelombang
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-slate-400 font-bold">
+                        <th className="pb-2 font-black uppercase text-[9px] tracking-wider">Nama Gelombang</th>
+                        <th className="pb-2 font-black uppercase text-[9px] tracking-wider w-[120px]">Tgl Mulai</th>
+                        <th className="pb-2 font-black uppercase text-[9px] tracking-wider w-[120px]">Tgl Selesai</th>
+                        <th className="pb-2 font-black uppercase text-[9px] tracking-wider text-center w-[70px]">Status</th>
+                        <th className="pb-2 text-center w-[50px]">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {waves.map((wave) => (
+                        <tr key={wave.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="py-2.5 pr-2">
+                            <input 
+                              type="text"
+                              value={wave.name}
+                              onChange={(e) => setWaves(prev => prev.map(w => w.id === wave.id ? {...w, name: e.target.value} : w))}
+                              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-400 outline-none rounded-lg px-2 py-1.5 font-bold text-slate-700 transition-all text-xs"
+                            />
+                          </td>
+                          <td className="py-2.5 pr-2">
+                            <input 
+                              type="date"
+                              value={wave.startDate}
+                              onChange={(e) => setWaves(prev => prev.map(w => w.id === wave.id ? {...w, startDate: e.target.value} : w))}
+                              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-400 outline-none rounded-lg px-2 py-1.5 text-slate-600 transition-all text-xs"
+                            />
+                          </td>
+                          <td className="py-2.5 pr-2">
+                            <input 
+                              type="date"
+                              value={wave.endDate}
+                              onChange={(e) => setWaves(prev => prev.map(w => w.id === wave.id ? {...w, endDate: e.target.value} : w))}
+                              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-400 outline-none rounded-lg px-2 py-1.5 text-slate-600 transition-all text-xs"
+                            />
+                          </td>
+                          <td className="py-2.5 text-center">
+                            <button 
+                              onClick={() => {
+                                toggleWaveStatus(wave.id);
+                                showToast(`${wave.name} ${wave.status === 'Aktif' ? 'Ditutup' : 'Diaktifkan'}`, wave.status === 'Aktif' ? 'error' : 'success');
+                              }}
+                              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
+                                wave.status === 'Aktif' 
+                                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
+                                  : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200'
+                              }`}
+                            >
+                              {wave.status === 'Aktif' ? 'Live' : 'Tutup'}
+                            </button>
+                          </td>
+                          <td className="py-2.5 text-center">
+                            <button 
+                              onClick={() => {
+                                setWaves(prev => prev.filter(w => w.id !== wave.id));
+                                showToast(`${wave.name} dihapus.`, 'error');
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all active:scale-95"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {waves.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="py-4 text-center text-slate-400 font-medium">Belum ada gelombang. Klik Tambah Gelombang.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* KOLOM KANAN: MANAJEMEN KATEGORI LOMBA */}
+              <div className="lg:col-span-5 bg-white rounded-3xl p-6 shadow-sm border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                      <Sparkles size={18} />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-slate-800 text-sm">Kategori Lomba</h4>
+                      <p className="text-[10px] text-slate-400 font-medium">Cabang kompetisi resmi</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const newIdSuffix = categories.length + 1;
+                      const randomId = `lomba_${newIdSuffix}`;
+                      setCategories([...categories, {
+                        id: randomId,
+                        name: `Cabang Lomba ${newIdSuffix}`,
+                        color: 'blue'
+                      }]);
+                      showToast("Kategori lomba baru ditambahkan.", "success");
+                    }}
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-xl font-bold text-[10px] shadow-sm transition-all active:scale-95 flex items-center gap-1"
+                  >
+                    + Tambah Lomba
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-slate-400 font-bold">
+                        <th className="pb-2 font-black uppercase text-[9px] tracking-wider w-[80px]">ID Lomba</th>
+                        <th className="pb-2 font-black uppercase text-[9px] tracking-wider">Nama Kategori</th>
+                        <th className="pb-2 font-black uppercase text-[9px] tracking-wider w-[90px]">Warna</th>
+                        <th className="pb-2 text-center w-[50px]">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {categories.map((cat, idx) => (
+                        <tr key={cat.id || idx} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="py-2.5 pr-2">
+                            <input 
+                              type="text"
+                              value={cat.id}
+                              onChange={(e) => {
+                                const newId = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
+                                setCategories(prev => prev.map(c => c.id === cat.id ? {...c, id: newId} : c));
+                              }}
+                              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-amber-400 outline-none rounded-lg px-2 py-1.5 font-bold text-slate-500 transition-all text-xs"
+                            />
+                          </td>
+                          <td className="py-2.5 pr-2">
+                            <input 
+                              type="text"
+                              value={cat.name}
+                              onChange={(e) => setCategories(prev => prev.map(c => c.id === cat.id ? {...c, name: e.target.value} : c))}
+                              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-amber-400 outline-none rounded-lg px-2 py-1.5 font-bold text-slate-700 transition-all text-xs"
+                            />
+                          </td>
+                          <td className="py-2.5 pr-2">
+                            <select 
+                              value={cat.color}
+                              onChange={(e) => setCategories(prev => prev.map(c => c.id === cat.id ? {...c, color: e.target.value} : c))}
+                              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-amber-400 outline-none rounded-lg px-2 py-1 cursor-pointer font-bold text-slate-600 text-xs"
+                            >
+                              <option value="blue">Biru</option>
+                              <option value="amber">Amber</option>
+                              <option value="purple">Ungu</option>
+                              <option value="emerald">Hijau</option>
+                              <option value="rose">Merah</option>
+                              <option value="pink">Pink</option>
+                              <option value="violet">Violet</option>
+                            </select>
+                          </td>
+                          <td className="py-2.5 text-center">
+                            <button 
+                              onClick={() => {
+                                setCategories(prev => prev.filter(c => c.id !== cat.id));
+                                showToast(`${cat.name} dihapus.`, 'error');
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all active:scale-95"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {categories.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="py-4 text-center text-slate-400 font-medium">Belum ada kategori lomba. Klik Tambah Lomba.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
             {/* 2. PUSAT KAWALAN PENDAFTARAN & PENGUMPULAN FAIL KARYA (DENGAN TABS GELOMBANG) */}
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-white/60 space-y-8 animate-in fade-in duration-300">
               
@@ -5003,17 +5188,13 @@ function ModernHQDashboardContent() {
                 // Fallback dynamically if submissionStatus entries do not exist yet (e.g. for custom added Wave 3)
                 if (waveSubmissions.length === 0) {
                   const wavePrefixName = activeWave.name.split(' (')[0];
-                  const categories = [
-                    { id: `mipa_g${activeWave.id}`, name: `Olimpiade MIPA (${wavePrefixName})` },
-                    { id: `speech_g${activeWave.id}`, name: `Speech Contest (${wavePrefixName})` },
-                    { id: `lkti_g${activeWave.id}`, name: `LKTI Nasional (${wavePrefixName})` },
-                    { id: `mtq_g${activeWave.id}`, name: `MTQ (${wavePrefixName})` }
-                  ];
                   waveSubmissions = categories.map(cat => {
-                    const existing = submissionStatus.find(s => s.id === cat.id);
+                    const id = `${cat.id}_g${activeWave.id}`;
+                    const name = `${cat.name} (${wavePrefixName})`;
+                    const existing = submissionStatus.find(s => s.id === id);
                     return existing || {
-                      id: cat.id,
-                      name: cat.name,
+                      id,
+                      name,
                       isOpen: false,
                       openAt: "",
                       closeAt: "",
@@ -6300,13 +6481,11 @@ function ModernHQDashboardContent() {
                 <input required type="text" value={newParticipant.city} onChange={e => setNewParticipant({...newParticipant, city: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-slate-50" placeholder="Kota/Kabupaten" />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-500 mb-1 block">Kategori Lomba</label>
                 <select required value={newParticipant.category} onChange={e => setNewParticipant({...newParticipant, category: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-slate-50">
                   <option value="">Pilih Kategori</option>
-                  <option value="Olimpiade MIPA">Olimpiade MIPA</option>
-                  <option value="Speech Contest">Speech Contest</option>
-                  <option value="LKTI Nasional">LKTI Nasional</option>
-                  <option value="MTQ Nasional">MTQ Nasional</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
