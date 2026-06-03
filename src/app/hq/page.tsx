@@ -2394,9 +2394,10 @@ function ModernHQDashboardContent() {
   };
 
   const handleDownloadTemplate = () => {
+    const firstCatName = categories[0]?.name || "LKTI Nasional";
     const templateData = [
       ["nama_lengkap", "email", "nisn", "asal_sekolah", "provinsi", "kota", "kategori_lomba", "nama_pembina", "no_wa"],
-      ["Budi Santoso", "budi@gmail.com", "12345678", "SMA Negeri 1 Jakarta", "DKI Jakarta", "Jakarta Selatan", "LKTI Nasional", "Pak Guru", "08123456789"]
+      ["Budi Santoso", "budi@gmail.com", "12345678", "SMA Negeri 1 Jakarta", "DKI Jakarta", "Jakarta Selatan", firstCatName, "Pak Guru", "08123456789"]
     ];
     const csv = Papa.unparse(templateData);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -6653,7 +6654,14 @@ function ModernHQDashboardContent() {
                         <tr>
                           <td className="py-3 px-4 font-mono font-bold text-blue-600">kategori_lomba</td>
                           <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">Wajib</span></td>
-                          <td className="py-3 px-4 text-slate-600">Pilihan: <code className="bg-blue-50 text-blue-600 px-1 py-0.5 rounded">Olimpiade MIPA</code>, <code className="bg-blue-50 text-blue-600 px-1 py-0.5 rounded">Speech Contest</code>, <code className="bg-blue-50 text-blue-600 px-1 py-0.5 rounded">LKTI Nasional</code>, <code className="bg-blue-50 text-blue-600 px-1 py-0.5 rounded">MTQ Nasional</code></td>
+                          <td className="py-3 px-4 text-slate-600">
+                            Pilihan: {categories.map((c, idx) => (
+                              <React.Fragment key={c.id}>
+                                {idx > 0 && ", "}
+                                <code className="bg-blue-50 text-blue-600 px-1 py-0.5 rounded">{c.name}</code>
+                              </React.Fragment>
+                            ))}
+                          </td>
                         </tr>
                         <tr>
                           <td className="py-3 px-4 font-mono font-bold text-blue-600">nama_pembina</td>
