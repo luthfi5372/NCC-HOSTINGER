@@ -11,7 +11,7 @@ import {
   LayoutGrid, Users, BadgeCheck, Megaphone, 
   Calendar, Image as ImageIcon, Server, Settings,
   LogOut, UserCircle, ShieldCheck, BellRing, Database, Clock, Loader2, Trophy,
-  Power, XCircle, CheckCircle2, Trash2, AlertCircle, Plus, CheckCircle, FileText
+  Power, XCircle, CheckCircle2, Trash2, AlertCircle, Plus, CheckCircle, FileText, Pencil, X, Save
 } from 'lucide-react';
 
 export default function SettingsDashboard() {
@@ -24,6 +24,10 @@ export default function SettingsDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [entryCount, setEntryCount] = useState<number | null>(null);
+  // Delete confirmation modal state
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; waveId: number | null; waveName: string }>({ open: false, waveId: null, waveName: '' });
+  // Editing wave name state
+  const [editingWaveName, setEditingWaveName] = useState<{ id: number | null; value: string }>({ id: null, value: '' });
 
   // States for unified registration settings
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
@@ -379,6 +383,30 @@ export default function SettingsDashboard() {
     ));
   };
 
+  const confirmDeleteWave = (wave: any) => {
+    setDeleteConfirm({ open: true, waveId: wave.id, waveName: wave.name });
+  };
+
+  const executeDeleteWave = () => {
+    if (deleteConfirm.waveId === null) return;
+    setWaves(prev => prev.filter(w => w.id !== deleteConfirm.waveId));
+    setToastMessage(`${deleteConfirm.waveName} berhasil dihapus.`);
+    setTimeout(() => setToastMessage(''), 3000);
+    setDeleteConfirm({ open: false, waveId: null, waveName: '' });
+  };
+
+  const startEditName = (wave: any) => {
+    setEditingWaveName({ id: wave.id, value: wave.name });
+  };
+
+  const saveEditName = (waveId: number) => {
+    const trimmed = editingWaveName.value.trim();
+    if (!trimmed) return;
+    setWaves(prev => prev.map(w => w.id === waveId ? { ...w, name: trimmed } : w));
+    setEditingWaveName({ id: null, value: '' });
+  };
+
+
   return (
     <div className="flex min-h-screen bg-[#f8fafc] font-sans text-gray-800">
       
@@ -697,96 +725,172 @@ export default function SettingsDashboard() {
           </div>
 
           {/* 2. MANAJEMEN GELOMBANG */}
+
           <div className="bg-white rounded-[24px] p-8 shadow-sm border border-gray-100">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <div>
                 <h3 className="text-xl font-black text-slate-800">Manajemen Gelombang</h3>
-                <p className="text-sm text-slate-500 mt-1">Atur jadwal pendaftaran per gelombang.</p>
+                <p className="text-sm text-slate-500 mt-1">Atur nama, jadwal, dan status setiap gelombang pendaftaran.</p>
               </div>
               <button 
                 onClick={() => {
-                  const newId = waves.length + 1;
+                  const newId = Date.now(); // use timestamp to guarantee unique id
+                  const newNum = waves.length + 1;
                   setWaves([...waves, {
                     id: newId,
-                    name: `Gelombang ${newId}`,
+                    name: `Gelombang ${newNum}`,
                     status: 'Tutup',
                     startDate: '',
                     endDate: '',
                   }]);
-                  setToastMessage(`Gelombang ${newId} berhasil ditambahkan.`);
-                  setTimeout(() => setToastMessage(""), 3000);
+                  setToastMessage(`Gelombang ${newNum} berhasil ditambahkan.`);
+                  setTimeout(() => setToastMessage(''), 3000);
                 }}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2 shrink-0"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-500/25 transition-all active:scale-95 hover:scale-[1.02] flex items-center gap-2 shrink-0"
               >
                 <Plus size={16} /> Tambah Gelombang
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {waves.map((wave) => (
-                <div 
-                  key={wave.id} 
-                  className={`border-2 rounded-2xl p-6 transition-all duration-300 ${
-                    wave.status === 'Aktif' 
-                      ? 'border-blue-400 bg-blue-50/40 shadow-md shadow-blue-50' 
-                      : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <h4 className="font-bold text-lg text-slate-800">{wave.name}</h4>
-                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1 ${wave.status === 'Aktif' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-slate-100 text-slate-400'}`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${wave.status === 'Aktif' ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`}></div>
-                      {wave.status === 'Aktif' ? 'Live' : 'Tutup'}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tanggal Mulai</label>
-                      <input 
-                        type="date" 
-                        value={wave.startDate}
-                        onChange={(e) => setWaves(prev => prev.map(w => w.id === wave.id ? {...w, startDate: e.target.value} : w))}
-                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tanggal Selesai</label>
-                      <input 
-                        type="date" 
-                        value={wave.endDate}
-                        onChange={(e) => setWaves(prev => prev.map(w => w.id === wave.id ? {...w, endDate: e.target.value} : w))}
-                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-5 pt-4 border-t border-slate-100 flex gap-2">
-                    <button 
-                      onClick={() => toggleWaveStatus(wave.id)}
-                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
-                        wave.status === 'Aktif'
-                          ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200'
-                          : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
-                      }`}
-                    >
-                      {wave.status === 'Aktif' ? <><XCircle size={13}/> Nonaktifkan</> : <><CheckCircle2 size={13}/> Aktifkan</>}
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setWaves(prev => prev.filter(w => w.id !== wave.id));
-                        setToastMessage(`${wave.name} dihapus.`);
-                        setTimeout(() => setToastMessage(""), 3000);
-                      }}
-                      className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all active:scale-95"
-                    >
-                      <Trash2 size={13}/>
-                    </button>
-                  </div>
+            {waves.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50">
+                <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-3">
+                  <Calendar className="w-7 h-7 text-slate-400" />
                 </div>
-              ))}
+                <p className="text-sm font-bold text-slate-500">Belum ada gelombang</p>
+                <p className="text-xs text-slate-400 mt-1">Klik "Tambah Gelombang" untuk memulai.</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {waves.map((wave) => {
+                const isActive = wave.status === 'Aktif';
+                const isEditingThisName = editingWaveName.id === wave.id;
+                return (
+                  <motion.div
+                    key={wave.id}
+                    layout
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.25 }}
+                    className={`relative rounded-2xl p-6 transition-all duration-300 border-2 overflow-hidden group ${
+                      isActive
+                        ? 'border-blue-400 bg-gradient-to-br from-blue-50/70 to-indigo-50/40 shadow-lg shadow-blue-100'
+                        : 'border-slate-150 bg-white hover:border-slate-200 hover:shadow-md shadow-sm'
+                    }`}
+                  >
+                    {/* Glow effect when active */}
+                    {isActive && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 pointer-events-none" />
+                    )}
+
+                    {/* Header: Name + Status Badge */}
+                    <div className="flex justify-between items-start mb-4 gap-3">
+                      <div className="flex-1 min-w-0">
+                        {isEditingThisName ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={editingWaveName.value}
+                              onChange={e => setEditingWaveName(prev => ({ ...prev, value: e.target.value }))}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') saveEditName(wave.id);
+                                if (e.key === 'Escape') setEditingWaveName({ id: null, value: '' });
+                              }}
+                              className="flex-1 text-base font-bold text-slate-800 bg-white border-2 border-blue-400 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-blue-200 transition-all"
+                            />
+                            <button
+                              onClick={() => saveEditName(wave.id)}
+                              className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all active:scale-90 shrink-0"
+                              title="Simpan nama"
+                            >
+                              <Save size={13} />
+                            </button>
+                            <button
+                              onClick={() => setEditingWaveName({ id: null, value: '' })}
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all active:scale-90 shrink-0"
+                              title="Batal"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 group/name">
+                            <h4 className="font-bold text-base text-slate-800 leading-tight truncate">{wave.name}</h4>
+                            <button
+                              onClick={() => startEditName(wave)}
+                              className="opacity-0 group-hover/name:opacity-100 p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-all active:scale-90"
+                              title="Edit nama gelombang"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Status pill */}
+                      <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all ${
+                        isActive
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-slate-100 text-slate-400 border border-slate-200'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                        }`} />
+                        {isActive ? 'Live' : 'Tutup'}
+                      </span>
+                    </div>
+
+                    {/* Date Inputs */}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Tanggal Mulai</label>
+                        <input 
+                          type="date" 
+                          value={wave.startDate}
+                          onChange={(e) => setWaves(prev => prev.map(w => w.id === wave.id ? {...w, startDate: e.target.value} : w))}
+                          className="w-full bg-white/80 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all hover:border-slate-300" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Tanggal Selesai</label>
+                        <input 
+                          type="date" 
+                          value={wave.endDate}
+                          onChange={(e) => setWaves(prev => prev.map(w => w.id === wave.id ? {...w, endDate: e.target.value} : w))}
+                          className="w-full bg-white/80 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all hover:border-slate-300" 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-5 pt-4 border-t border-slate-100 flex gap-2">
+                      <button 
+                        onClick={() => toggleWaveStatus(wave.id)}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 hover:scale-[1.02] flex items-center justify-center gap-1.5 ${
+                          isActive
+                            ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 shadow-sm shadow-rose-100'
+                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 shadow-sm shadow-emerald-100'
+                        }`}
+                      >
+                        {isActive ? <><XCircle size={13}/> Nonaktifkan</> : <><CheckCircle2 size={13}/> Aktifkan</>}
+                      </button>
+                      <button 
+                        onClick={() => confirmDeleteWave(wave)}
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 border border-transparent transition-all active:scale-95 group/del"
+                        title="Hapus gelombang"
+                      >
+                        <Trash2 size={13} className="group-hover/del:scale-110 transition-transform" />
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Bagian Keamanan CBT */}
@@ -968,6 +1072,58 @@ export default function SettingsDashboard() {
           <span className="text-sm font-bold">{toastMessage}</span>
         </div>
       )}
+
+      {/* ✨ CUSTOM DELETE CONFIRM MODAL */}
+      {deleteConfirm.open && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-slate-950/40 backdrop-blur-md"
+            onClick={() => setDeleteConfirm({ open: false, waveId: null, waveName: '' })}
+          />
+          {/* Modal Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            className="relative z-10 bg-white/95 backdrop-blur-xl border border-white shadow-2xl shadow-slate-950/20 rounded-[28px] p-8 max-w-sm w-full text-center"
+          >
+            {/* Icon */}
+            <div className="w-16 h-16 bg-rose-100 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-inner shadow-rose-200/50">
+              <Trash2 className="w-8 h-8 text-rose-500" />
+            </div>
+            <h3 className="text-xl font-black text-slate-900 mb-2">Hapus Gelombang?</h3>
+            <p className="text-sm text-slate-500 leading-relaxed mb-2">
+              Anda akan menghapus
+            </p>
+            <p className="text-sm font-black text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4 py-2 mb-6 inline-block">
+              {deleteConfirm.waveName}
+            </p>
+            <p className="text-xs text-slate-400 mb-6">
+              Aksi ini tidak dapat dibatalkan. Peserta yang sudah terdaftar pada periode ini tidak akan terpengaruh.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm({ open: false, waveId: null, waveName: '' })}
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-all active:scale-95"
+              >
+                Batal
+              </button>
+              <button
+                onClick={executeDeleteWave}
+                className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-bold text-sm shadow-lg shadow-rose-500/25 transition-all active:scale-95 hover:scale-[1.02] flex items-center justify-center gap-2"
+              >
+                <Trash2 size={14} /> Hapus
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
+
   );
 }
