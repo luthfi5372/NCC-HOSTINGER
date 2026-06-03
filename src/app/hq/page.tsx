@@ -193,9 +193,21 @@ const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick, 
         </div>
       </td>
       <td className="py-4 px-6">
-        <span className="px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center w-max gap-1.5 border bg-green-500/10 text-green-700 border-green-500/20 shadow-sm">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-          Active
+        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border flex items-center w-max gap-1.5 shadow-sm ${
+          entry.payment_status === 'Verified' ? 'bg-green-50 text-green-600 border-green-100' :
+          entry.payment_status === 'Pending' ? 'bg-amber-50 text-amber-600 border-amber-100/80 animate-pulse' :
+          entry.payment_status === 'Rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+          'bg-slate-50 text-slate-500 border-slate-100'
+        }`}>
+          <div className={`w-1.5 h-1.5 rounded-full ${
+            entry.payment_status === 'Verified' ? 'bg-green-500' :
+            entry.payment_status === 'Pending' ? 'bg-amber-500' :
+            entry.payment_status === 'Rejected' ? 'bg-rose-500' :
+            'bg-slate-400'
+          }`}></div>
+          {entry.payment_status === 'Verified' ? 'VERIFIED' :
+           entry.payment_status === 'Pending' ? 'PENDING' :
+           entry.payment_status === 'Rejected' ? 'DITOLAK' : 'BELUM BAYAR'}
         </span>
       </td>
       <td 

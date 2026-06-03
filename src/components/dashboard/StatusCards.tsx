@@ -936,7 +936,7 @@ export default function StatusCards({
         </div>
       )}
 
-      {userEntry?.payment_status === 'Verified' && (
+      {(userEntry?.payment_status === 'Verified' || (!isPaymentRequired && !isFailed)) && (
         <div className="bg-white border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-6">
           <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
             <FolderOpen size={18} className={!isSubmissionOpen ? "text-slate-400" : (savedSubmissionUrl && !isEditingSubmission ? "text-emerald-500" : "text-blue-500")} />

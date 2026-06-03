@@ -295,7 +295,7 @@ export default function SchoolHub({ userEntry, currentUser }: SchoolHubProps) {
       try {
         let query = supabase
           .from("competition_entries")
-          .select("id, full_name, email, competition_type, category, payment_status, notes");
+          .select("id, user_id, full_name, email, competition_type, category, payment_status, notes");
 
         if (activeNpsn) {
           query = query.or(`npsn.eq."${activeNpsn}",school_name.eq."${activeSchool}",school.eq."${activeSchool}"`);
@@ -650,9 +650,29 @@ export default function SchoolHub({ userEntry, currentUser }: SchoolHubProps) {
                     >
                       {/* Sender Name */}
                       {!isMe && (
-                        <span className="text-[10px] text-slate-400 font-bold mb-1 ml-1.5 uppercase tracking-wider">
-                          {msg.sender_name}
-                        </span>
+                        <div className="flex items-center gap-1.5 mb-1 ml-1.5 flex-wrap">
+                          <span className="text-[10px] text-slate-500 font-black uppercase tracking-wider">
+                            {msg.sender_name}
+                          </span>
+                          {(() => {
+                            const senderStudent = schoolmates.find(m => m.user_id === msg.sender_id);
+                            if (senderStudent) {
+                              const progress = getProgressDetails(senderStudent);
+                              return (
+                                <span className="bg-indigo-50 text-indigo-600 border border-indigo-100/50 font-black text-[8.5px] px-1.5 py-0.2 rounded-md uppercase tracking-wider scale-90 inline-block">
+                                  {senderStudent.competition_type || senderStudent.category || "Peserta"} • {progress.text}
+                                </span>
+                              );
+                            } else if (msg.sender_id === "hq-admin" || msg.sender_id === "admin1") {
+                              return (
+                                <span className="bg-amber-100 text-amber-700 border border-amber-200/50 font-black text-[8px] px-1.5 py-0.2 rounded-md uppercase tracking-wider scale-90 inline-block shadow-sm">
+                                  HQ STAFF
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
                       )}
                       
                       {/* Hover Action Menu (WhatsApp style) */}

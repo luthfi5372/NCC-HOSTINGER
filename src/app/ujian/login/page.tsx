@@ -73,8 +73,56 @@ export default function ParticipantLogin() {
         setLoading(false); return;
       }
 
-      // ─── LANGKAH 4: Cek Status Verifikasi ─────────────────────
-      if (matchedUser.payment_status !== 'Verified') {
+      // ─── LANGKAH 4: Cek Status Verifikasi & Kebutuhan Pembayaran ─────────────────────
+      let paymentRequirementStage = 'registration';
+      const { data: portalData } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('title', 'SYS_PORTAL_SETTINGS')
+        .maybeSingle();
+
+      if (portalData && portalData.content) {
+        try {
+          const parsed = JSON.parse(portalData.content);
+          if (parsed.paymentRequirementStage) {
+            paymentRequirementStage = parsed.paymentRequirementStage;
+          }
+        } catch (e) {}
+      }
+
+      // Deteksi stage dan status kelulusan dari notes
+      let currentStage = 1;
+      let isFailed = false;
+      if (matchedUser.notes) {
+        try {
+          const notesObj = JSON.parse(matchedUser.notes);
+          if (notesObj.current_stage) currentStage = Number(notesObj.current_stage);
+          if (notesObj.is_failed) isFailed = Boolean(notesObj.is_failed);
+        } catch (e) {}
+      }
+
+      // Cek apakah peserta dinyatakan tidak lolos
+      if (isFailed) {
+        setErrorMsg({
+          title: 'Akses Ujian Ditutup',
+          desc: 'Maaf, Anda dinyatakan tidak lolos ke babak berikutnya.'
+        });
+        setLoading(false); return;
+      }
+
+      // Cek apakah wajib bayar di tahap ini
+      let isPaymentRequired = true;
+      if (paymentRequirementStage === 'registration') {
+        isPaymentRequired = true;
+      } else if (paymentRequirementStage === 'tahap1') {
+        isPaymentRequired = currentStage >= 2;
+      } else if (paymentRequirementStage === 'tahap2') {
+        isPaymentRequired = currentStage >= 3;
+      } else if (paymentRequirementStage === 'free') {
+        isPaymentRequired = false;
+      }
+
+      if (isPaymentRequired && matchedUser.payment_status !== 'Verified') {
         setErrorMsg({
           title: 'Peserta Belum Diverifikasi',
           desc: `Status pendaftaran masih "${matchedUser.payment_status}". Selesaikan verifikasi pembayaran terlebih dahulu.`

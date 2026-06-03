@@ -6,9 +6,11 @@ interface DashboardHeaderProps {
   currentUser: any;
   handleLogout: () => void;
   progress: number;
+  isPaymentRequired?: boolean;
+  isFailed?: boolean;
 }
 
-export default function DashboardHeader({ userEntry, currentUser, handleLogout, progress }: DashboardHeaderProps) {
+export default function DashboardHeader({ userEntry, currentUser, handleLogout, progress, isPaymentRequired = true, isFailed = false }: DashboardHeaderProps) {
   return (
     <header className="sticky top-0 z-[40] -mx-4 px-4 py-4 flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/50">
       <div>
@@ -46,14 +48,20 @@ export default function DashboardHeader({ userEntry, currentUser, handleLogout, 
           <div>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status Anda</p>
             <div className="text-sm font-bold text-slate-700 flex items-center gap-1">
-              {userEntry?.payment_status === 'Verified' ? (
-                <><CheckCircle2 size={14} className="text-blue-600"/> Terverifikasi</>
-              ) : userEntry?.payment_status === 'Pending' ? (
-                <><Clock size={14} className="text-amber-500"/> Menunggu Verifikasi</>
-              ) : userEntry?.payment_status === 'Rejected' ? (
-                <><AlertCircle size={14} className="text-rose-500"/> Berkas Ditolak</>
-              ) : (
+              {!userEntry ? (
                 <><AlertCircle size={14} className="text-slate-500"/> Belum Daftar Lomba</>
+              ) : isFailed ? (
+                <><AlertCircle size={14} className="text-rose-500"/> Tidak Lolos Babak</>
+              ) : userEntry.payment_status === 'Verified' ? (
+                <><CheckCircle2 size={14} className="text-blue-600"/> Terverifikasi</>
+              ) : userEntry.payment_status === 'Pending' ? (
+                <><Clock size={14} className="text-amber-500"/> Menunggu Verifikasi</>
+              ) : userEntry.payment_status === 'Rejected' ? (
+                <><AlertCircle size={14} className="text-rose-500"/> Berkas Ditolak</>
+              ) : !isPaymentRequired ? (
+                <><CheckCircle2 size={14} className="text-emerald-500"/> Aktif (Bebas Biaya)</>
+              ) : (
+                <><AlertCircle size={14} className="text-amber-500"/> Belum Menyelesaikan Pembayaran</>
               )}
             </div>
           </div>

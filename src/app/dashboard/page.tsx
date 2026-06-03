@@ -555,6 +555,29 @@ export default function UserDashboard() {
     );
   }
 
+  // Deteksi stage dan status kelulusan dari notes
+  let currentStage = 1;
+  let isFailed = false;
+  if (userEntry?.notes) {
+    try {
+      const notesObj = JSON.parse(userEntry.notes);
+      if (notesObj.current_stage) currentStage = Number(notesObj.current_stage);
+      if (notesObj.is_failed) isFailed = Boolean(notesObj.is_failed);
+    } catch (e) {}
+  }
+
+  // Cek apakah wajib bayar di tahap ini
+  let isPaymentRequired = true;
+  if (paymentRequirementStage === 'registration') {
+    isPaymentRequired = true;
+  } else if (paymentRequirementStage === 'tahap1') {
+    isPaymentRequired = currentStage >= 2 && !isFailed;
+  } else if (paymentRequirementStage === 'tahap2') {
+    isPaymentRequired = currentStage >= 3 && !isFailed;
+  } else if (paymentRequirementStage === 'free') {
+    isPaymentRequired = false;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-6 md:p-12 relative overflow-hidden">
       <WelcomeOverlay userEntry={userEntry} currentUser={currentUser} />
@@ -564,7 +587,14 @@ export default function UserDashboard() {
 
       <div className="max-w-5xl mx-auto relative z-10">
         
-        <DashboardHeader userEntry={userEntry} currentUser={currentUser} handleLogout={handleLogout} progress={progress} />
+        <DashboardHeader 
+          userEntry={userEntry} 
+          currentUser={currentUser} 
+          handleLogout={handleLogout} 
+          progress={progress} 
+          isPaymentRequired={isPaymentRequired}
+          isFailed={isFailed}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
@@ -598,7 +628,7 @@ export default function UserDashboard() {
             <SchoolHub userEntry={userEntry} currentUser={currentUser} />
             
             {/* KARTU AKSES PORTAL UJIAN LLMS (KHUSUS MIPA) */}
-            {((userEntry?.competition_type === 'Olimpiade MIPA' || userEntry?.category === 'Olimpiade MIPA') && userEntry?.payment_status === 'Verified') && (
+            {((userEntry?.competition_type === 'Olimpiade MIPA' || userEntry?.category === 'Olimpiade MIPA') && (userEntry?.payment_status === 'Verified' || !isPaymentRequired) && !isFailed) && (
               <div className="mt-6 bg-gradient-to-br from-[#5145cd] to-[#372b9c] rounded-[24px] p-6 text-white shadow-xl shadow-indigo-200/50 relative overflow-hidden group">
                 {/* Aksen Latar Belakang */}
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10 group-hover:scale-110 transition-transform duration-700"></div>
