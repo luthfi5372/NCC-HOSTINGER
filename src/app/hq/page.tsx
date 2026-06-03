@@ -554,9 +554,11 @@ function ModernHQDashboardContent() {
           if (!newOrOld) return;
 
           const currentSelected = selectedSchoolGroupRef.current;
+          // Match by NPSN OR school name (both checks) to avoid missing messages
           const isCurrentSchool = currentSelected && (
-            (currentSelected.npsn && newOrOld.npsn === currentSelected.npsn) ||
-            (!currentSelected.npsn && newOrOld.school_name?.toLowerCase() === currentSelected.schoolName.toLowerCase())
+            (currentSelected.npsn && newOrOld.npsn && newOrOld.npsn === currentSelected.npsn) ||
+            (newOrOld.school_name && currentSelected.schoolName &&
+              newOrOld.school_name.trim().toLowerCase() === currentSelected.schoolName.trim().toLowerCase())
           );
 
           if (payload.eventType === "INSERT") {
@@ -670,8 +672,21 @@ function ModernHQDashboardContent() {
     const textToSend = groupMsgText.trim();
     setGroupMsgText("");
 
+    // Optimistic update: tampilkan pesan langsung sebelum konfirmasi dari server
+    const optimisticMsg = {
+      id: `optimistic-${Date.now()}`,
+      school_name: selectedSchoolGroup.schoolName,
+      npsn: selectedSchoolGroup.npsn || null,
+      sender_id: "hq-admin",
+      sender_name: "Markas Besar (Admin)",
+      message: textToSend,
+      created_at: new Date().toISOString(),
+    };
+    setGroupMessages((prev) => [...prev, optimisticMsg]);
+    scrollToAdminChatBottom("smooth");
+
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("school_messages")
         .insert([
           {
@@ -681,9 +696,20 @@ function ModernHQDashboardContent() {
             sender_name: "Markas Besar (Admin)",
             message: textToSend,
           }
-        ]);
+        ])
+        .select()
+        .single();
       if (error) throw error;
+      // Ganti pesan optimistic dengan data real dari server (dengan ID asli)
+      if (data) {
+        setGroupMessages((prev) =>
+          prev.map((m) => (m.id === optimisticMsg.id ? data : m))
+        );
+      }
     } catch (err) {
+      // Rollback optimistic update jika gagal
+      setGroupMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
+      setGroupMsgText(textToSend); // Kembalikan teks ke input
       console.error("Gagal mengirim pesan ke forum:", err);
       alert("Gagal mengirim pesan: " + (err as Error).message);
     } finally {
