@@ -47,6 +47,17 @@ export default function IntegratedLLMSDashboard() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' });
+  const [entryCount, setEntryCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchEntryCount = async () => {
+      const { count } = await supabase
+        .from('competition_entries')
+        .select('*', { count: 'exact', head: true });
+      if (count !== null) setEntryCount(count);
+    };
+    fetchEntryCount();
+  }, []);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ visible: true, message, type });
@@ -499,7 +510,7 @@ export default function IntegratedLLMSDashboard() {
 
   const navItems = [
     { href: "/hq", icon: LayoutGrid, label: "Dashboard" },
-    { href: "/hq?tab=Peserta", icon: Users, label: "Buku Peserta", badge: "11" },
+    { href: "/hq?tab=Peserta", icon: Users, label: "Buku Peserta", badge: entryCount !== null ? String(entryCount) : "..." },
     { href: "/hq?tab=BelumDaftar", icon: AlertTriangle, label: "Belum Pilih Lomba", badge: "15" },
     { href: "/hq?tab=Verifikasi", icon: BadgeCheck, label: "Verifikasi Berkas", badge: "0" },
     { href: "/hq?tab=Karya", icon: FolderOpen, label: "Pengumpulan Karya", badge: "1" },

@@ -23,6 +23,7 @@ export default function SettingsDashboard() {
   const [resultVisible, setResultVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [entryCount, setEntryCount] = useState<number | null>(null);
 
   // States for unified registration settings
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
@@ -32,6 +33,16 @@ export default function SettingsDashboard() {
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEntryCount = async () => {
+      const { count } = await supabase
+        .from('competition_entries')
+        .select('*', { count: 'exact', head: true });
+      if (count !== null) setEntryCount(count);
+    };
+    fetchEntryCount();
+  }, []);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -394,7 +405,7 @@ export default function SettingsDashboard() {
                <Users className="w-5 h-5" />
                <span>Buku Peserta</span>
             </div>
-            <span className="bg-gray-100 text-gray-500 text-[10px] font-black px-2 py-0.5 rounded-full">11</span>
+            <span className="bg-gray-100 text-gray-500 text-[10px] font-black px-2 py-0.5 rounded-full">{entryCount ?? '...'}</span>
           </Link>
           
           <Link href="/hq?tab=Verifikasi" className="flex items-center justify-between px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">

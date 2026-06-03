@@ -17,6 +17,7 @@ export default function ParticipantsBook() {
   const [participants, setParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [entryCount, setEntryCount] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchParticipants = async () => {
@@ -24,7 +25,14 @@ export default function ParticipantsBook() {
       if (data) setParticipants(data);
       setLoading(false);
     };
+    const fetchEntryCount = async () => {
+      const { count } = await supabase
+        .from('competition_entries')
+        .select('*', { count: 'exact', head: true });
+      if (count !== null) setEntryCount(count);
+    };
     fetchParticipants();
+    fetchEntryCount();
   }, []);
 
   const handleLogout = async () => {
@@ -71,7 +79,7 @@ export default function ParticipantsBook() {
                <Users className="w-5 h-5 text-indigo-400" />
                <span>Buku Peserta</span>
             </div>
-            <span className="bg-indigo-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">11</span>
+            <span className="bg-indigo-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{entryCount ?? '...'}</span>
           </Link>
           
           <Link href="/hq?tab=Verifikasi" className="flex items-center justify-between px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-all font-semibold text-sm">
