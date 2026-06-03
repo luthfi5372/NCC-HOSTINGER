@@ -65,9 +65,11 @@ interface ParticipantRowProps {
   onIdCardClick: (entry: any) => void;
   onDeleteClick: (entry: any) => void;
   waveName?: string;
+  isSelected: boolean;
+  onSelectToggle: () => void;
 }
 
-const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick, waveName }: ParticipantRowProps) => {
+const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick, waveName, isSelected, onSelectToggle }: ParticipantRowProps) => {
   const dateObj = entry.created_at ? new Date(entry.created_at) : new Date();
   const dateStr = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
   const timeStr = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
@@ -95,8 +97,16 @@ const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick, 
   return (
     <tr 
       onClick={() => onRowClick(entry)}
-      className="hover:bg-blue-50/50 transition-colors cursor-pointer"
+      className="group hover:bg-blue-50/50 transition-colors cursor-pointer"
     >
+      <td className="py-4 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+        <input 
+          type="checkbox" 
+          checked={isSelected}
+          onChange={onSelectToggle}
+          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+        />
+      </td>
       <td className="py-4 px-6 font-black text-blue-600">NCC-{generateTicketCode(entry.id)}</td>
       <td className="py-4 px-6 flex items-center gap-3">
          {photoUrl ? (
@@ -188,7 +198,10 @@ const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick, 
           Active
         </span>
       </td>
-      <td className="py-4 px-6 text-center">
+      <td 
+        onClick={(e) => e.stopPropagation()}
+        className="py-4 px-6 text-center sticky right-0 bg-white group-hover:bg-[#f2f6fc] transition-colors shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] border-l border-slate-100 z-10"
+      >
         <div className="flex items-center justify-center gap-2">
           <button 
             onClick={(e) => {
@@ -227,11 +240,15 @@ const ParticipantRow = memo(({ entry, onRowClick, onIdCardClick, onDeleteClick, 
          prevProps.entry.competition_type === nextProps.entry.competition_type &&
          prevProps.entry.category === nextProps.entry.category &&
          prevProps.entry.mentor_name === nextProps.entry.mentor_name &&
-         prevProps.entry.email === nextProps.entry.email;
+         prevProps.entry.email === nextProps.entry.email &&
+         prevProps.isSelected === nextProps.isSelected;
 });
 
 const ParticipantSkeletonRow = () => (
   <tr className="animate-pulse border-b border-slate-100">
+    <td className="py-4 px-4 text-center">
+      <div className="w-4 h-4 bg-slate-200/80 rounded animate-pulse mx-auto"></div>
+    </td>
     <td className="py-4 px-6">
       <div className="h-4 w-16 bg-slate-200/80 rounded animate-pulse"></div>
     </td>
@@ -1641,28 +1658,43 @@ function ModernHQDashboardContent() {
     }
   };
 
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // --- 🗑️ FUNGSI PEMUSNAH ABSOLUT ---
   const executeDelete = async () => {
-    // Pastikan kita memiliki ID otentikasi (userId)
-    if (!deleteModal.userId) {
-      return showToast("Gagal: ID KTP Digital (User ID) tidak ditemukan!", "error");
-    }
+    if (isDeleting) return;
+    setIsDeleting(true);
     
     try {
-      // PANGGIL FUNGSI RPC, BUKAN .delete()
-      const { error } = await supabase.rpc('delete_participant_completely', {
-        target_user_id: deleteModal.userId
-      });
-
-      if (error) throw error;
+      if (deleteModal.userId) {
+        // PANGGIL FUNGSI RPC, BUKAN .delete()
+        const { error } = await supabase.rpc('delete_participant_completely', {
+          target_user_id: deleteModal.userId
+        });
+        if (error) throw error;
+      } else {
+        // Jika tidak ada user_id (peserta manual), hapus langsung dari competition_entries
+        const { error } = await supabase
+          .from('competition_entries')
+          .delete()
+          .eq('id', deleteModal.id);
+        if (error) throw error;
+      }
 
       // Bersihkan dari layar Markas Besar
       setRealEntries(realEntries.filter((e: any) => e.id !== deleteModal.id));
+      // Pastikan data yang terhapus juga dibersihkan dari Set pilihan
+      setSelectedEntryIds(prev => {
+        const next = new Set(prev);
+        next.delete(deleteModal.id);
+        return next;
+      });
       showToast(`Peserta ${deleteModal.name} berhasil dihapus permanen dari sistem!`, "success");
       
     } catch (error: any) {
       showToast(`Gagal menghapus: ${error.message}`, "error");
     } finally {
+      setIsDeleting(false);
       setDeleteModal({ show: false, id: null, userId: null, name: "" }); 
     }
   };
@@ -1673,6 +1705,69 @@ function ModernHQDashboardContent() {
 
   // --- MEMORI MODAL DELETE (UPGRADED) ---
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, userId: null, name: "" });
+
+  // --- MEMORI BULK DELETE (HAPUS BANYAK SEKALIGUS) ---
+  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+
+  const toggleSelectEntry = (id: string) => {
+    setSelectedEntryIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (visibleEntries: any[]) => {
+    if (visibleEntries.every(e => selectedEntryIds.has(e.id))) {
+      setSelectedEntryIds(new Set());
+    } else {
+      setSelectedEntryIds(new Set(visibleEntries.map(e => e.id)));
+    }
+  };
+
+  const executeBulkDelete = async () => {
+    if (selectedEntryIds.size === 0) return;
+    setIsBulkDeleting(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    const entriesToDelete = realEntries.filter((e: any) => selectedEntryIds.has(e.id));
+    
+    for (const entry of entriesToDelete) {
+      try {
+        if (entry.user_id) {
+          const { error } = await supabase.rpc('delete_participant_completely', {
+            target_user_id: entry.user_id
+          });
+          if (error) throw error;
+        } else {
+          // Jika tidak ada user_id, hapus langsung dari competition_entries
+          const { error } = await supabase
+            .from('competition_entries')
+            .delete()
+            .eq('id', entry.id);
+          if (error) throw error;
+        }
+        successCount++;
+      } catch (err) {
+        failCount++;
+        console.error(`Gagal hapus ${entry.full_name}:`, err);
+      }
+    }
+
+    setRealEntries((prev: any[]) => prev.filter((e: any) => !selectedEntryIds.has(e.id)));
+    setSelectedEntryIds(new Set());
+    setShowBulkDeleteModal(false);
+    setIsBulkDeleting(false);
+
+    if (failCount === 0) {
+      showToast(`✅ ${successCount} peserta berhasil dihapus permanen!`, "success");
+    } else {
+      showToast(`⚠️ ${successCount} berhasil, ${failCount} gagal dihapus.`, "error");
+    }
+  };
 
   // Fungsi pemanggil Toast
   const showToast = (message: string, type: "success" | "error" = "success") => {
@@ -2487,6 +2582,35 @@ function ModernHQDashboardContent() {
     
     return Object.values(groups);
   }, [realEntries]);
+
+  // --- 🔍 MEMOIZED FILTERED ENTRIES ---
+  const filteredEntries = React.useMemo(() => {
+    return realEntries
+      .filter(e => {
+        if (filterProgress === "All") return true;
+        return e.payment_status === filterProgress;
+      })
+      .filter(e => {
+        if (filterWave === "All") return true;
+        const wName = getParticipantWave(e.created_at);
+        if (filterWave === "Gelombang 1") {
+          return wName.toLowerCase().includes("gelombang 1") || wName.toLowerCase().includes("early bird");
+        }
+        if (filterWave === "Gelombang 2") {
+          return wName.toLowerCase().includes("gelombang 2") || wName.toLowerCase().includes("regular");
+        }
+        return true;
+      })
+      .filter(e => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        return (e.full_name || "").toLowerCase().includes(query) || 
+               (e.email || "").toLowerCase().includes(query) || 
+               `ncc-${generateTicketCode(e.id)}`.toLowerCase().includes(query);
+      })
+      .filter(e => filterCategory === "All" || (e.competition_type || e.category) === filterCategory);
+  }, [realEntries, filterProgress, filterWave, searchQuery, filterCategory]);
+
   const totalUnreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
 
   return (
@@ -2884,11 +3008,49 @@ function ModernHQDashboardContent() {
                 </div>
               </div>
             </div>
+
+            {/* Bilah Aksi Massal (Bulk Actions Bar) */}
+            {selectedEntryIds.size > 0 && (
+              <div className="bg-rose-50/80 border-b border-rose-100 px-6 py-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-3">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                  </span>
+                  <span className="text-sm font-bold text-rose-800">
+                    {selectedEntryIds.size} Peserta Terpilih
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedEntryIds(new Set())}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
+                  >
+                    Batal Pilih
+                  </button>
+                  <button
+                    onClick={() => setShowBulkDeleteModal(true)}
+                    className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-md shadow-red-200"
+                  >
+                    <Trash2 size={13} />
+                    Hapus Permanen {selectedEntryIds.size} Peserta
+                  </button>
+                </div>
+              </div>
+            )}
             
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-slate-600 whitespace-nowrap">
                 <thead className="bg-slate-50/50 text-slate-500 font-bold border-b border-slate-100 text-[11px] uppercase tracking-wider">
                   <tr>
+                    <th className="py-4 px-4 w-12 text-center">
+                      <input 
+                        type="checkbox" 
+                        checked={filteredEntries.length > 0 && filteredEntries.every(e => selectedEntryIds.has(e.id))}
+                        onChange={() => toggleSelectAll(filteredEntries)}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                      />
+                    </th>
                     <th className="py-4 px-6">ID TIKET</th>
                     <th className="py-4 px-6">PROFIL PESERTA</th>
                     <th className="py-4 px-6">ASAL SEKOLAH</th>
@@ -2897,40 +3059,15 @@ function ModernHQDashboardContent() {
                     <th className="py-4 px-6">KATEGORI & PEMBINA</th>
                     <th className="py-4 px-6">WAKTU DAFTAR</th>
                     <th className="py-4 px-6">STATUS</th>
-                    <th className="py-4 px-6 text-center">AKSI</th>
+                    <th className="py-4 px-6 text-center sticky right-0 bg-slate-50 border-l border-slate-100 z-10 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)]">AKSI</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => <ParticipantSkeletonRow key={i} />)
-                ) : realEntries
-                    .filter(e => {
-                      // Filter status: All shows everyone, or filter by specific payment_status
-                      if (filterProgress === "All") return true;
-                      return e.payment_status === filterProgress;
-                    })
-                    .filter(e => {
-                      if (filterWave === "All") return true;
-                      const wName = getParticipantWave(e.created_at);
-                      if (filterWave === "Gelombang 1") {
-                        return wName.toLowerCase().includes("gelombang 1") || wName.toLowerCase().includes("early bird");
-                      }
-                      if (filterWave === "Gelombang 2") {
-                        return wName.toLowerCase().includes("gelombang 2") || wName.toLowerCase().includes("regular");
-                      }
-                      return true;
-                    })
-                    .filter(e => {
-                      if (!searchQuery) return true;
-                      const query = searchQuery.toLowerCase();
-                      return (e.full_name || "").toLowerCase().includes(query) || 
-                             (e.email || "").toLowerCase().includes(query) || 
-                             `ncc-${generateTicketCode(e.id)}`.toLowerCase().includes(query);
-                    })
-                    .filter(e => filterCategory === "All" || (e.competition_type || e.category) === filterCategory)
-                    .length === 0 ? (
+                ) : filteredEntries.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="py-16 text-center">
+                        <td colSpan={10} className="py-16 text-center">
                           <div className="flex flex-col items-center gap-3">
                             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
                               <Users size={28} className="text-slate-300" />
@@ -2950,41 +3087,19 @@ function ModernHQDashboardContent() {
                         </td>
                       </tr>
                     ) : (
-                    realEntries
-                      .filter(e => {
-                        if (filterProgress === "All") return true;
-                        return e.payment_status === filterProgress;
-                      })
-                      .filter(e => {
-                        if (filterWave === "All") return true;
-                        const wName = getParticipantWave(e.created_at);
-                        if (filterWave === "Gelombang 1") {
-                          return wName.toLowerCase().includes("gelombang 1") || wName.toLowerCase().includes("early bird");
-                        }
-                        if (filterWave === "Gelombang 2") {
-                          return wName.toLowerCase().includes("gelombang 2") || wName.toLowerCase().includes("regular");
-                        }
-                        return true;
-                      })
-                      .filter(e => {
-                        if (!searchQuery) return true;
-                        const query = searchQuery.toLowerCase();
-                        return (e.full_name || "").toLowerCase().includes(query) || 
-                               (e.email || "").toLowerCase().includes(query) || 
-                               `ncc-${generateTicketCode(e.id)}`.toLowerCase().includes(query);
-                      })
-                      .filter(e => filterCategory === "All" || (e.competition_type || e.category) === filterCategory)
-                      .map((entry: any) => (
-                        <ParticipantRow 
-                          key={entry.id} 
-                          entry={entry}
-                          waveName={getParticipantWave(entry.created_at)}
-                          onRowClick={setSelectedParticipant}
-                          onIdCardClick={setSelectedIdCard}
-                          onDeleteClick={(e) => setDeleteModal({ show: true, id: e.id, userId: e.user_id, name: e.full_name })}
-                        />
-                      ))
-                    )}
+                    filteredEntries.map((entry: any) => (
+                      <ParticipantRow 
+                        key={entry.id} 
+                        entry={entry}
+                        waveName={getParticipantWave(entry.created_at)}
+                        isSelected={selectedEntryIds.has(entry.id)}
+                        onSelectToggle={() => toggleSelectEntry(entry.id)}
+                        onRowClick={setSelectedParticipant}
+                        onIdCardClick={setSelectedIdCard}
+                        onDeleteClick={(e) => setDeleteModal({ show: true, id: e.id, userId: e.user_id, name: e.full_name })}
+                      />
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -5688,11 +5803,11 @@ function ModernHQDashboardContent() {
       {/* 🚨 MODAL KONFIRMASI DELETE (PEMUSNAH) */}
       {/* ========================================================= */}
       <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-200 ${deleteModal.show ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <div className="absolute inset-0 bg-slate-900/50" onClick={() => setDeleteModal({ ...deleteModal, show: false })}></div>
+        <div className="absolute inset-0 bg-slate-900/50" onClick={() => !isDeleting && setDeleteModal({ ...deleteModal, show: false })}></div>
         
         <div className={`bg-white border border-red-100 shadow-2xl rounded-[2rem] p-8 max-w-md w-full relative transition-all duration-200 transform ${deleteModal.show ? 'scale-100 translate-y-0' : 'scale-[0.98] translate-y-2'}`}>
           <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[1.5rem] flex items-center justify-center mb-6 shadow-inner mx-auto border border-red-100/50">
-            <Trash2 size={36} />
+            <Trash2 size={36} className={isDeleting ? "animate-spin" : ""} />
           </div>
           <h3 className="text-2xl font-black text-slate-800 text-center mb-2 tracking-tight">Hapus Peserta?</h3>
           <p className="text-slate-500 text-center mb-8 text-sm leading-relaxed">
@@ -5701,16 +5816,66 @@ function ModernHQDashboardContent() {
           
           <div className="flex gap-4">
             <button 
+              disabled={isDeleting}
               onClick={() => setDeleteModal({ ...deleteModal, show: false })} 
-              className="flex-1 py-4 rounded-2xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+              className="flex-1 py-4 rounded-2xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
             >
               Batal
             </button>
             <button 
+              disabled={isDeleting}
               onClick={executeDelete} 
-              className="flex-1 py-4 rounded-2xl font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95"
+              className="flex-1 py-4 rounded-2xl font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95 disabled:bg-red-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Ya, Hapus Permanen
+              {isDeleting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Menghapus...
+                </>
+              ) : (
+                "Ya, Hapus Permanen"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* 🚨 MODAL KONFIRMASI BULK DELETE (PEMUSNAH MASSAL) */}
+      {/* ========================================================= */}
+      <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-200 ${showBulkDeleteModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-slate-900/50" onClick={() => !isBulkDeleting && setShowBulkDeleteModal(false)}></div>
+        
+        <div className={`bg-white border border-red-100 shadow-2xl rounded-[2rem] p-8 max-w-md w-full relative transition-all duration-200 transform ${showBulkDeleteModal ? 'scale-100 translate-y-0' : 'scale-[0.98] translate-y-2'}`}>
+          <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[1.5rem] flex items-center justify-center mb-6 shadow-inner mx-auto border border-red-100/50">
+            <Trash2 size={36} className={isBulkDeleting ? "animate-bounce" : ""} />
+          </div>
+          <h3 className="text-2xl font-black text-slate-800 text-center mb-2 tracking-tight">Hapus Massal Peserta?</h3>
+          <p className="text-slate-500 text-center mb-8 text-sm leading-relaxed">
+            Anda yakin ingin menghapus secara permanen <strong className="text-slate-800">{selectedEntryIds.size} peserta</strong> yang terpilih? Tindakan ini tidak dapat dibatalkan dan semua data terkait akan dihapus dari sistem selamanya.
+          </p>
+          
+          <div className="flex gap-4">
+            <button 
+              disabled={isBulkDeleting}
+              onClick={() => setShowBulkDeleteModal(false)} 
+              className="flex-1 py-4 rounded-2xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button 
+              disabled={isBulkDeleting}
+              onClick={executeBulkDelete} 
+              className="flex-1 py-4 rounded-2xl font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95 disabled:bg-red-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isBulkDeleting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Menghapus...
+                </>
+              ) : (
+                "Ya, Hapus Permanen"
+              )}
             </button>
           </div>
         </div>
