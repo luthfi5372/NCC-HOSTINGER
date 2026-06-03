@@ -640,6 +640,14 @@ function ModernHQDashboardContent() {
     }, 50);
   };
 
+  // Scroll event handler - shows floating scroll-down button when user scrolls up
+  const handleAdminChatScroll = () => {
+    const container = adminChatContainerRef.current;
+    if (!container) return;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShowScrollDown(distanceFromBottom > 120);
+  };
+
   // Scroll to bottom automatically when school changes (instantly) or when a new message is added (smoothly)
   useEffect(() => {
     if (selectedSchoolGroup) {
@@ -5148,9 +5156,11 @@ function ModernHQDashboardContent() {
                             // Lookup student dynamically for status tags safely
                             const studentsList = selectedSchoolGroup?.students || [];
                             const student = studentsList.find((s: any) => 
-                              (s.user_id && msg.sender_id && s.user_id === msg.sender_id) || 
-                              (s.id && msg.sender_id && s.id === msg.sender_id) || 
-                              (s.email && msg.sender_id && s.email === msg.sender_id)
+                              s && (
+                                (s.user_id && msg.sender_id && s.user_id === msg.sender_id) || 
+                                (s.id && msg.sender_id && s.id === msg.sender_id) || 
+                                (s.email && msg.sender_id && s.email === msg.sender_id)
+                              )
                             );
                             
                             let studentBadge = null;
@@ -5159,9 +5169,11 @@ function ModernHQDashboardContent() {
                               if (student.notes) {
                                 try {
                                   const n = typeof student.notes === "string" ? JSON.parse(student.notes) : student.notes;
-                                  if (n.current_stage === 2) stageText = n.is_failed ? "Gagal T2" : "Tahap 2";
-                                  else if (n.current_stage >= 3 || n.current_stage === "final") stageText = "Final";
-                                  else if (n.is_failed) stageText = "Gagal T1";
+                                  if (n) {
+                                    if (n.current_stage === 2) stageText = n.is_failed ? "Gagal T2" : "Tahap 2";
+                                    else if (n.current_stage >= 3 || n.current_stage === "final") stageText = "Final";
+                                    else if (n.is_failed) stageText = "Gagal T1";
+                                  }
                                 } catch (e) {}
                               }
                               studentBadge = (
