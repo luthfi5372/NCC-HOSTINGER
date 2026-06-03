@@ -131,9 +131,8 @@ export async function POST(request: Request) {
           }
         } else {
           wrongCount++;
-          // Penalty mode: kurangi poin untuk jawaban salah
           if (scoringSystem === 'Penalty') {
-            totalEarned -= penaltyPoint;
+            totalEarned += penaltyPoint < 0 ? penaltyPoint : -penaltyPoint;
           }
         }
       }
@@ -158,16 +157,14 @@ export async function POST(request: Request) {
         break;
     }
 
-    // Normalisasi ke skala 100, dengan floor 0 (tidak boleh minus)
-    const normalizedScore = totalMaximum > 0
-      ? Math.max(0, Math.round((totalEarned / totalMaximum) * 100 * 100) / 100)
-      : 0;
+    // Hitung skor akhir berdasarkan akumulasi poin admin (raw score, tidak dipaksa ke skala 100)
+    const finalScore = Math.max(0, Math.round(totalEarned * 100) / 100);
 
     // ── STEP 5: Simpan skor akhir ke database ──
     const { error: updateErr } = await supabase
       .from('cbt_attempts')
       .update({
-        final_score: normalizedScore,
+        final_score: finalScore,
         status: 'submitted',
         finished_at: new Date().toISOString()
       })
@@ -179,7 +176,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      score: normalizedScore,
+      score: finalScore,
       detail: {
         correct: correctCount,
         wrong: wrongCount,
@@ -188,9 +185,9 @@ export async function POST(request: Request) {
         raw_earned: totalEarned,
         raw_maximum: totalMaximum,
         method: scoringSystem,
-        penalty_applied: scoringSystem === 'Penalty' ? wrongCount * penaltyPoint : 0
+        penalty_applied: scoringSystem === 'Penalty' ? wrongCount * (penaltyPoint < 0 ? -penaltyPoint : penaltyPoint) : 0
       },
-      message: `Penilaian selesai dengan metode ${scoringSystem}. Skor: ${normalizedScore}/100`
+      message: `Penilaian selesai dengan metode ${scoringSystem}. Skor: ${finalScore}`
     });
 
   } catch (error: any) {
@@ -220,6 +217,37 @@ export async function GET(request: Request) {
 
     const supabase = await createClient();
 
+    // Ambil konfigurasi ujian
+    const { data: exam } = await supabase
+      .from('cbt_exams')
+      .select('*')
+      .eq('id', examId)
+      .single();
+
+    // Ambil semua soal dari bank soal yang diterbitkan
+    const { data: allQuestions } = await supabase
+      .from('cbt_questions')
+      .select('weight')
+      .eq('exam_id', examId)
+      .eq('status', 'Published');
+
+    const totalQuestionsCount = allQuestions?.length || 0;
+    const scoringSystem = exam?.scoring_system || 'Fixed';
+    const fixedCorrectPoint = exam?.correct_point || 4;
+
+    let totalMaximum = 0;
+    switch (scoringSystem) {
+      case 'Fixed':
+      case 'Penalty':
+        totalMaximum = totalQuestionsCount * fixedCorrectPoint;
+        break;
+      case 'Custom':
+        totalMaximum = (allQuestions || []).reduce((sum, q) => sum + (q.weight || 4), 0);
+        break;
+    }
+
+    const passingThreshold = totalMaximum > 0 ? 0.7 * totalMaximum : 70;
+
     const { data, error } = await supabase
       .from('cbt_attempts')
       .select('*')
@@ -233,7 +261,7 @@ export async function GET(request: Request) {
     const ranked = (data || []).map((item, idx) => ({
       ...item,
       rank: idx + 1,
-      passed: item.final_score >= 70 // Passing grade standar olimpiade
+      passed: item.final_score >= passingThreshold
     }));
 
     return NextResponse.json({

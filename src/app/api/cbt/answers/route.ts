@@ -126,67 +126,106 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    // 1. Coba panggil fungsi SQL server-side untuk kalkulasi
-    let score = 0;
-    let usedRpc = false;
+    // Fetch attempt details and exam details
+    const { data: attempt, error: attemptErr } = await supabase
+      .from('cbt_attempts')
+      .select('*, cbt_exams(*)')
+      .eq('id', body.attempt_id)
+      .single();
 
-    try {
-      const { data: rpcResult, error: rpcError } = await supabase
-        .rpc('calculate_cbt_score', { p_attempt_id: body.attempt_id });
-      
-      if (!rpcError && rpcResult !== null) {
-        score = rpcResult;
-        usedRpc = true;
-      }
-    } catch {
-      // RPC tidak tersedia, fallback ke kalkulasi client-side
+    if (attemptErr || !attempt) {
+      return NextResponse.json(
+        { error: attemptErr?.message || "Sesi ujian peserta tidak ditemukan." },
+        { status: 404 }
+      );
     }
 
-    // 2. Fallback: Hitung manual di API route
-    if (!usedRpc) {
-      // Ambil semua jawaban peserta
-      const { data: answers, error: ansError } = await supabase
-        .from('cbt_answers')
-        .select('question_id, selected_option')
-        .eq('attempt_id', body.attempt_id);
-      if (ansError) throw ansError;
+    const exam = attempt.cbt_exams;
+    const scoringSystem = exam?.scoring_system || 'Fixed';
+    const fixedCorrectPoint = exam?.correct_point || 4;
+    const penaltyPoint = exam?.penalty_point || 0;
+    const emptyPoint = exam?.empty_point || 0;
 
-      if (answers && answers.length > 0) {
-        // Ambil kunci jawaban & bobot
-        const questionIds = answers.map(a => a.question_id);
-        const { data: questions, error: qError } = await supabase
-          .from('cbt_questions')
-          .select('id, correct_answer, weight')
-          .in('id', questionIds);
-        if (qError) throw qError;
+    // Ambil semua jawaban peserta
+    const { data: answers, error: ansError } = await supabase
+      .from('cbt_answers')
+      .select('question_id, selected_option')
+      .eq('attempt_id', body.attempt_id);
+    if (ansError) throw ansError;
 
-        const qMap = new Map(questions?.map(q => [q.id, q]) || []);
-        let totalWeight = 0;
-        let earnedWeight = 0;
+    // Ambil semua soal dari bank soal yang diterbitkan untuk menghitung total & unanswered
+    const { data: allQuestions, error: qAllErr } = await supabase
+      .from('cbt_questions')
+      .select('id, correct_answer, weight')
+      .eq('exam_id', exam.id)
+      .eq('status', 'Published');
+    if (qAllErr) throw qAllErr;
 
-        answers.forEach(ans => {
-          const q = qMap.get(ans.question_id);
-          if (q) {
-            totalWeight += q.weight;
-            if (ans.selected_option === q.correct_answer) {
-              earnedWeight += q.weight;
+    const totalQuestionsCount = allQuestions?.length || 0;
+
+    // Buat lookup map
+    const keyMap = new Map<string, { correct_answer: string; weight: number }>();
+    (allQuestions || []).forEach(q => keyMap.set(q.id, q));
+
+    let totalEarned = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let answeredQuestionsCount = 0;
+
+    if (answers && answers.length > 0) {
+      answers.forEach(answer => {
+        const key = keyMap.get(answer.question_id);
+        if (!key) return;
+
+        if (answer.selected_option && answer.selected_option !== "") {
+          answeredQuestionsCount++;
+          const isCorrect = answer.selected_option === key.correct_answer;
+
+          if (isCorrect) {
+            correctCount++;
+            switch (scoringSystem) {
+              case 'Fixed':
+                totalEarned += fixedCorrectPoint;
+                break;
+              case 'Custom':
+                totalEarned += key.weight;
+                break;
+              case 'Penalty':
+                totalEarned += fixedCorrectPoint;
+                break;
+            }
+          } else {
+            wrongCount++;
+            if (scoringSystem === 'Penalty') {
+              totalEarned += penaltyPoint < 0 ? penaltyPoint : -penaltyPoint;
             }
           }
-        });
-
-        score = totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100 * 100) / 100 : 0;
-
-        // Update di database
-        await supabase
-          .from('cbt_attempts')
-          .update({
-            final_score: score,
-            status: 'submitted',
-            finished_at: new Date().toISOString()
-          })
-          .eq('id', body.attempt_id);
-      }
+        }
+      });
     }
+
+    const unanswered = totalQuestionsCount - answeredQuestionsCount;
+    if (emptyPoint !== 0) {
+      totalEarned += (unanswered * emptyPoint);
+    }
+
+    // Hitung skor akhir (floor di 0)
+    const finalScore = Math.max(0, Math.round(totalEarned * 100) / 100);
+
+    // Update di database
+    const { error: updateError } = await supabase
+      .from('cbt_attempts')
+      .update({
+        final_score: finalScore,
+        status: 'submitted',
+        finished_at: new Date().toISOString()
+      })
+      .eq('id', body.attempt_id);
+
+    if (updateError) throw updateError;
+
+    score = finalScore;
+    usedRpc = false;
 
     return NextResponse.json({
       success: true,
