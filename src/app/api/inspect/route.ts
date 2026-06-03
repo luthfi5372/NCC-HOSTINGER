@@ -29,8 +29,9 @@ export async function GET() {
       });
       const { data, error } = await serviceClient
         .from('competition_entries')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, email, full_name, payment_status')
+        .neq('email', 'admin1@ncc.id')
+        .limit(5);
 
       diagnostics.stages.serviceRole = {
         success: !error,
