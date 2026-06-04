@@ -1491,25 +1491,43 @@ function ModernHQDashboardContent() {
     if (!deleteWaveConfirm) return;
     setIsDeletingWave(true);
     try {
-      // Dapatkan semua ID peserta yang termasuk ke dalam gelombang ini
-      const idsToDelete = realEntries
-        .filter((e: any) => getParticipantWave(e) === deleteWaveConfirm.name)
-        .map((e: any) => e.id);
+      // Dapatkan semua peserta yang termasuk ke dalam gelombang ini
+      const participantsToDelete = realEntries
+        .filter((e: any) => getParticipantWave(e) === deleteWaveConfirm.name);
+      
+      const idsToDelete = participantsToDelete.map((e: any) => e.id);
+      const userIdsToDelete = participantsToDelete.map((e: any) => e.user_id).filter(Boolean);
 
-      if (idsToDelete.length > 0) {
+      // Loop dan panggil RPC delete_participant_completely untuk setiap user_id agar akunnya benar-benar terhapus permanen!
+      if (userIdsToDelete.length > 0) {
+        for (const userId of userIdsToDelete) {
+          const { error: rpcError } = await supabase.rpc('delete_participant_completely', {
+            target_user_id: userId
+          });
+          if (rpcError) {
+            console.error(`Gagal menghapus user auth ${userId}:`, rpcError);
+          }
+        }
+      }
+
+      // Hapus sisa-sisa entri manual yang tidak memiliki user_id
+      const remainingIds = participantsToDelete.filter(p => !p.user_id).map(p => p.id);
+      if (remainingIds.length > 0) {
         const { error } = await supabase
           .from('competition_entries')
           .delete()
-          .in('id', idsToDelete);
+          .in('id', remainingIds);
         if (error) throw error;
-        
-        // Hapus dari state peserta juga
+      }
+      
+      // Hapus dari state peserta juga
+      if (idsToDelete.length > 0) {
         setRealEntries(prev => prev.filter((e: any) => !idsToDelete.includes(e.id)));
       }
 
       // Hapus dari state waves (auto-sync ke DB via debounced effect)
       setWaves(prev => prev.filter(w => w.id !== deleteWaveConfirm.id));
-      showToast(`Gelombang "${deleteWaveConfirm.name}" dan semua datanya (${idsToDelete.length} peserta) berhasil dihapus.`, 'success');
+      showToast(`Gelombang "${deleteWaveConfirm.name}" dan semua datanya (${idsToDelete.length} peserta) berhasil dihapus permanen.`, 'success');
     } catch (err: any) {
       console.error("Gagal menghapus data gelombang:", err);
       // Fallback: tetap hapus dari state waves agar DB settings sinkron
