@@ -2917,12 +2917,15 @@ function ModernHQDashboardContent() {
       const schoolName = (entry.school_name || entry.school || "Sekolah Tanpa Nama").trim();
       // Gunakan normalized key (lowercase) agar "SMA 1" == "sma 1" tidak dibuat dua grup
       const normalizedName = schoolName.toLowerCase();
-      const key = entry.npsn ? `npsn_${entry.npsn}` : `name_${normalizedName}`;
+      
+      // NPSN bernilai "-" atau kosong dianggap tidak memiliki NPSN
+      const hasNpsn = entry.npsn && entry.npsn.trim() !== "" && entry.npsn.trim() !== "-";
+      const key = hasNpsn ? `npsn_${entry.npsn.trim()}` : `name_${normalizedName}`;
       
       if (!groups[key]) {
         groups[key] = {
           schoolName,           // Simpan nama asli (dengan kapitalisasi original)
-          npsn: entry.npsn || "",
+          npsn: hasNpsn ? entry.npsn.trim() : "",
           students: []
         };
       }
