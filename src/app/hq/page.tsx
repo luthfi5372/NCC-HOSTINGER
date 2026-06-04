@@ -2384,7 +2384,6 @@ function ModernHQDashboardContent() {
     e.preventDefault();
     setIsAdding(true);
     try {
-      const entryId = crypto.randomUUID();
       const combinedMentor = [
         newParticipant.mentor_name?.trim(),
         newParticipant.mentor_email?.trim(),
@@ -2398,7 +2397,6 @@ function ModernHQDashboardContent() {
       }
 
       const insertData = {
-        id: entryId,
         user_id: crypto.randomUUID(), // fake user_id for manual entry
         full_name: newParticipant.full_name,
         email: newParticipant.email,
@@ -2474,7 +2472,6 @@ function ModernHQDashboardContent() {
           const notesString = Object.keys(notesObj).length > 0 ? JSON.stringify(notesObj) : null;
 
           const insertArray = rows.map((row) => ({
-            id: crypto.randomUUID(),
             user_id: crypto.randomUUID(),
             full_name: row.nama_lengkap || "-",
             email: row.email || "no-email@ncc.id",
