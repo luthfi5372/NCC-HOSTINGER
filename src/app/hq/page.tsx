@@ -2397,7 +2397,7 @@ function ModernHQDashboardContent() {
       }
 
       const insertData = {
-        user_id: crypto.randomUUID(), // fake user_id for manual entry
+        user_id: null, // no user_id for manual entry until they register
         full_name: newParticipant.full_name,
         email: newParticipant.email,
         nisn: newParticipant.nisn,
@@ -2472,7 +2472,7 @@ function ModernHQDashboardContent() {
           const notesString = Object.keys(notesObj).length > 0 ? JSON.stringify(notesObj) : null;
 
           const insertArray = rows.map((row) => ({
-            user_id: crypto.randomUUID(),
+            user_id: null,
             full_name: row.nama_lengkap || "-",
             email: row.email || "no-email@ncc.id",
             nisn: row.nisn || "-",
