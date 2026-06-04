@@ -2435,8 +2435,8 @@ function ModernHQDashboardContent() {
   const handleDownloadTemplate = () => {
     const firstCatName = categories[0]?.name || "LKTI Nasional";
     const templateData = [
-      ["nama_lengkap", "email", "nisn", "npsn", "asal_sekolah", "provinsi", "kota", "kategori_lomba", "nama_pembina", "no_wa"],
-      ["Budi Santoso", "budi@gmail.com", "12345678", "20101234", "SMA Negeri 1 Jakarta", "DKI Jakarta", "Jakarta Selatan", firstCatName, "Pak Guru", "08123456789"]
+      ["nama_lengkap", "email", "nisn", "npsn", "asal_sekolah", "provinsi", "kota", "kategori_lomba", "nama_pembina", "email_pembina", "no_wa"],
+      ["Budi Santoso", "budi@gmail.com", "12345678", "20101234", "SMA Negeri 1 Jakarta", "DKI Jakarta", "Jakarta Selatan", firstCatName, "Pak Guru", "guru@sekolah.sch.id", "08123456789"]
     ];
     const csv = Papa.unparse(templateData);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -6711,6 +6711,11 @@ function ModernHQDashboardContent() {
                           <td className="py-3 px-4 font-mono font-bold text-blue-600">nama_pembina</td>
                           <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200">Opsional</span></td>
                           <td className="py-3 px-4 text-slate-600">Nama guru pembimbing / mentor pendamping</td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-mono font-bold text-blue-600">email_pembina</td>
+                          <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200">Opsional</span></td>
+                          <td className="py-3 px-4 text-slate-600">Email aktif guru pembimbing (Contoh: <code className="bg-slate-100 px-1 py-0.5 rounded">guru@sekolah.sch.id</code>)</td>
                         </tr>
                         <tr>
                           <td className="py-3 px-4 font-mono font-bold text-blue-600">no_wa</td>
