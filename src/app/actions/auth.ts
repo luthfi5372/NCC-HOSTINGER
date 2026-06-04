@@ -415,7 +415,8 @@ export async function getAdminCompetitionEntries() {
         .from('competition_entries')
         .select('*')
         .neq('email', 'admin1@ncc.id')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(0, 9999);
 
       console.log("[SA] Service Role hasil:", data?.length ?? 0, "baris, error:", error?.message);
       if (!error) return { data: data || [], error: null };
@@ -432,7 +433,8 @@ export async function getAdminCompetitionEntries() {
         .from('competition_entries')
         .select('*')
         .neq('email', 'admin1@ncc.id')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(0, 9999);
       console.log("[SA] Cookie sesi hasil:", data?.length ?? 0, "baris");
       if (!error && data && data.length > 0) return { data, error: null };
     }
@@ -467,7 +469,8 @@ export async function getAdminCompetitionEntries() {
         .from('competition_entries')
         .select('*')
         .neq('email', 'admin1@ncc.id')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(0, 9999);
       console.log("[SA] Login admin hasil:", data?.length ?? 0, "baris");
       if (!error) return { data: data || [], error: null };
     }
@@ -476,7 +479,8 @@ export async function getAdminCompetitionEntries() {
     const { data: anonData, error: anonError } = await authClient
       .from('competition_entries')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(0, 9999);
     console.log("[SA] Anon query hasil:", anonData?.length ?? 0, "baris, error:", anonError?.message);
     return { data: anonData || [], error: anonError?.message || null };
 
