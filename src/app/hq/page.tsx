@@ -2435,8 +2435,8 @@ function ModernHQDashboardContent() {
   const handleDownloadTemplate = () => {
     const firstCatName = categories[0]?.name || "LKTI Nasional";
     const templateData = [
-      ["nama_lengkap", "email", "nisn", "asal_sekolah", "provinsi", "kota", "kategori_lomba", "nama_pembina", "no_wa"],
-      ["Budi Santoso", "budi@gmail.com", "12345678", "SMA Negeri 1 Jakarta", "DKI Jakarta", "Jakarta Selatan", firstCatName, "Pak Guru", "08123456789"]
+      ["nama_lengkap", "email", "nisn", "npsn", "asal_sekolah", "provinsi", "kota", "kategori_lomba", "nama_pembina", "no_wa"],
+      ["Budi Santoso", "budi@gmail.com", "12345678", "20101234", "SMA Negeri 1 Jakarta", "DKI Jakarta", "Jakarta Selatan", firstCatName, "Pak Guru", "08123456789"]
     ];
     const csv = Papa.unparse(templateData);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -2473,18 +2473,18 @@ function ModernHQDashboardContent() {
 
           const insertArray = rows.map((row) => ({
             user_id: null,
-            full_name: row.nama_lengkap || "-",
-            email: row.email || "no-email@ncc.id",
-            nisn: row.nisn || "-",
-            npsn: row.npsn || "-",
-            school_name: row.asal_sekolah || "-",
-            province: row.provinsi || "-",
-            city: row.kota || "-",
-            competition_type: row.kategori_lomba || "-",
+            full_name: row.nama_lengkap || row.Nama_Lengkap || row.NAMA_LENGKAP || "-",
+            email: row.email || row.Email || row.EMAIL || "no-email@ncc.id",
+            nisn: row.nisn || row.NISN || row.Nisn || "-",
+            npsn: row.npsn || row.NPSN || row.Npsn || "-",
+            school_name: row.asal_sekolah || row.Asal_Sekolah || row.ASAL_SEKOLAH || "-",
+            province: row.provinsi || row.Provinsi || row.PROVINSI || "-",
+            city: row.kota || row.Kota || row.KOTA || "-",
+            competition_type: row.kategori_lomba || row.Kategori_Lomba || row.KATEGORI_LOMBA || "-",
             mentor_name: [
-              row.nama_pembina || "-",
-              row.email_pembina || "",
-              row.no_wa || ""
+              row.nama_pembina || row.Nama_Pembina || row.NAMA_PEMBINA || "-",
+              row.email_pembina || row.Email_Pembina || row.EMAIL_PEMBINA || "",
+              row.no_wa || row.No_Wa || row.NO_WA || ""
             ].filter(Boolean).join(" | ").replace(/ \| $/, "").replace(/^\|/, "").trim() || "-",
             payment_status: 'Verified',
             notes: notesString
@@ -6674,6 +6674,11 @@ function ModernHQDashboardContent() {
                           <td className="py-3 px-4 font-mono font-bold text-blue-600">nisn</td>
                           <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">Wajib</span></td>
                           <td className="py-3 px-4 text-slate-600">10 digit Nomor Induk Siswa Nasional</td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-mono font-bold text-blue-600">npsn</td>
+                          <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">Wajib</span></td>
+                          <td className="py-3 px-4 text-slate-600">8 digit Nomor Pokok Sekolah Nasional</td>
                         </tr>
                         <tr>
                           <td className="py-3 px-4 font-mono font-bold text-blue-600">asal_sekolah</td>
