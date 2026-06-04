@@ -1446,20 +1446,30 @@ function ModernHQDashboardContent() {
     if (!deleteWaveConfirm) return;
     setIsDeletingWave(true);
     try {
-      // Hapus data competition_entries yang terkait dengan gelombang ini
-      // (cek apakah ada kolom registration_wave atau wave_name di tabel)
-      await supabase
-        .from('competition_entries')
-        .delete()
-        .ilike('registration_wave', `%${deleteWaveConfirm.name}%`);
+      // Dapatkan semua ID peserta yang termasuk ke dalam gelombang ini
+      const idsToDelete = realEntries
+        .filter((e: any) => getParticipantWave(e) === deleteWaveConfirm.name)
+        .map((e: any) => e.id);
 
-      // Hapus dari state (auto-sync ke DB via debounced effect)
+      if (idsToDelete.length > 0) {
+        const { error } = await supabase
+          .from('competition_entries')
+          .delete()
+          .in('id', idsToDelete);
+        if (error) throw error;
+        
+        // Hapus dari state peserta juga
+        setRealEntries(prev => prev.filter((e: any) => !idsToDelete.includes(e.id)));
+      }
+
+      // Hapus dari state waves (auto-sync ke DB via debounced effect)
       setWaves(prev => prev.filter(w => w.id !== deleteWaveConfirm.id));
-      showToast(`Gelombang "${deleteWaveConfirm.name}" dan semua datanya berhasil dihapus.`, 'error');
+      showToast(`Gelombang "${deleteWaveConfirm.name}" dan semua datanya (${idsToDelete.length} peserta) berhasil dihapus.`, 'success');
     } catch (err: any) {
-      // Kalau kolom tidak ada, tetap hapus dari state saja
+      console.error("Gagal menghapus data gelombang:", err);
+      // Fallback: tetap hapus dari state waves agar DB settings sinkron
       setWaves(prev => prev.filter(w => w.id !== deleteWaveConfirm.id));
-      showToast(`Gelombang "${deleteWaveConfirm.name}" berhasil dihapus.`, 'error');
+      showToast(`Gelombang "${deleteWaveConfirm.name}" berhasil dihapus, tetapi data peserta gagal dihapus: ${err.message || err}`, 'error');
     } finally {
       setIsDeletingWave(false);
       setDeleteWaveConfirm(null);
