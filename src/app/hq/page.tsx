@@ -949,6 +949,10 @@ function ModernHQDashboardContent() {
   const [editingItemKey, setEditingItemKey] = useState<string | null>(null);
   const [editingItemValue, setEditingItemValue] = useState("");
 
+  // States for inline renaming of waves
+  const [editingWaveKey, setEditingWaveKey] = useState<string | null>(null); // key: `${cat.category}-${wave.label}`
+  const [editingWaveValue, setEditingWaveValue] = useState("");
+
   // ⚡ Ref untuk selalu baca timelineData TERBARU (hindari stale closure di saveTimeline)
   const timelineDataRef = React.useRef<any[]>(timelineData);
   React.useEffect(() => { timelineDataRef.current = timelineData; }, [timelineData]);
@@ -1197,6 +1201,47 @@ function ModernHQDashboardContent() {
     setTimeout(() => {
       saveTimeline();
     }, 100);
+  };
+
+  const renameTimelineWave = (oldLabel: string, newLabel: string) => {
+    if (!newLabel.trim()) {
+      showToast("Nama gelombang tidak boleh kosong!", "error");
+      return;
+    }
+
+    const cleanOld = oldLabel.trim();
+    const cleanNew = newLabel.trim();
+
+    if (cleanOld === cleanNew) return;
+
+    // 1. Rename in timelineData (all categories to keep them synchronized!)
+    const updatedTimeline = timelineData.map(cat => ({
+      ...cat,
+      waves: cat.waves.map((w: any) => {
+        if (w.label.trim() === cleanOld) {
+          return { ...w, label: cleanNew };
+        }
+        return w;
+      })
+    }));
+    setTimelineData(updatedTimeline);
+
+    // 2. Rename in registration waves state
+    const updatedWaves = waves.map((w: any) => {
+      if (w.name.trim() === cleanOld) {
+        return { ...w, name: cleanNew };
+      }
+      return w;
+    });
+    setWaves(updatedWaves);
+
+    showToast(`Gelombang "${cleanOld}" diubah menjadi "${cleanNew}"! Menyimpan...`, "success");
+
+    // 3. Save to Supabase (debounced/delayed to let refs update)
+    setTimeout(() => {
+      saveTimeline();
+      performSyncToDatabase(updatedWaves);
+    }, 200);
   };
 
 
@@ -4404,11 +4449,64 @@ function ModernHQDashboardContent() {
                             <div key={`${cat.category}-${wave.label}`} className="bg-white/60 backdrop-blur-sm rounded-[2rem] p-8 border border-white/80 shadow-sm hover:shadow-md transition-all group">
                               <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-3">
-                                  <div className={`w-2 h-8 rounded-full ${
+                                  <div className={`w-2 h-8 rounded-full shrink-0 ${
                                     wave.label.includes('III') ? 'bg-amber-500' :
                                     wave.label.includes('II') ? 'bg-emerald-500' : 'bg-indigo-500'
                                   }`}></div>
-                                  <h4 className="text-lg font-black text-slate-800 tracking-tight">{wave.label}</h4>
+                                  {editingWaveKey === `${cat.category}-${wave.label}` ? (
+                                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                      <input
+                                        type="text"
+                                        value={editingWaveValue}
+                                        onChange={(e) => setEditingWaveValue(e.target.value)}
+                                        className="px-2 py-1 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-xl text-sm font-bold text-slate-800 w-44 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            renameTimelineWave(wave.label, editingWaveValue);
+                                            setEditingWaveKey(null);
+                                          } else if (e.key === 'Escape') {
+                                            setEditingWaveKey(null);
+                                          }
+                                        }}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          renameTimelineWave(wave.label, editingWaveValue);
+                                          setEditingWaveKey(null);
+                                        }}
+                                        className="text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 p-1.5 rounded-xl transition-colors"
+                                        title="Simpan nama gelombang"
+                                      >
+                                        <CheckCircle size={14} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingWaveKey(null)}
+                                        className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1.5 rounded-xl transition-colors"
+                                        title="Batal"
+                                      >
+                                        <XCircle size={14} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2 group/waveheader">
+                                      <h4 className="text-lg font-black text-slate-800 tracking-tight">{wave.label}</h4>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingWaveKey(`${cat.category}-${wave.label}`);
+                                          setEditingWaveValue(wave.label);
+                                        }}
+                                        className="opacity-0 group-hover/waveheader:opacity-100 transition-opacity duration-200 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-1 rounded-md transition-all active:scale-90"
+                                        title="Ubah nama gelombang"
+                                      >
+                                        <Pencil size={12} />
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-2">
                                   {cat.waves.length > 1 && (
