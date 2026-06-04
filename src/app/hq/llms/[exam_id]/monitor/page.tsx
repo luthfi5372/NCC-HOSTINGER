@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -16,6 +16,9 @@ import {
   ArrowDownTrayIcon,
   PaperAirplaneIcon,
   FunnelIcon,
+  UserCircleIcon,
+  BuildingLibraryIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 
 type TabFilter = 'all' | 'active' | 'blocked' | 'done';
@@ -30,13 +33,15 @@ interface Participant {
   id: string;
   user_id: string;
   exam_id: string;
-  status?: string;
   submitted_at?: string | null;
   started_at?: string;
   updated_at: string;
   violations_count: number;
   current_score?: number;
-  answers_json?: Record<string, string>;
+  // Enriched from cbt_participants
+  full_name?: string;
+  school_origin?: string;
+  branch?: string;
 }
 
 export default function LiveMonitor() {
@@ -49,10 +54,12 @@ export default function LiveMonitor() {
 
   const [examInfo, setExamInfo] = useState<ExamInfo>({ title: 'Memuat...', token: '...', duration_minutes: 90 });
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participantMap, setParticipantMap] = useState<Record<string, { full_name: string; school_origin: string; branch: string }>>({});
   const [stats, setStats] = useState({ working: 0, submitted: 0, cheating: 0 });
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
   const [now, setNow] = useState(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Tick setiap detik untuk timer
   useEffect(() => {
@@ -69,6 +76,37 @@ export default function LiveMonitor() {
     setStats({ working: w, submitted: s, cheating: c });
   }, []);
 
+  const fetchData = useCallback(async () => {
+    if (!examId || examId === 'undefined') return;
+    setIsRefreshing(true);
+    try {
+      // Fetch attempts
+      const { data: attempts } = await supabase
+        .from('cbt_attempts')
+        .select('*')
+        .eq('exam_id', examId)
+        .order('updated_at', { ascending: false });
+
+      // Fetch participant info map (username → nama, sekolah, cabang)
+      const { data: pData } = await supabase
+        .from('cbt_participants')
+        .select('username, full_name, school_origin, branch');
+
+      const pMap: Record<string, any> = {};
+      (pData || []).forEach(p => {
+        if (p.username) pMap[p.username] = p;
+      });
+      setParticipantMap(pMap);
+
+      if (attempts) {
+        setParticipants(attempts);
+        recalcStats(attempts);
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [examId, recalcStats]);
+
   useEffect(() => {
     if (!examId || examId === 'undefined') return;
 
@@ -81,21 +119,9 @@ export default function LiveMonitor() {
       if (data) setExamInfo(data);
     };
     loadExam();
-
-    const fetchData = async () => {
-      const { data } = await supabase
-        .from('cbt_attempts')
-        .select('*')
-        .eq('exam_id', examId)
-        .order('updated_at', { ascending: false });
-      if (data) {
-        setParticipants(data);
-        recalcStats(data);
-      }
-    };
     fetchData();
 
-    const channel = supabase.channel('live-cctv-v2')
+    const channel = supabase.channel('live-cctv-v3')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cbt_attempts' }, (payload) => {
         if (payload.new && (payload.new as any).exam_id === examId) {
           setParticipants(prev => {
@@ -112,9 +138,9 @@ export default function LiveMonitor() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [examId, recalcStats]);
+  }, [examId, fetchData, recalcStats]);
 
-  // ── Modal & Toast state ──
+  // Modal & Toast state
   const [unlockUserId, setUnlockUserId] = useState<string | null>(null);
   const [forceSubmitUserId, setForceSubmitUserId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -122,10 +148,9 @@ export default function LiveMonitor() {
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ show: true, message, type });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 4000);
+    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 4500);
   };
 
-  // ── Unblock ──
   const confirmUnlock = async () => {
     if (!unlockUserId) return;
     setIsProcessing(true);
@@ -134,7 +159,7 @@ export default function LiveMonitor() {
         .update({ violations_count: 0, updated_at: new Date().toISOString() })
         .eq('user_id', unlockUserId).eq('exam_id', examId);
       if (error) throw error;
-      showToast(`Akses ${unlockUserId} berhasil dibuka! Minta peserta refresh layar.`, 'success');
+      showToast(`Akses ${unlockUserId} berhasil dibuka! Minta peserta refresh.`, 'success');
     } catch (err: any) {
       showToast('Gagal: ' + err.message, 'error');
     } finally {
@@ -143,7 +168,6 @@ export default function LiveMonitor() {
     }
   };
 
-  // ── Force Submit ──
   const confirmForceSubmit = async () => {
     if (!forceSubmitUserId) return;
     setIsProcessing(true);
@@ -152,7 +176,7 @@ export default function LiveMonitor() {
         .update({ submitted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
         .eq('user_id', forceSubmitUserId).eq('exam_id', examId);
       if (error) throw error;
-      showToast(`Jawaban ${forceSubmitUserId} berhasil dipaksa dikumpulkan!`, 'success');
+      showToast(`Jawaban ${forceSubmitUserId} dipaksa dikumpulkan!`, 'success');
     } catch (err: any) {
       showToast('Gagal: ' + err.message, 'error');
     } finally {
@@ -161,31 +185,38 @@ export default function LiveMonitor() {
     }
   };
 
-  // ── Export CSV ──
+  // Export CSV
   const exportCSV = () => {
     const rows = [
-      ['ID Peserta', 'Status', 'Pelanggaran', 'Mulai', 'Submit', 'Skor'],
-      ...participants.map(p => [
-        p.user_id,
-        p.submitted_at ? 'Selesai' : p.violations_count >= 3 ? 'Diblokir' : 'Aktif',
-        p.violations_count,
-        p.started_at ? new Date(p.started_at).toLocaleTimeString() : '-',
-        p.submitted_at ? new Date(p.submitted_at).toLocaleTimeString() : '-',
-        p.current_score ?? '-',
-      ])
+      ['ID Peserta', 'Nama', 'Sekolah', 'Cabang', 'Status', 'Pelanggaran', 'Jam Mulai', 'Jam Submit'],
+      ...participants.map(p => {
+        const info = participantMap[p.user_id] || {};
+        const isBlocked = p.violations_count >= 3 && !p.submitted_at;
+        const isDone = !!p.submitted_at;
+        return [
+          p.user_id,
+          info.full_name || '-',
+          info.school_origin || '-',
+          info.branch || '-',
+          isDone ? 'Selesai' : isBlocked ? 'Diblokir' : 'Aktif',
+          p.violations_count,
+          p.started_at ? new Date(p.started_at).toLocaleTimeString('id') : '-',
+          p.submitted_at ? new Date(p.submitted_at).toLocaleTimeString('id') : '-',
+        ];
+      })
     ];
     const csv = rows.map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }); // BOM for Excel
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `monitor_${examInfo.token}_${new Date().toLocaleDateString('id')}.csv`;
+    a.download = `CCTV_${examInfo.token}_${new Date().toLocaleDateString('id').replace(/\//g, '-')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('Data berhasil diexport ke CSV!', 'success');
+    showToast('Export CSV berhasil!', 'success');
   };
 
-  // ── Helpers ──
+  // Timer helper
   const getRemainingTime = (startedAt?: string) => {
     if (!startedAt) return null;
     const elapsed = (now.getTime() - new Date(startedAt).getTime()) / 1000;
@@ -197,7 +228,7 @@ export default function LiveMonitor() {
     return { m, s, pct, isAlmostDone: remaining < 300, isDone: remaining === 0 };
   };
 
-  // ── Filter logic ──
+  // Tabs + filter
   const tabs: { key: TabFilter; label: string }[] = [
     { key: 'all', label: 'Semua' },
     { key: 'active', label: 'Aktif' },
@@ -205,70 +236,88 @@ export default function LiveMonitor() {
     { key: 'done', label: 'Selesai' },
   ];
 
-  const filtered = participants.filter(p => {
-    const matchSearch = (p.user_id || '').toLowerCase().includes(search.toLowerCase());
+  const classify = (p: Participant) => {
     const isBlocked = p.violations_count >= 3 && !p.submitted_at;
     const isDone = !!p.submitted_at;
-    const isActive = !isDone && !isBlocked;
-    if (!matchSearch) return false;
-    if (activeTab === 'active') return isActive;
-    if (activeTab === 'blocked') return isBlocked;
-    if (activeTab === 'done') return isDone;
-    return true;
-  });
+    return { isBlocked, isDone, isActive: !isDone && !isBlocked, isWarning: p.violations_count > 0 && p.violations_count < 3 && !p.submitted_at };
+  };
 
-  const tabCount = (key: TabFilter) => {
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
     return participants.filter(p => {
-      const isBlocked = p.violations_count >= 3 && !p.submitted_at;
-      const isDone = !!p.submitted_at;
-      const isActive = !isDone && !isBlocked;
+      const info = participantMap[p.user_id] || {};
+      const matchSearch = !q || 
+        (p.user_id || '').toLowerCase().includes(q) ||
+        (info.full_name || '').toLowerCase().includes(q) ||
+        (info.school_origin || '').toLowerCase().includes(q) ||
+        (info.branch || '').toLowerCase().includes(q);
+      
+      const { isBlocked, isDone, isActive } = classify(p);
+      const matchTab = 
+        activeTab === 'all' ? true :
+        activeTab === 'active' ? isActive :
+        activeTab === 'blocked' ? isBlocked :
+        isDone;
+      
+      return matchSearch && matchTab;
+    });
+  }, [participants, participantMap, search, activeTab]);
+
+  const tabCount = (key: TabFilter) =>
+    participants.filter(p => {
+      const { isBlocked, isDone, isActive } = classify(p);
       if (key === 'active') return isActive;
       if (key === 'blocked') return isBlocked;
       if (key === 'done') return isDone;
       return true;
     }).length;
-  };
 
   return (
-    <div className="min-h-screen bg-[#f4f7fe] p-6 md:p-8 font-sans text-gray-800">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#f4f7fe] p-5 md:p-7 font-sans text-gray-800">
+      <div className="max-w-7xl mx-auto space-y-5">
 
         {/* HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center space-x-4">
-            <Link href="/hq/llms" className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-400 hover:text-[#5145cd] shadow-sm transition-colors border border-gray-100">
+          <div className="flex items-center gap-3">
+            <Link href="/hq/llms" className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-400 hover:text-[#5145cd] shadow-sm transition-colors border border-gray-100 flex-shrink-0">
               <ArrowLeftIcon className="w-4 h-4" />
             </Link>
             <div>
-              <h1 className="text-xl font-black text-gray-900 tracking-tight">CCTV: {examInfo.title}</h1>
+              <h1 className="text-lg font-black text-gray-900 tracking-tight">CCTV: {examInfo.title}</h1>
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
                 Token: <span className="text-[#5145cd]">{examInfo.token}</span>
-                <span className="ml-3 text-gray-300">|</span>
-                <span className="ml-3">Durasi: {examInfo.duration_minutes} menit</span>
+                <span className="mx-2 text-gray-300">|</span>
+                Durasi: {examInfo.duration_minutes} mnt
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            {/* Search */}
-            <div className="relative flex-1 md:w-56">
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            {/* Search — bisa cari ID, nama, sekolah */}
+            <div className="relative flex-1 md:w-64">
               <MagnifyingGlassIcon className="w-3.5 h-3.5 absolute left-3.5 top-3 text-gray-400" />
               <input
                 type="text"
-                placeholder="Cari ID Peserta..."
+                placeholder="Cari ID, nama, sekolah..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-full text-xs font-bold focus:outline-none focus:border-[#5145cd] shadow-sm"
+                className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-full text-xs font-bold focus:outline-none focus:border-[#5145cd] shadow-sm transition-colors"
               />
             </div>
-            {/* Export */}
+            {/* Refresh manual */}
             <button
-              onClick={exportCSV}
-              title="Export ke CSV"
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-600 hover:border-[#5145cd] hover:text-[#5145cd] rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm transition-all"
+              onClick={fetchData}
+              disabled={isRefreshing}
+              title="Refresh Data"
+              className="w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-400 hover:text-[#5145cd] hover:border-[#5145cd] shadow-sm transition-all disabled:opacity-50"
             >
-              <ArrowDownTrayIcon className="w-4 h-4" />
-              <span className="hidden md:inline">Export CSV</span>
+              <ArrowPathIcon className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            {/* Export */}
+            <button onClick={exportCSV} title="Export ke CSV"
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-gray-200 text-gray-600 hover:border-[#5145cd] hover:text-[#5145cd] rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm transition-all">
+              <ArrowDownTrayIcon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Export</span>
             </button>
             {/* Live badge */}
             <div className="px-3 py-2.5 bg-rose-50 text-rose-600 rounded-full flex items-center border border-rose-100 flex-shrink-0">
@@ -309,108 +358,112 @@ export default function LiveMonitor() {
           </div>
         </div>
 
-        {/* MAIN PANEL */}
+        {/* PANEL UTAMA */}
         <div className="bg-white rounded-[28px] shadow-sm border border-gray-100">
           {/* Tab Bar */}
-          <div className="flex items-center justify-between px-6 pt-5 pb-0 border-b border-gray-100">
-            <div className="flex gap-1">
+          <div className="flex items-center justify-between px-6 border-b border-gray-100">
+            <div className="flex gap-0.5">
               {tabs.map(tab => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-t-lg transition-all border-b-2 -mb-px ${
-                    activeTab === tab.key
-                      ? 'border-[#5145cd] text-[#5145cd]'
-                      : 'border-transparent text-gray-400 hover:text-gray-600'
-                  }`}
-                >
+                <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center gap-1.5 px-4 py-4 text-[10px] font-black uppercase tracking-widest border-b-2 -mb-px transition-all ${
+                    activeTab === tab.key ? 'border-[#5145cd] text-[#5145cd]' : 'border-transparent text-gray-400 hover:text-gray-600'
+                  }`}>
                   <FunnelIcon className="w-3 h-3" />
                   {tab.label}
-                  <span className={`px-1.5 py-0.5 rounded-full text-[9px] ${
-                    activeTab === tab.key ? 'bg-indigo-100 text-[#5145cd]' : 'bg-gray-100 text-gray-400'
-                  }`}>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[9px] ${activeTab === tab.key ? 'bg-indigo-100 text-[#5145cd]' : 'bg-gray-100 text-gray-400'}`}>
                     {tabCount(tab.key)}
                   </span>
                 </button>
               ))}
             </div>
-            <span className="text-[9px] text-gray-400 font-bold pb-3">
+            <span className="text-[9px] text-gray-400 font-bold">
               Sync: {now.toLocaleTimeString()}
             </span>
           </div>
 
           {/* Grid Peserta */}
-          <div className="p-6">
+          <div className="p-5">
             {filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 text-gray-300">
-                <ComputerDesktopIcon className="w-14 h-14 mb-3" />
-                <p className="text-[10px] font-black uppercase tracking-widest">Tidak Ada Data</p>
+              <div className="flex flex-col items-center justify-center h-40 text-gray-300">
+                <ComputerDesktopIcon className="w-12 h-12 mb-2" />
+                <p className="text-[10px] font-black uppercase tracking-widest">
+                  {search ? `Tidak ada hasil untuk "${search}"` : 'Belum Ada Peserta'}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {filtered.map(p => {
-                  const isBlocked = p.violations_count >= 3 && !p.submitted_at;
-                  const isWarning = p.violations_count > 0 && p.violations_count < 3 && !p.submitted_at;
-                  const isDone = !!p.submitted_at;
+                  const { isBlocked, isDone, isWarning, isActive } = classify(p);
                   const timer = !isDone ? getRemainingTime(p.started_at) : null;
+                  const info = participantMap[p.user_id] || {};
 
                   return (
-                    <div key={p.user_id} className={`relative p-4 rounded-[18px] border-2 flex flex-col gap-3 transition-all
+                    <div key={p.user_id} className={`relative p-4 rounded-[18px] border-2 flex flex-col gap-2.5 transition-all
                       ${isBlocked ? 'bg-rose-50 border-rose-400' :
                         isWarning ? 'bg-amber-50 border-amber-300' :
                         isDone ? 'bg-emerald-50 border-emerald-200' :
-                        'bg-gray-50 border-gray-150 hover:border-indigo-200'}`}
+                        'bg-gray-50 border-gray-150 hover:border-indigo-200 hover:bg-indigo-50/30'}`}
                     >
-                      {/* Top bar accent */}
+                      {/* Top accent bar */}
                       <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-[16px]
-                        ${isBlocked ? 'bg-rose-500' : isWarning ? 'bg-amber-400 animate-pulse' : isDone ? 'bg-emerald-400' : 'bg-indigo-300'}`}
-                      />
+                        ${isBlocked ? 'bg-rose-500' : isWarning ? 'bg-amber-400 animate-pulse' : isDone ? 'bg-emerald-400' : 'bg-indigo-300'}`} />
 
-                      {/* ID + Status */}
+                      {/* Baris atas: ID + action icon */}
                       <div className="flex justify-between items-start">
-                        <div>
-                          <p className="text-xs font-black text-gray-900 leading-tight">{p.user_id}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-black text-gray-900 font-mono leading-tight">{p.user_id}</p>
                           <p className={`text-[8px] font-bold uppercase tracking-widest mt-0.5
-                            ${isBlocked ? 'text-rose-600' : isWarning ? 'text-amber-600' : isDone ? 'text-emerald-600' : 'text-indigo-500'}`}
-                          >
+                            ${isBlocked ? 'text-rose-600' : isWarning ? 'text-amber-600' : isDone ? 'text-emerald-600' : 'text-indigo-500'}`}>
                             {isBlocked ? '🔒 Diblokir' : isWarning ? '⚠️ Peringatan' : isDone ? '✅ Selesai' : '🟢 Aktif'}
                           </p>
                         </div>
-                        {/* Action icon */}
                         {isBlocked ? (
                           <button onClick={() => setUnlockUserId(p.user_id)} title="Buka Blokir"
-                            className="p-1.5 rounded-lg bg-rose-500 text-white hover:bg-emerald-500 transition-colors">
-                            <LockClosedIcon className="w-4 h-4" />
+                            className="p-1.5 rounded-lg bg-rose-500 text-white hover:bg-emerald-500 transition-colors flex-shrink-0">
+                            <LockClosedIcon className="w-3.5 h-3.5" />
                           </button>
                         ) : isDone ? (
-                          <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-500">
-                            <CheckBadgeIcon className="w-4 h-4" />
+                          <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-500 flex-shrink-0">
+                            <CheckBadgeIcon className="w-3.5 h-3.5" />
                           </div>
                         ) : (
-                          <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-400">
-                            <ComputerDesktopIcon className="w-4 h-4" />
+                          <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-400 flex-shrink-0">
+                            <ComputerDesktopIcon className="w-3.5 h-3.5" />
                           </div>
                         )}
                       </div>
 
-                      {/* Timer bar (hanya jika belum selesai) */}
+                      {/* Info Nama & Sekolah (jika ada) */}
+                      {(info.full_name || info.school_origin) && (
+                        <div className="space-y-0.5">
+                          {info.full_name && (
+                            <div className="flex items-center gap-1 text-[9px] text-gray-600 font-semibold">
+                              <UserCircleIcon className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                              <span className="truncate">{info.full_name}</span>
+                            </div>
+                          )}
+                          {info.school_origin && (
+                            <div className="flex items-center gap-1 text-[9px] text-gray-400 font-medium">
+                              <BuildingLibraryIcon className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">{info.school_origin}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Timer bar */}
                       {timer && (
                         <div>
                           <div className="flex justify-between mb-1">
-                            <span className={`text-[8px] font-bold ${timer.isAlmostDone ? 'text-rose-500' : 'text-gray-400'}`}>
-                              Sisa Waktu
-                            </span>
+                            <span className={`text-[8px] font-bold ${timer.isAlmostDone ? 'text-rose-500' : 'text-gray-400'}`}>Sisa</span>
                             <span className={`text-[9px] font-black tabular-nums ${timer.isAlmostDone ? 'text-rose-600' : 'text-gray-700'}`}>
                               {String(timer.m).padStart(2, '0')}:{String(timer.s).padStart(2, '0')}
                             </span>
                           </div>
                           <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-1000 ${
-                                timer.pct > 80 ? 'bg-rose-500' : timer.pct > 60 ? 'bg-amber-400' : 'bg-indigo-500'
-                              }`}
-                              style={{ width: `${timer.pct}%` }}
-                            />
+                            <div className={`h-full rounded-full transition-all duration-1000 ${
+                              timer.pct > 80 ? 'bg-rose-500' : timer.pct > 60 ? 'bg-amber-400' : 'bg-indigo-500'
+                            }`} style={{ width: `${timer.pct}%` }} />
                           </div>
                         </div>
                       )}
@@ -418,27 +471,24 @@ export default function LiveMonitor() {
                       {/* Pelanggaran badge */}
                       {p.violations_count > 0 && (
                         <div className={`text-center text-[9px] font-black py-0.5 rounded-lg
-                          ${isBlocked ? 'bg-rose-200 text-rose-800' : 'bg-amber-200 text-amber-800'}`}
-                        >
-                          {p.violations_count}× Curang
+                          ${isBlocked ? 'bg-rose-200 text-rose-800' : 'bg-amber-200 text-amber-800'}`}>
+                          {p.violations_count}× Pelanggaran
                         </div>
                       )}
 
-                      {/* Footer: Force Submit (hanya jika aktif) */}
+                      {/* Tombol Paksa Submit */}
                       {!isDone && (
-                        <button
-                          onClick={() => setForceSubmitUserId(p.user_id)}
-                          className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-white border border-gray-200 text-gray-500 hover:border-rose-300 hover:text-rose-600 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
-                        >
+                        <button onClick={() => setForceSubmitUserId(p.user_id)}
+                          className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-white border border-gray-200 text-gray-400 hover:border-rose-300 hover:text-rose-600 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all">
                           <PaperAirplaneIcon className="w-3 h-3" />
                           Paksa Submit
                         </button>
                       )}
 
-                      {/* Waktu selesai jika done */}
+                      {/* Waktu submit */}
                       {isDone && p.submitted_at && (
                         <p className="text-center text-[8px] text-emerald-600 font-bold">
-                          ✓ Submit {new Date(p.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          ✓ {new Date(p.submitted_at).toLocaleTimeString('id', { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       )}
                     </div>
@@ -449,68 +499,75 @@ export default function LiveMonitor() {
           </div>
         </div>
 
-        {/* ── TOAST ── */}
-        {toast.show && (
-          <div className="fixed bottom-6 right-6 z-[10000] animate-in slide-in-from-bottom-4 fade-in duration-200">
-            <div className={`px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 border text-white text-xs font-black
-              ${toast.type === 'success' ? 'bg-emerald-600 border-emerald-500' : 'bg-rose-600 border-rose-500'}`}>
-              {toast.type === 'success' ? <CheckBadgeIcon className="w-4 h-4 shrink-0" /> : <ShieldExclamationIcon className="w-4 h-4 shrink-0" />}
-              {toast.message}
-            </div>
-          </div>
-        )}
-
-        {/* ── MODAL UNBLOCK ── */}
-        {unlockUserId && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[28px] p-8 max-w-sm w-full shadow-2xl text-center border border-gray-100">
-              <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-5">
-                <LockOpenIcon className="w-8 h-8" />
-              </div>
-              <h2 className="text-lg font-black text-gray-900">Buka Blokir Peserta?</h2>
-              <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                Pelanggaran peserta <span className="font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{unlockUserId}</span> akan direset ke 0.
-              </p>
-              <div className="mt-6 flex gap-3">
-                <button onClick={() => setUnlockUserId(null)} disabled={isProcessing}
-                  className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[10px] font-black uppercase rounded-xl transition-all disabled:opacity-50">
-                  Batal
-                </button>
-                <button onClick={confirmUnlock} disabled={isProcessing}
-                  className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase rounded-xl transition-all shadow-md shadow-emerald-100 disabled:opacity-50">
-                  {isProcessing ? 'Memproses...' : 'Buka Akses'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── MODAL FORCE SUBMIT ── */}
-        {forceSubmitUserId && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[28px] p-8 max-w-sm w-full shadow-2xl text-center border border-gray-100">
-              <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-5">
-                <PaperAirplaneIcon className="w-8 h-8" />
-              </div>
-              <h2 className="text-lg font-black text-gray-900">Paksa Kumpulkan?</h2>
-              <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                Jawaban peserta <span className="font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded">{forceSubmitUserId}</span> akan langsung dikumpulkan. Tindakan ini <span className="font-black text-rose-600">tidak bisa dibatalkan</span>.
-              </p>
-              <div className="mt-6 flex gap-3">
-                <button onClick={() => setForceSubmitUserId(null)} disabled={isProcessing}
-                  className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[10px] font-black uppercase rounded-xl transition-all disabled:opacity-50">
-                  Batal
-                </button>
-                <button onClick={confirmForceSubmit} disabled={isProcessing}
-                  className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase rounded-xl transition-all shadow-md shadow-amber-100 disabled:opacity-50">
-                  {isProcessing ? 'Memproses...' : 'Ya, Kumpulkan'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
       </div>
+
+      {/* TOAST */}
+      {toast.show && (
+        <div className="fixed bottom-6 right-6 z-[10000] animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <div className={`px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 border text-white text-xs font-black max-w-sm
+            ${toast.type === 'success' ? 'bg-emerald-600 border-emerald-500' : 'bg-rose-600 border-rose-500'}`}>
+            {toast.type === 'success' ? <CheckBadgeIcon className="w-4 h-4 shrink-0" /> : <ShieldExclamationIcon className="w-4 h-4 shrink-0" />}
+            {toast.message}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL UNBLOCK */}
+      {unlockUserId && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[28px] p-8 max-w-sm w-full shadow-2xl text-center border border-gray-100">
+            <div className="w-14 h-14 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LockOpenIcon className="w-7 h-7" />
+            </div>
+            <h2 className="text-base font-black text-gray-900">Buka Blokir?</h2>
+            <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+              Pelanggaran <span className="font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-mono">{unlockUserId}</span> akan direset ke 0.
+            </p>
+            {participantMap[unlockUserId]?.full_name && (
+              <p className="text-[11px] text-gray-400 mt-1">({participantMap[unlockUserId].full_name})</p>
+            )}
+            <div className="mt-5 flex gap-3">
+              <button onClick={() => setUnlockUserId(null)} disabled={isProcessing}
+                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[10px] font-black uppercase rounded-xl transition-all disabled:opacity-50">
+                Batal
+              </button>
+              <button onClick={confirmUnlock} disabled={isProcessing}
+                className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase rounded-xl transition-all disabled:opacity-50">
+                {isProcessing ? 'Memproses...' : 'Buka Akses'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL FORCE SUBMIT */}
+      {forceSubmitUserId && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[28px] p-8 max-w-sm w-full shadow-2xl text-center border border-gray-100">
+            <div className="w-14 h-14 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <PaperAirplaneIcon className="w-7 h-7" />
+            </div>
+            <h2 className="text-base font-black text-gray-900">Paksa Kumpulkan?</h2>
+            <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+              Jawaban <span className="font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-mono">{forceSubmitUserId}</span> akan langsung dikumpulkan.
+              <span className="block mt-1 text-rose-500 font-bold">Tindakan ini tidak bisa dibatalkan.</span>
+            </p>
+            {participantMap[forceSubmitUserId]?.full_name && (
+              <p className="text-[11px] text-gray-400 mt-1">({participantMap[forceSubmitUserId].full_name})</p>
+            )}
+            <div className="mt-5 flex gap-3">
+              <button onClick={() => setForceSubmitUserId(null)} disabled={isProcessing}
+                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[10px] font-black uppercase rounded-xl transition-all disabled:opacity-50">
+                Batal
+              </button>
+              <button onClick={confirmForceSubmit} disabled={isProcessing}
+                className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase rounded-xl transition-all disabled:opacity-50">
+                {isProcessing ? 'Memproses...' : 'Ya, Kumpulkan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
