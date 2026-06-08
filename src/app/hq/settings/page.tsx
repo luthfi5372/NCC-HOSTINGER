@@ -49,8 +49,49 @@ export default function SettingsDashboard() {
   }, []);
 
   useEffect(() => {
+    // 🛡️ CLIENT-SIDE AUTH CHECK dengan retry logic (anti false-positive logout)
+    const ensureAdminSession = async () => {
+      const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "halo.ncc@gmail.com"];
+      const hasAdminCookie = document.cookie.includes('ncc_admin_hint=1');
+      
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          const currentEmail = user?.email?.toLowerCase();
+          
+          if (user && adminEmails.includes(currentEmail || "")) {
+            console.log(`[Admin Settings] Sesi admin valid: ${currentEmail} (percobaan ${attempt})`);
+            return; // ✅ Sesi valid
+          }
+          
+          if (error) console.warn(`[Admin Settings] Auth error percobaan ${attempt}:`, error.message);
+          else console.warn(`[Admin Settings] Tidak ada sesi (percobaan ${attempt}). Email: ${currentEmail || 'tidak ada'}`);
+          
+          if (hasAdminCookie && attempt < 3) {
+            await new Promise(r => setTimeout(r, 1500 * attempt));
+            continue;
+          }
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 1500));
+            continue;
+          }
+        } catch (err) {
+          console.error(`[Admin Settings] Exception percobaan ${attempt}:`, err);
+          if (attempt < 3) { await new Promise(r => setTimeout(r, 1500)); continue; }
+        }
+      }
+      
+      if (!hasAdminCookie) {
+        console.log("[Admin Settings] Tidak ada sesi valid setelah 3 percobaan. Redirect ke login.");
+        router.push('/login');
+      } else {
+        console.warn("[Admin Settings] Cookie admin ada tapi sesi Supabase tidak valid. Tetap di halaman.");
+      }
+    };
+
     const fetchSettings = async () => {
       try {
+        await ensureAdminSession();
         const { data: cbtData, error: cbtErr } = await supabase.from('cbt_settings').select('*').eq('id', 1).single();
         if (cbtErr) {
           console.error("Gagal memuat cbt_settings:", cbtErr);
@@ -198,7 +239,7 @@ export default function SettingsDashboard() {
     setTimeout(() => setToastMessage(""), 3000);
 
     try {
-      let parsed = { isRegistrationOpen: isRegistrationOpen, waves: [], paymentRequirementStage: newStage };
+      let parsed = { isRegistrationOpen: isRegistrationOpen, waves: waves, paymentRequirementStage: newStage };
       if (portalSettingsData) {
         try {
           parsed = { ...parsed, ...JSON.parse(portalSettingsData.content) };
@@ -306,7 +347,7 @@ export default function SettingsDashboard() {
     setTimeout(() => setToastMessage(""), 3000);
 
     try {
-      let parsed = { isRegistrationOpen: newValue, waves: [], paymentRequirementStage: paymentRequirementStage };
+      let parsed = { isRegistrationOpen: newValue, waves: waves, paymentRequirementStage: paymentRequirementStage };
       if (portalSettingsData) {
         try {
           parsed = { ...parsed, ...JSON.parse(portalSettingsData.content) };

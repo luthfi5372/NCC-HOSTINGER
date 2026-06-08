@@ -2713,6 +2713,7 @@ function ModernHQDashboardContent() {
 
     // Orchestrate session assurance before fetching data
     const initializeData = async () => {
+      await ensureAdminSession();
       await fetchRealData();
       fetchPortalSettings();
       fetchBroadcasts();

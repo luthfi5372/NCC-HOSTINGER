@@ -23,6 +23,46 @@ export default function ParticipantsBook() {
   const [entryCount, setEntryCount] = useState<number | null>(null);
 
   useEffect(() => {
+    // 🛡️ CLIENT-SIDE AUTH CHECK dengan retry logic (anti false-positive logout)
+    const ensureAdminSession = async () => {
+      const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "halo.ncc@gmail.com"];
+      const hasAdminCookie = document.cookie.includes('ncc_admin_hint=1');
+      
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          const currentEmail = user?.email?.toLowerCase();
+          
+          if (user && adminEmails.includes(currentEmail || "")) {
+            console.log(`[Admin Participants] Sesi admin valid: ${currentEmail} (percobaan ${attempt})`);
+            return; // ✅ Sesi valid
+          }
+          
+          if (error) console.warn(`[Admin Participants] Auth error percobaan ${attempt}:`, error.message);
+          else console.warn(`[Admin Participants] Tidak ada sesi (percobaan ${attempt}). Email: ${currentEmail || 'tidak ada'}`);
+          
+          if (hasAdminCookie && attempt < 3) {
+            await new Promise(r => setTimeout(r, 1500 * attempt));
+            continue;
+          }
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 1500));
+            continue;
+          }
+        } catch (err) {
+          console.error(`[Admin Participants] Exception percobaan ${attempt}:`, err);
+          if (attempt < 3) { await new Promise(r => setTimeout(r, 1500)); continue; }
+        }
+      }
+      
+      if (!hasAdminCookie) {
+        console.log("[Admin Participants] Tidak ada sesi valid setelah 3 percobaan. Redirect ke login.");
+        router.push('/login');
+      } else {
+        console.warn("[Admin Participants] Cookie admin ada tapi sesi Supabase tidak valid. Tetap di halaman.");
+      }
+    };
+
     const fetchParticipants = async () => {
       const { data, error } = await supabase
         .from('competition_entries')
@@ -40,8 +80,13 @@ export default function ParticipantsBook() {
       if (count !== null) setEntryCount(count);
     };
 
-    fetchParticipants();
-    fetchEntryCount();
+    const initialize = async () => {
+      await ensureAdminSession();
+      fetchParticipants();
+      fetchEntryCount();
+    };
+
+    initialize();
   }, []);
 
   const handleLogout = async () => {
