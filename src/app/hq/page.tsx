@@ -1472,6 +1472,30 @@ function ModernHQDashboardContent() {
     ));
   };
 
+  const addPhase = () => {
+    const newNum = phaseStatus.length + 1;
+    const newPhase = {
+      id: `tahap_${Date.now()}`,
+      name: `Tahap ${newNum}: Tahap Baru`,
+      isOpen: false
+    };
+    setPhaseStatus(prev => [...prev, newPhase]);
+    showToast("Tahap kompetisi baru ditambahkan!", "success");
+  };
+
+  const deletePhase = (id: string) => {
+    if (confirm("Apakah Anda yakin ingin menghapus tahap kompetisi ini? Tindakan ini dapat memengaruhi akses upload dan status kelulusan peserta.")) {
+      setPhaseStatus(prev => prev.filter(item => item.id !== id));
+      showToast("Tahap kompetisi berhasil dihapus.", "success");
+    }
+  };
+
+  const updatePhaseName = (id: string, newName: string) => {
+    setPhaseStatus(prev => prev.map(item => 
+      item.id === id ? { ...item, name: newName } : item
+    ));
+  };
+
   const DEFAULT_CATEGORIES = [
     { id: 'mipa', name: 'Olimpiade MIPA', color: 'amber' },
     { id: 'speech', name: 'Speech Contest', color: 'purple' },
@@ -5548,24 +5572,47 @@ function ModernHQDashboardContent() {
 
             {/* 3. KAWALAN PENGUMPULAN FAIL PER TAHAP */}
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-white/60">
-              <div className="flex items-center gap-3 mb-8 pb-4 border-b border-slate-100">
-                <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
-                  <FileText size={20} />
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800">Akses Pengumpulan Fail Per Tahap</h3>
+                    <p className="text-xs text-slate-500 font-medium">Atur pembukaan akses upload karya secara dinamis per tahap kompetisi.</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-black text-slate-800">Akses Pengumpulan Fail Per Tahap</h3>
-                  <p className="text-xs text-slate-500 font-medium">Atur pembukaan akses upload karya berdasarkan urutan tahap kompetisi (Tahap 1 - Tahap 3).</p>
-                </div>
+                <button
+                  onClick={addPhase}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-blue-200 transition-all active:scale-95 flex items-center justify-center gap-1.5 shrink-0 self-start md:self-auto"
+                >
+                  <Plus size={14} />
+                  Tambah Tahap
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5">
                 {phaseStatus.map((phase) => (
                   <div key={phase.id} className={`flex flex-col justify-between p-6 rounded-2xl border-2 transition-all duration-300 ${phase.isOpen ? 'border-blue-400 bg-blue-50/40 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
-                    <div className="mb-4">
-                      <h4 className="font-bold text-slate-800">{phase.name}</h4>
-                      <p className={`text-[10px] font-bold tracking-widest uppercase mt-1 ${phase.isOpen ? 'text-blue-600' : 'text-slate-400'}`}>
-                        {phase.isOpen ? '● Tahap Aktif' : '○ Tahap Terkunci'}
-                      </p>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1 mr-2">
+                        <input 
+                          type="text"
+                          value={phase.name}
+                          onChange={(e) => updatePhaseName(phase.id, e.target.value)}
+                          className="font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-indigo-300 focus:border-indigo-500 focus:bg-white/90 p-1 rounded-lg transition-all outline-none text-sm w-full font-sans"
+                        />
+                        <p className={`text-[10px] font-bold tracking-widest uppercase mt-1 ${phase.isOpen ? 'text-blue-600' : 'text-slate-400'}`}>
+                          {phase.isOpen ? '● Tahap Aktif' : '○ Tahap Terkunci'}
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => deletePhase(phase.id)}
+                        className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all shrink-0"
+                        title="Hapus Tahap"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                     
                     <button 
