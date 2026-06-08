@@ -2579,19 +2579,61 @@ function ModernHQDashboardContent() {
 
   // --- MESIN PENGUMPUL DATA & RADAR REAL-TIME ---
   useEffect(() => {
+    // --- PENJAGA SESI ADMIN (Hanya dijalankan SEKALI saat halaman pertama dibuka) ---
+    // Menggunakan retry logic agar tidak langsung logout jika token sedang direfresh
     const ensureAdminSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "halo.ncc@gmail.com"];
-        const currentEmail = session?.user?.email?.toLowerCase();
-        
-        if (!session || !adminEmails.includes(currentEmail || "")) {
-          console.log("[Admin HQ Client] No valid admin session. Redirecting to login...");
-          router.push('/login');
+      const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "halo.ncc@gmail.com"];
+      
+      // Cek cookie ncc_admin_hint sebagai sinyal awal (cepat, tanpa API call)
+      const hasAdminCookie = document.cookie.includes('ncc_admin_hint=1');
+      
+      // Coba hingga 3 kali dengan delay 1.5 detik antar percobaan
+      // untuk mengakomodasi token refresh yang sedang berjalan
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          const currentEmail = user?.email?.toLowerCase();
+          
+          if (user && adminEmails.includes(currentEmail || "")) {
+            // ✅ Sesi valid — hentikan loop
+            console.log(`[Admin HQ] Sesi admin valid: ${currentEmail} (percobaan ${attempt})`);
+            return;
+          }
+          
+          if (error) {
+            console.warn(`[Admin HQ] Auth error percobaan ${attempt}:`, error.message);
+          } else {
+            console.warn(`[Admin HQ] Tidak ada sesi admin (percobaan ${attempt}). Email: ${currentEmail || 'tidak ada'}`);
+          }
+          
+          // Jika ada cookie admin tapi sesi belum ready, tunggu lebih lama
+          if (hasAdminCookie && attempt < 3) {
+            console.log(`[Admin HQ] Cookie admin ditemukan, menunggu sesi refresh... (${attempt}/3)`);
+            await new Promise(r => setTimeout(r, 1500 * attempt));
+            continue;
+          }
+          
+          // Jika bukan percobaan terakhir, tunggu dan coba lagi
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 1500));
+            continue;
+          }
+          
+        } catch (err) {
+          console.error(`[Admin HQ] Exception percobaan ${attempt}:`, err);
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 1500));
+            continue;
+          }
         }
-      } catch (err) {
-        console.error("[Admin HQ Client] Auth check error:", err);
+      }
+      
+      // Setelah 3 kali percobaan gagal dan tidak ada cookie admin → redirect
+      if (!hasAdminCookie) {
+        console.log("[Admin HQ] Tidak ada sesi valid setelah 3 percobaan. Redirect ke login.");
         router.push('/login');
+      } else {
+        console.warn("[Admin HQ] Cookie admin ada tapi sesi Supabase tidak valid. Tetap di halaman.");
       }
     };
 
@@ -2599,9 +2641,8 @@ function ModernHQDashboardContent() {
     // Fungsi penarik data utama — selalu pastikan sesi valid dulu
     const fetchRealData = async (isRetry = false) => {
       try {
-        // Jalankan pemulihan sesi di background agar tidak memblokir render data utama!
-        ensureAdminSession();
-
+        // Session hanya dicek SEKALI saat inisialisasi awal (sudah dilakukan di ensureAdminSession)
+        // Tidak perlu re-cek di setiap fetch data untuk menghindari false-positive logout
         const { data, error } = await getAdminCompetitionEntries() as any;
 
 
@@ -2704,8 +2745,8 @@ function ModernHQDashboardContent() {
         { event: '*', schema: 'public', table: 'competition_entries' },
         async (payload) => {
           console.log("Radar mendeteksi pergerakan data!", payload);
-          // Pastikan sesi valid sebelum re-fetch dari radar (jalankan di background)
-          ensureAdminSession();
+          // TIDAK memanggil ensureAdminSession di sini — session sudah dicek saat halaman dibuka
+          // Memanggil session check di real-time handler menyebabkan false-positive logout
           await fetchRealData();
           fetchUnregisteredData();
         }

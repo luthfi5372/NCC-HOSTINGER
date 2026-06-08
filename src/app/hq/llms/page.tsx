@@ -192,24 +192,47 @@ export default function IntegratedLLMSDashboard() {
   };
 
   useEffect(() => {
-    // 🚀 CLIENT-SIDE AUTH CHECK
+    // 🛡️ CLIENT-SIDE AUTH CHECK dengan retry logic (anti false-positive logout)
     const ensureAdminSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "halo.ncc@gmail.com"];
-        const currentEmail = session?.user?.email?.toLowerCase();
-        
-        if (!session || !adminEmails.includes(currentEmail || "")) {
-          console.log("[Admin HQ LLMS Client] No valid admin session. Redirecting to login...");
-          router.push('/login');
+      const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "halo.ncc@gmail.com"];
+      const hasAdminCookie = document.cookie.includes('ncc_admin_hint=1');
+      
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          const currentEmail = user?.email?.toLowerCase();
+          
+          if (user && adminEmails.includes(currentEmail || "")) {
+            console.log(`[Admin LLMS] Sesi admin valid: ${currentEmail} (percobaan ${attempt})`);
+            return; // ✅ Sesi valid
+          }
+          
+          if (error) console.warn(`[Admin LLMS] Auth error percobaan ${attempt}:`, error.message);
+          else console.warn(`[Admin LLMS] Tidak ada sesi (percobaan ${attempt}). Email: ${currentEmail || 'tidak ada'}`);
+          
+          if (hasAdminCookie && attempt < 3) {
+            await new Promise(r => setTimeout(r, 1500 * attempt));
+            continue;
+          }
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 1500));
+            continue;
+          }
+        } catch (err) {
+          console.error(`[Admin LLMS] Exception percobaan ${attempt}:`, err);
+          if (attempt < 3) { await new Promise(r => setTimeout(r, 1500)); continue; }
         }
-      } catch (err) {
-        console.error("[Admin HQ LLMS Client] Auth check error:", err);
+      }
+      
+      if (!hasAdminCookie) {
+        console.log("[Admin LLMS] Tidak ada sesi valid setelah 3 percobaan. Redirect ke login.");
         router.push('/login');
+      } else {
+        console.warn("[Admin LLMS] Cookie admin ada tapi sesi Supabase tidak valid. Tetap di halaman.");
       }
     };
 
-    // Ensure session is recovered in background
+    // Jalankan pengecekan sesi hanya sekali saat halaman pertama dibuka
     ensureAdminSession();
 
     // Fetch initial data
