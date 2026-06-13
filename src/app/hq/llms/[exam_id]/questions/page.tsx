@@ -434,9 +434,38 @@ export default function EditorBankSoal() {
 
       {/* --- DAFTAR HASIL PENYIMPANAN DATA --- */}
       <div className="max-w-6xl mx-auto mt-12 mb-20 text-left">
-        <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-          Soal Terdaftar <span className="ml-3 bg-indigo-100 text-indigo-700 text-sm font-bold px-3 py-1 rounded-full">{daftarSoal.length}</span>
+        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center flex-wrap gap-3">
+          Soal Terdaftar
+          <span className="bg-indigo-100 text-indigo-700 text-sm font-bold px-3 py-1 rounded-full">{daftarSoal.length}</span>
+          {/* Counter soal belum ada jawaban */}
+          {(() => {
+            const noAnswer = daftarSoal.filter(q => !q.correct_answer || !q.options?.[q.correct_answer]);
+            if (noAnswer.length === 0) return (
+              <span className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full">
+                <CheckCircle className="w-3.5 h-3.5" /> Semua soal lengkap
+              </span>
+            );
+            return (
+              <span className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+                <XCircle className="w-3.5 h-3.5" /> {noAnswer.length} soal belum ada kunci jawaban
+              </span>
+            );
+          })()}
         </h3>
+
+        {/* Banner peringatan jika ada soal tidak lengkap */}
+        {daftarSoal.some(q => !q.correct_answer || !q.options?.[q.correct_answer]) && (
+          <div className="mb-5 flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-600 font-black text-sm">!</div>
+            <div>
+              <p className="text-xs font-black text-amber-700 uppercase tracking-widest">Perhatian — Soal Tidak Lengkap</p>
+              <p className="text-xs text-amber-600 font-semibold mt-0.5 leading-relaxed">
+                Soal yang ditandai merah belum memiliki kunci jawaban yang valid. Peserta tetap bisa mengerjakan soal tersebut,
+                namun sistem tidak dapat menghitung skor secara akurat. Segera edit dan tentukan kunci jawaban yang benar.
+              </p>
+            </div>
+          </div>
+        )}
         
         {daftarSoal.length === 0 ? (
           <div className="bg-white p-12 rounded-3xl border-2 border-dashed border-gray-200 text-center text-gray-400 font-medium">
@@ -446,7 +475,11 @@ export default function EditorBankSoal() {
           <div className="grid grid-cols-1 gap-4 text-left">
             {daftarSoal.map((item, index) => (
               <div key={item.id} className={`bg-white p-6 rounded-2xl shadow-sm border flex flex-col md:flex-row justify-between items-start hover:shadow-md transition-all
-                ${editingId === item.id ? 'border-amber-400 ring-1 ring-amber-400 bg-amber-50/10' : 'border-gray-100'}`}>
+                ${editingId === item.id
+                  ? 'border-amber-400 ring-1 ring-amber-400 bg-amber-50/10'
+                  : (!item.correct_answer || !item.options?.[item.correct_answer])
+                    ? 'border-rose-300 ring-1 ring-rose-200 bg-rose-50/20'
+                    : 'border-gray-100'}`}>
                 
                 <div className="flex-grow w-full md:pr-6 text-left">
                   <div className="flex items-center mb-3 flex-wrap gap-2">
@@ -457,6 +490,18 @@ export default function EditorBankSoal() {
                         'bg-amber-50 text-amber-600 border-amber-100'}`}>
                       {item.difficulty || 'Medium'}
                     </span>
+                    {/* Badge peringatan jika belum ada kunci jawaban */}
+                    {(!item.correct_answer || !item.options?.[item.correct_answer]) && (
+                      <span className="flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded border bg-rose-50 text-rose-600 border-rose-200">
+                        <XCircle className="w-3 h-3" /> Belum Ada Kunci Jawaban
+                      </span>
+                    )}
+                    {/* Badge konfirmasi jika kunci jawaban sudah ada */}
+                    {(item.correct_answer && item.options?.[item.correct_answer]) && (
+                      <span className="flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded border bg-emerald-50 text-emerald-600 border-emerald-200">
+                        <CheckCircle className="w-3 h-3" /> Kunci: {item.correct_answer}
+                      </span>
+                    )}
                   </div>
                   
                   {item.image_url && <img src={item.image_url} alt="Media" className="h-16 rounded-lg border border-gray-200 mb-3 object-cover" />}
@@ -477,11 +522,23 @@ export default function EditorBankSoal() {
                       )
                     })}
                   </div>
+
+                  {/* Peringatan inline jika tidak ada kunci jawaban */}
+                  {(!item.correct_answer || !item.options?.[item.correct_answer]) && (
+                    <div className="mt-3 flex items-center gap-2 text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
+                      <XCircle className="w-4 h-4 shrink-0" />
+                      Soal ini tidak memiliki kunci jawaban. Klik tombol <span className="font-black">Edit</span> untuk menentukan jawaban yang benar.
+                    </div>
+                  )}
                 </div>
 
                 {/* SISI TOMBOL KENDALI DATA */}
                 <div className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-2 mt-4 md:mt-0 w-full md:w-auto justify-end">
-                  <button onClick={() => pemicuEditSoal(item)} className="p-2.5 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors flex items-center text-xs font-semibold">
+                  <button onClick={() => pemicuEditSoal(item)} className={`p-2.5 rounded-xl transition-colors flex items-center text-xs font-semibold ${
+                    (!item.correct_answer || !item.options?.[item.correct_answer])
+                      ? 'text-rose-500 bg-rose-50 hover:bg-rose-100 border border-rose-200'
+                      : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'
+                  }`}>
                     <Pencil className="w-5 h-5 md:mr-0 mr-1.5" /> <span className="md:hidden">Edit</span>
                   </button>
                   <button onClick={() => handleHapusSoal(item.id)} className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors flex items-center text-xs font-semibold">
