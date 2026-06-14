@@ -26,6 +26,12 @@ export default function ExamRoom() {
 
   const [student, setStudent] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
+  const [examConfig, setExamConfig] = useState<{
+    correct_point: number;
+    penalty_point: number;
+    empty_point: number;
+    scoring_system: string;
+  }>({ correct_point: 4, penalty_point: 0, empty_point: 0, scoring_system: 'Fixed' });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [doubtfulAnswers, setDoubtfulAnswers] = useState<Record<string, boolean>>({});
@@ -59,8 +65,11 @@ export default function ExamRoom() {
 
     const loadExamData = async () => {
       try {
-        // 1. Ambil durasi dan status aktif
-        const { data: examData } = await supabase.from('cbt_exams').select('duration, duration_minutes, is_active').eq('id', examId).maybeSingle();
+        // 1. Ambil durasi, status aktif, dan konfigurasi penilaian
+        const { data: examData } = await supabase
+          .from('cbt_exams')
+          .select('duration, duration_minutes, is_active, correct_point, penalty_point, empty_point, scoring_system')
+          .eq('id', examId).maybeSingle();
         
         if (!examData || !examData.is_active) {
           localStorage.removeItem('ncc_user');
@@ -71,6 +80,13 @@ export default function ExamRoom() {
         if (examData) {
           const duration = examData.duration_minutes || examData.duration;
           if (duration) setTimeLeft(duration * 60);
+          // Simpan konfigurasi penilaian ke state
+          setExamConfig({
+            correct_point: examData.correct_point ?? 4,
+            penalty_point: examData.penalty_point ?? 0,
+            empty_point: examData.empty_point ?? 0,
+            scoring_system: examData.scoring_system || 'Fixed',
+          });
         }
 
         // 2. Ambil soal
@@ -199,24 +215,31 @@ export default function ExamRoom() {
 
   // 🔥 MESIN SUBMIT & SKOR ULTIMATE
   const confirmSubmitExam = async () => {
-    // ❌ HAPUS BARIS INI: setLoading(true); <-- INI BIANG KEROKNYA!
     setShowSubmitModal(false);
 
     try {
-      // 1. Hitung Skor Otomatis Ekstra Aman
+      // 1. Hitung Skor berdasarkan konfigurasi admin (correct_point / penalty_point / empty_point)
       let finalScore = 0;
       if (questions.length > 0) {
-        const pointPerQuestion = 100 / questions.length;
+        const { correct_point, penalty_point, empty_point } = examConfig;
         questions.forEach(q => {
           const userAnswer = answers[q.id] || '';
-          const correct = q.correct_answer || q.kunci_jawaban || q.jawaban_benar || q.answer || ''; // Pastikan DB punya kolom ini!
-          
-          if (userAnswer && correct && String(userAnswer).toUpperCase() === String(correct).toUpperCase()) {
-            finalScore += pointPerQuestion;
+          const correct = String(q.correct_answer || '').trim().toUpperCase();
+          const user    = String(userAnswer).trim().toUpperCase();
+
+          if (!user) {
+            // Soal tidak dijawab
+            finalScore += empty_point;
+          } else if (user === correct) {
+            // Jawaban benar
+            finalScore += correct_point;
+          } else {
+            // Jawaban salah — penalty_point biasanya negatif atau 0
+            finalScore += penalty_point <= 0 ? penalty_point : -penalty_point;
           }
         });
       }
-      finalScore = Math.round(finalScore);
+      finalScore = Math.max(0, Math.round(finalScore * 100) / 100);
 
       // 2. Kirim Data ke Pusat Komando
       const userId = student?.id
