@@ -96,6 +96,11 @@ export default function EditorBankSoal() {
     if (!soal && !imageFile) return alert("Konten soal teks atau gambar wajib ada!");
     if (!opsi.A || !opsi.B) return alert("Opsi jawaban A dan B minimal harus diisi!");
     
+    // Validasi: pastikan opsi yang dipilih sebagai kunci jawaban tidak kosong
+    if (!opsi[kunciJawaban as keyof typeof opsi]) {
+      return alert(`Opsi ${kunciJawaban} yang dipilih sebagai kunci jawaban masih kosong! Isi terlebih dahulu teks untuk opsi ${kunciJawaban}.`);
+    }
+
     setIsSubmitting(true);
     let finalImageUrl = imagePreviewUrl; // Pertahankan URL lama jika mode edit
 
@@ -169,18 +174,37 @@ export default function EditorBankSoal() {
   // ✏️ 4. MASUK KE MODE EDIT (NAIKKAN DATA KE FORM)
   const pemicuEditSoal = (item: any) => {
     setEditingId(item.id);
-    setSoal(item.question_text);
-    setOpsi({
-      A: item.options?.A || '',
-      B: item.options?.B || '',
-      C: item.options?.C || '',
-      D: item.options?.D || '',
-      E: item.options?.E || ''
-    });
-    setKunciJawaban(item.correct_answer);
-    setDifficulty(item.difficulty || 'Medium');
-    setImagePreviewUrl(item.image_url || null);
-    setImageFile(null);
+    
+    // Deteksi apakah data rusak dari CSV (correct_answer bukan huruf tunggal A-E)
+    const isDataRusak = !item.correct_answer || 
+      !['A','B','C','D','E'].includes(String(item.correct_answer).trim().toUpperCase()) ||
+      !item.options?.[item.correct_answer];
+
+    if (isDataRusak) {
+      // Data rusak: muat teks soal saja, kosongkan semua opsi & kunci agar admin bisa isi ulang
+      setSoal(item.question_text || '');
+      setOpsi({ A: '', B: '', C: '', D: '', E: '' });
+      setKunciJawaban('A');
+      setDifficulty(item.difficulty || 'Medium');
+      setImagePreviewUrl(item.image_url || null);
+      setImageFile(null);
+      // Tampilkan peringatan
+      showToast('⚠️ Data soal ini rusak dari impor CSV. Silakan isi ulang opsi jawaban A-E dan tentukan kunci jawaban.', 'error');
+    } else {
+      // Data normal: muat semua data ke form
+      setSoal(item.question_text);
+      setOpsi({
+        A: item.options?.A || '',
+        B: item.options?.B || '',
+        C: item.options?.C || '',
+        D: item.options?.D || '',
+        E: item.options?.E || ''
+      });
+      setKunciJawaban(item.correct_answer);
+      setDifficulty(item.difficulty || 'Medium');
+      setImagePreviewUrl(item.image_url || null);
+      setImageFile(null);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -525,9 +549,14 @@ export default function EditorBankSoal() {
 
                   {/* Peringatan inline jika tidak ada kunci jawaban */}
                   {(!item.correct_answer || !item.options?.[item.correct_answer]) && (
-                    <div className="mt-3 flex items-center gap-2 text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
-                      <XCircle className="w-4 h-4 shrink-0" />
-                      Soal ini tidak memiliki kunci jawaban. Klik tombol <span className="font-black">Edit</span> untuk menentukan jawaban yang benar.
+                    <div className="mt-3 flex flex-col gap-1.5 text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-100 rounded-xl px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <XCircle className="w-4 h-4 shrink-0" />
+                        {!['A','B','C','D','E'].includes(String(item.correct_answer||'').trim().toUpperCase())
+                          ? 'Data soal ini rusak akibat format CSV yang salah (koma dalam teks). Klik Edit — form akan dibersihkan otomatis, isi ulang opsi dan kunci jawaban.'
+                          : 'Soal ini belum memiliki kunci jawaban. Klik Edit untuk menentukan jawaban yang benar.'
+                        }
+                      </div>
                     </div>
                   )}
                 </div>
