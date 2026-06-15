@@ -131,5 +131,23 @@ export async function GET() {
     };
   }
 
+  // --- DIAGNOSTIC 4: getLLMSTelemetryData Action Call ---
+  try {
+    const { getLLMSTelemetryData } = await import('@/app/actions/auth');
+    const actionResult = await getLLMSTelemetryData();
+    diagnostics.stages.telemetryAction = {
+      success: !actionResult.error,
+      error: actionResult.error,
+      questionCount: actionResult.questionCount,
+      examsCount: actionResult.examsData?.length || 0,
+      exams: actionResult.examsData
+    };
+  } catch (err: any) {
+    diagnostics.stages.telemetryAction = {
+      success: false,
+      error: { exception: err.message || err }
+    };
+  }
+
   return NextResponse.json(diagnostics);
 }
