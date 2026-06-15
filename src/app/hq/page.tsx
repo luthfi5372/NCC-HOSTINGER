@@ -2517,6 +2517,79 @@ function ModernHQDashboardContent() {
       showToast(`Gagal memindahkan gelombang: ${err.message || err}`, "error");
     }
   };
+
+  // --- PINDAHKAN GELOMBANG BANYAK PESERTA (BULK) ---
+  const handleBulkMoveWave = async (newWaveName: string) => {
+    if (selectedEntryIds.size === 0) return;
+    if (!confirm(`Apakah Anda yakin ingin memindahkan ${selectedEntryIds.size} peserta terpilih ke ${newWaveName.split(" (")[0]}?`)) {
+      return;
+    }
+
+    try {
+      showToast("Sedang memindahkan gelombang peserta...", "info");
+
+      // Dapatkan data entries yang dipilih
+      const selectedEntries = realEntries.filter(e => selectedEntryIds.has(e.id));
+
+      // Persiapkan update untuk masing-masing entry
+      const promises = selectedEntries.map(async (entry) => {
+        let notesObj: any = {};
+        if (entry.notes) {
+          try {
+            notesObj = JSON.parse(entry.notes);
+          } catch (e) {}
+        }
+        notesObj.registered_wave = newWaveName;
+        const updatedNotes = JSON.stringify(notesObj);
+
+        return supabase
+          .from('competition_entries')
+          .update({ notes: updatedNotes })
+          .eq('id', entry.id);
+      });
+
+      const results = await Promise.all(promises);
+      const errors = results.filter(r => r.error);
+      if (errors.length > 0) {
+        throw new Error(`${errors.length} data gagal diperbarui.`);
+      }
+
+      // Update state lokal
+      setRealEntries(prev => prev.map(e => {
+        if (selectedEntryIds.has(e.id)) {
+          let notesObj: any = {};
+          if (e.notes) {
+            try {
+              notesObj = JSON.parse(e.notes);
+            } catch (err) {}
+          }
+          notesObj.registered_wave = newWaveName;
+          return { ...e, notes: JSON.stringify(notesObj) };
+        }
+        return e;
+      }));
+
+      // Update selected participant jika sedang dibuka dan ikut terpilih
+      if (selectedParticipant && selectedEntryIds.has(selectedParticipant.id)) {
+        setSelectedParticipant((prev: any) => {
+          let notesObj: any = {};
+          if (prev.notes) {
+            try {
+              notesObj = JSON.parse(prev.notes);
+            } catch (err) {}
+          }
+          notesObj.registered_wave = newWaveName;
+          return { ...prev, notes: JSON.stringify(notesObj) };
+        });
+      }
+
+      showToast(`Sukses memindahkan ${selectedEntryIds.size} peserta ke ${newWaveName.split(" (")[0]}!`, "success");
+      setSelectedEntryIds(new Set()); // Reset Pilihan
+    } catch (err: any) {
+      console.error("Gagal memindahkan gelombang massal:", err);
+      showToast(`Gagal memindahkan gelombang massal: ${err.message || err}`, "error");
+    }
+  };
   const handleAddParticipant = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAdding(true);
@@ -3532,6 +3605,30 @@ function ModernHQDashboardContent() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Dropdown Pindah Gelombang Massal */}
+                  <div className="relative">
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          handleBulkMoveWave(e.target.value);
+                          e.target.value = "";
+                        }
+                      }}
+                      className="text-xs font-black bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 rounded-xl pl-3 pr-8 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none cursor-pointer transition-all shadow-sm"
+                    >
+                      <option value="" disabled hidden>Pindahkan Gelombang...</option>
+                      {waves.map((w) => (
+                        <option key={w.id} value={w.name}>
+                          {w.name.split(" (")[0]}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-slate-500">
+                      <ChevronDown size={11} />
+                    </div>
+                  </div>
+
                   <button
                     onClick={() => setSelectedEntryIds(new Set())}
                     className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
