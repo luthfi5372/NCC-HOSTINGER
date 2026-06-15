@@ -33,11 +33,34 @@ export async function GET() {
         .neq('email', 'admin1@ncc.id')
         .limit(5);
 
+      // Query cbt_exams
+      const { data: exams, error: examsErr } = await serviceClient
+        .from('cbt_exams')
+        .select('*');
+
+      // Query cbt_questions count
+      const { count: questionsCount, error: questionsErr } = await serviceClient
+        .from('cbt_questions')
+        .select('*', { count: 'exact', head: true });
+
+      // Query cbt_attempts count
+      const { count: attemptsCount, error: attemptsErr } = await serviceClient
+        .from('cbt_attempts')
+        .select('*', { count: 'exact', head: true });
+
       diagnostics.stages.serviceRole = {
         success: !error,
         count: data?.length || 0,
         error: error ? { message: error.message, details: error.details, code: error.code } : null,
-        sample: data || []
+        sample: data || [],
+        cbt: {
+          exams: exams || [],
+          examsError: examsErr ? { message: examsErr.message, code: examsErr.code } : null,
+          questionsCount: questionsCount || 0,
+          questionsError: questionsErr ? { message: questionsErr.message, code: questionsErr.code } : null,
+          attemptsCount: attemptsCount || 0,
+          attemptsError: attemptsErr ? { message: attemptsErr.message, code: attemptsErr.code } : null
+        }
       };
     } catch (err: any) {
       diagnostics.stages.serviceRole = {
