@@ -106,7 +106,7 @@ export default function StudentDashboard() {
     const fetchAll = async () => {
       if (parsedUser.active_exam_id) {
         const { data: exData, error: exError } = await supabase
-          .from('cbt_exams').select('duration, duration_minutes, is_active').eq('id', parsedUser.active_exam_id).single();
+          .from('cbt_exams').select('duration, duration_minutes, is_active, correct_point, penalty_point, empty_point, scoring_system').eq('id', parsedUser.active_exam_id).single();
         
         if (exError || !exData || !exData.is_active) {
           localStorage.removeItem('ncc_user');
@@ -395,17 +395,44 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            {/* Protokol */}
-            <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
-              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center mb-5">
-                <ShieldExclamationIcon className="w-4 h-4 mr-2 text-amber-500" /> Protokol Integritas CBT
-              </h4>
-              <ul className="text-xs text-gray-500 space-y-4">
-                <li className="flex items-start">
-                  <div className="w-5 h-5 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center font-black text-[10px] mr-3 flex-shrink-0 mt-0.5">1</div>
-                  <span className="leading-relaxed"><strong>Sistem Anti-Tab:</strong> Keluar dari layar ujian akan tercatat sebagai pelanggaran.</span>
-                </li>
-              </ul>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Protokol */}
+              <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center mb-5">
+                  <ShieldExclamationIcon className="w-4 h-4 mr-2 text-amber-500" /> Protokol Integritas CBT
+                </h4>
+                <ul className="text-xs text-gray-500 space-y-4">
+                  <li className="flex items-start">
+                    <div className="w-5 h-5 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center font-black text-[10px] mr-3 flex-shrink-0 mt-0.5">1</div>
+                    <span className="leading-relaxed"><strong>Sistem Anti-Tab:</strong> Keluar dari layar ujian akan tercatat sebagai pelanggaran.</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Sistem Poin */}
+              <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center mb-5">
+                  <AcademicCapIcon className="w-4 h-4 mr-2 text-[#5145cd]" /> Sistem Penilaian CBT
+                </h4>
+                <ul className="text-xs text-gray-500 space-y-3">
+                  <li className="flex justify-between items-center py-1 border-b border-gray-50">
+                    <span className="font-semibold text-gray-600">Sistem Skor</span>
+                    <span className="font-black text-[#5145cd]">{examDetail?.scoring_system || 'Fixed'}</span>
+                  </li>
+                  <li className="flex justify-between items-center py-1 border-b border-gray-50">
+                    <span className="font-semibold text-emerald-600">Jawaban Benar</span>
+                    <span className="font-black text-emerald-600">+{examDetail?.correct_point ?? 4} Poin</span>
+                  </li>
+                  <li className="flex justify-between items-center py-1 border-b border-gray-50">
+                    <span className="font-semibold text-rose-600">Jawaban Salah</span>
+                    <span className="font-black text-rose-600">{examDetail?.penalty_point ?? 0} Poin</span>
+                  </li>
+                  <li className="flex justify-between items-center py-1">
+                    <span className="font-semibold text-slate-500">Tidak Dijawab</span>
+                    <span className="font-black text-slate-500">{examDetail?.empty_point ?? 0} Poin</span>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
