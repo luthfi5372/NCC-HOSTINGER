@@ -20,7 +20,7 @@ import {
 import { 
   LayoutDashboard, Users, FileCheck, Settings, 
   ArrowUpRight, ArrowDownRight, Download, Calendar, 
-  Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight, Save, MessageSquare, ArrowDown,
+  Bell, MoreHorizontal, Sparkles, Search, Filter, Printer, X, IdCard, Megaphone, Send, ArrowRight, Save, MessageSquare, ArrowDown, ChevronDown,
   CheckCircle2, AlertCircle, LogOut, Trash2, MapPin, School, Target, XCircle, Power, Shield, Clock, CalendarDays, FolderOpen, ShieldCheck, CheckCircle, Eye, EyeOff, FileText, ImageIcon, Camera, Trophy, Medal, GraduationCap, Building2, ClipboardCheck, Pencil, History, MegaphoneOff, Forward, AlertTriangle, Plus, Instagram, Gift
 } from "lucide-react";
 import { 
@@ -6281,8 +6281,53 @@ function ModernHQDashboardContent() {
             
             <div className="w-full max-w-md bg-white border-l border-slate-200/80 h-full shadow-[-10px_0_30px_rgba(0,0,0,0.04)] p-8 flex flex-col overflow-y-auto">
               <div className="flex justify-between items-center mb-8 pb-4 border-b border-slate-200/50">
-                 <h2 className="text-xl font-bold text-slate-800">Detail Administrasi</h2>
-                 <button onClick={() => setSelectedParticipant(null)} className="p-2 bg-white/50 hover:bg-slate-100 rounded-full border border-slate-200/50 transition-colors"><X size={20}/></button>
+                 <h2 className="text-xl font-bold text-slate-800">Detail</h2>
+                 
+                 <div className="flex items-center gap-2">
+                   {/* Dropdown Pindah Gelombang */}
+                   <div className="relative">
+                     <select
+                       value={getParticipantWave(selectedParticipant)}
+                       onChange={(e) => moveParticipantWave(selectedParticipant.id, e.target.value)}
+                       className="text-[11px] font-black bg-slate-50 hover:bg-slate-100/80 text-slate-700 border border-slate-200/80 rounded-xl pl-3 pr-8 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none cursor-pointer transition-all"
+                     >
+                       {waves.map((w) => (
+                         <option key={w.id} value={w.name}>
+                           {w.name.split(" (")[0]}
+                         </option>
+                       ))}
+                     </select>
+                     <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-slate-500">
+                       <ChevronDown size={11} />
+                     </div>
+                   </div>
+
+                   {/* Tombol Hapus Peserta (Delete Menu) */}
+                   <button 
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       setDeleteModal({
+                         show: true,
+                         id: selectedParticipant.id,
+                         userId: selectedParticipant.user_id,
+                         name: selectedParticipant.full_name
+                       });
+                     }}
+                     title="Hapus Peserta"
+                     className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-100/50 rounded-full transition-colors flex items-center justify-center shrink-0"
+                   >
+                     <Trash2 size={15} />
+                   </button>
+
+                   {/* Tombol Close */}
+                   <button 
+                     onClick={() => setSelectedParticipant(null)} 
+                     title="Tutup"
+                     className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full border border-slate-200/50 transition-colors flex items-center justify-center shrink-0"
+                   >
+                     <X size={16} className="text-slate-600" />
+                   </button>
+                 </div>
               </div>
               
                {renderParticipantAvatar(selectedParticipant)}
@@ -6487,49 +6532,7 @@ function ModernHQDashboardContent() {
                   </div>
                 </div>
 
-                {/* SECTION BARU: PINDAHKAN GELOMBANG */}
-                <div className="mt-4 pt-4 border-t border-slate-200/50">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
-                      <Calendar size={14} />
-                    </div>
-                    <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Pindahkan Gelombang</h4>
-                  </div>
-                  
-                  <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-100">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between px-2">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Gelombang Saat Ini:</span>
-                        <span className="text-[10px] font-black text-slate-700 bg-slate-200/50 px-2 py-0.5 rounded-lg">
-                          {getParticipantWave(selectedParticipant).split(" (")[0]}
-                        </span>
-                      </div>
-                      
-                      <div className="mt-2 pt-2 border-t border-slate-200/30 flex flex-col gap-2">
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider px-2">Pilih Gelombang Tujuan:</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {waves.map((w) => {
-                            const isCurrent = getParticipantWave(selectedParticipant) === w.name;
-                            return (
-                              <button
-                                key={w.id}
-                                disabled={isCurrent}
-                                onClick={() => moveParticipantWave(selectedParticipant.id, w.name)}
-                                className={`py-2 px-3 rounded-xl text-[10px] font-black transition-all border flex items-center justify-center gap-1 ${
-                                  isCurrent
-                                    ? 'bg-blue-50 border-blue-100 text-blue-500 opacity-60 cursor-not-allowed'
-                                    : 'bg-white border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-600'
-                                }`}
-                              >
-                                {w.name.split(" (")[0]}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+
 
                 {renderParticipantFiles(selectedParticipant)}
               </div>
