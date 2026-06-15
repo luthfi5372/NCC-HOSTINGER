@@ -7,7 +7,30 @@
 -- Jalankan SQL ini di Supabase SQL Editor (https://supabase.com/dashboard)
 -- ============================================================================
 
--- 0. --- PEMBUATAN TABEL cbt_answers JIKA BELUM ADA ---
+-- 0. --- PASTIKAN PRIMARY KEY TERPASANG PADA TABEL REFERENSI ---
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM information_schema.table_constraints 
+        WHERE table_name='cbt_attempts' AND constraint_type='PRIMARY KEY'
+    ) THEN
+        ALTER TABLE public.cbt_attempts ADD CONSTRAINT cbt_attempts_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM information_schema.table_constraints 
+        WHERE table_name='cbt_questions' AND constraint_type='PRIMARY KEY'
+    ) THEN
+        ALTER TABLE public.cbt_questions ADD CONSTRAINT cbt_questions_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
+
+-- --- PEMBUATAN TABEL cbt_answers JIKA BELUM ADA ---
 CREATE TABLE IF NOT EXISTS public.cbt_answers (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     attempt_id UUID REFERENCES public.cbt_attempts(id) ON DELETE CASCADE,
