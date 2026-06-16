@@ -34,10 +34,11 @@ import HeroSection from "@/components/HeroSection";
 import SponsorsSection from "@/components/SponsorsSection";
 import FeatureGrid from "@/components/FeatureGrid";
 import CategoryCards from "@/components/CategoryCards";
-import PricingSection from "@/components/PricingSection";
-import FAQSection from "@/components/FAQSection";
 import Footer from "@/components/Footer";
-import TimelineSection from "@/components/TimelineSection";
+
+const PricingSection = dynamic(() => import("@/components/PricingSection"), { ssr: false });
+const FAQSection = dynamic(() => import("@/components/FAQSection"), { ssr: false });
+const TimelineSection = dynamic(() => import("@/components/TimelineSection"), { ssr: false });
 
 export default function Home() {
   return (
