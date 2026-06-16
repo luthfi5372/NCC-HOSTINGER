@@ -39,11 +39,11 @@ export default function SponsorsSection() {
   return (
     <section className="relative z-10 py-16 px-6 sm:px-10 bg-transparent flex flex-col items-center overflow-hidden">
       {/* Decorative glass container background */}
-      <div className="absolute inset-0 bg-white/20 backdrop-blur-md border-y border-slate-200/50 -z-10 pointer-events-none" />
+      <div className="absolute inset-0 bg-white/70 border-y border-slate-200/40 -z-10 pointer-events-none" />
 
       {/* Header */}
       <div className="max-w-3xl text-center mb-10 flex flex-col items-center">
-        <span className="flex items-center gap-1.5 px-4 py-1 rounded-full bg-blue-50/80 border border-blue-100/80 text-xs font-bold text-blue-600 tracking-wider uppercase inline-block shadow-sm mb-3">
+        <span className="flex items-center gap-1.5 px-4 py-1 rounded-full bg-blue-50 border border-blue-100/65 text-xs font-bold text-blue-600 tracking-wider uppercase inline-block shadow-sm mb-3">
           <Sparkles size={12} className="text-blue-500 animate-pulse" />
           Mitra Pendukung
         </span>
@@ -61,17 +61,17 @@ export default function SponsorsSection() {
         <div className="absolute left-0 inset-y-0 w-20 bg-gradient-to-r from-slate-50 via-slate-50/50 to-transparent z-20 pointer-events-none" />
         <div className="absolute right-0 inset-y-0 w-20 bg-gradient-to-l from-slate-50 via-slate-50/50 to-transparent z-20 pointer-events-none" />
 
-        <div className="animate-marquee gap-6">
+        <div className="animate-marquee gap-6 will-change-transform">
           {/* First track copy */}
           {row1Sponsors.map((sponsor, index) => (
             <div
               key={`row1-${index}`}
-              className="flex items-center justify-center min-w-[140px] h-20 px-6 rounded-2xl bg-white/60 backdrop-blur-md border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-300 hover:bg-white transition-all duration-300 group cursor-pointer"
+              className="flex items-center justify-center min-w-[140px] h-20 px-6 rounded-2xl bg-white border border-slate-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-md hover:border-slate-300 hover:scale-105 transition-all duration-300 group cursor-pointer"
             >
               <img
                 src={sponsor.src}
                 alt={sponsor.name}
-                className="h-10 max-w-[120px] object-contain opacity-60 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300"
+                className="h-10 max-w-[120px] object-contain opacity-65 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300"
               />
             </div>
           ))}
@@ -79,12 +79,12 @@ export default function SponsorsSection() {
           {row1Sponsors.map((sponsor, index) => (
             <div
               key={`row1-dup-${index}`}
-              className="flex items-center justify-center min-w-[140px] h-20 px-6 rounded-2xl bg-white/60 backdrop-blur-md border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-300 hover:bg-white transition-all duration-300 group cursor-pointer"
+              className="flex items-center justify-center min-w-[140px] h-20 px-6 rounded-2xl bg-white border border-slate-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-md hover:border-slate-300 hover:scale-105 transition-all duration-300 group cursor-pointer"
             >
               <img
                 src={sponsor.src}
                 alt={sponsor.name}
-                className="h-10 max-w-[120px] object-contain opacity-60 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300"
+                className="h-10 max-w-[120px] object-contain opacity-65 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300"
               />
             </div>
           ))}
@@ -97,17 +97,17 @@ export default function SponsorsSection() {
         <div className="absolute left-0 inset-y-0 w-20 bg-gradient-to-r from-slate-50 via-slate-50/50 to-transparent z-20 pointer-events-none" />
         <div className="absolute right-0 inset-y-0 w-20 bg-gradient-to-l from-slate-50 via-slate-50/50 to-transparent z-20 pointer-events-none" />
 
-        <div className="animate-marquee-reverse gap-6">
+        <div className="animate-marquee-reverse gap-6 will-change-transform">
           {/* First track copy */}
           {row2Sponsors.map((sponsor, index) => (
             <div
               key={`row2-${index}`}
-              className="flex items-center justify-center min-w-[140px] h-20 px-6 rounded-2xl bg-white/60 backdrop-blur-md border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-300 hover:bg-white transition-all duration-300 group cursor-pointer"
+              className="flex items-center justify-center min-w-[140px] h-20 px-6 rounded-2xl bg-white border border-slate-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-md hover:border-slate-300 hover:scale-105 transition-all duration-300 group cursor-pointer"
             >
               <img
                 src={sponsor.src}
                 alt={sponsor.name}
-                className="h-10 max-w-[120px] object-contain opacity-60 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300"
+                className="h-10 max-w-[120px] object-contain opacity-65 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300"
               />
             </div>
           ))}
@@ -115,12 +115,12 @@ export default function SponsorsSection() {
           {row2Sponsors.map((sponsor, index) => (
             <div
               key={`row2-dup-${index}`}
-              className="flex items-center justify-center min-w-[140px] h-20 px-6 rounded-2xl bg-white/60 backdrop-blur-md border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-300 hover:bg-white transition-all duration-300 group cursor-pointer"
+              className="flex items-center justify-center min-w-[140px] h-20 px-6 rounded-2xl bg-white border border-slate-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-md hover:border-slate-300 hover:scale-105 transition-all duration-300 group cursor-pointer"
             >
               <img
                 src={sponsor.src}
                 alt={sponsor.name}
-                className="h-10 max-w-[120px] object-contain opacity-60 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300"
+                className="h-10 max-w-[120px] object-contain opacity-65 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300"
               />
             </div>
           ))}

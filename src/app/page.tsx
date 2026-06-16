@@ -54,8 +54,6 @@ export default function Home() {
             <HeroSection />
           </section>
 
-          <SponsorsSection />
-
           <section className="min-h-screen w-full py-24 flex items-center justify-center">
             <FeatureGrid />
           </section>
@@ -63,6 +61,8 @@ export default function Home() {
           <section className="min-h-screen w-full py-24 flex items-center justify-center">
             <GallerySection />
           </section>
+
+          <SponsorsSection />
 
           <section id="kategori" className="min-h-screen w-full py-24 flex items-center justify-center">
             <CategoryCards />
