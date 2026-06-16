@@ -12,7 +12,530 @@ import Image from "next/image";
 
 const filters = ["ALL", "ACADEMIC", "SPEECH", "ARTS", "GALLERY"];
 
-const portfolioItems: any[] = [];
+const portfolioItems = [
+  {
+    "id": "portfolio-0",
+    "category": "ARTS",
+    "label": "Pertunjukan Musik Kolosal",
+    "description": "Harmoni seni musik tradisional dan modern di panggung utama.",
+    "src": "/gallery/14upload.jpg",
+    "span": "col-span-1 md:col-span-2 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-1",
+    "category": "GALLERY",
+    "label": "Upacara Pembukaan NCC",
+    "description": "Kemeriahan pembukaan acara nasional yang dihadiri oleh ratusan sekolah.",
+    "src": "/gallery/1upload.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-2",
+    "category": "SPEECH",
+    "label": "Master of Ceremony (MC)",
+    "description": "Pembawa acara yang enerjik memandu jalannya kompetisi dengan meriah.",
+    "src": "/gallery/21upload.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-3",
+    "category": "GALLERY",
+    "label": "Keceriaan Seluruh Peserta",
+    "description": "Kebersamaan dan persahabatan yang terjalin antarpeserta dari berbagai daerah.",
+    "src": "/gallery/22upload.jpg",
+    "span": "col-span-1 md:col-span-2 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-4",
+    "category": "ACADEMIC",
+    "label": "Penyelesaian Soal Final",
+    "description": "Keseriusan peserta dalam menyelesaikan soal babak final akademik.",
+    "src": "/gallery/3upload.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-5",
+    "category": "GALLERY",
+    "label": "Sesi Motivasi Bersama Tokoh",
+    "description": "Peserta mendapatkan inspirasi dari tokoh pendidikan nasional.",
+    "src": "/gallery/6upload.jpg",
+    "span": "col-span-1 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-6",
+    "category": "GALLERY",
+    "label": "Penghargaan Juara Umum",
+    "description": "Momen penyerahan piala bergilir kepada sekolah peraih juara umum.",
+    "src": "/gallery/7upload.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-7",
+    "category": "GALLERY",
+    "label": "Registrasi Ulang Peserta",
+    "description": "Antusiasme pendaftaran peserta sejak pagi hari di lokasi acara.",
+    "src": "/gallery/B1.jpg",
+    "span": "col-span-1 md:col-span-2 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-8",
+    "category": "GALLERY",
+    "label": "Panggung Utama Megah",
+    "description": "Tata lampu dan desain panggung utama yang menyambut kedatangan peserta.",
+    "src": "/gallery/B10.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-9",
+    "category": "SPEECH",
+    "label": "Persiapan Pidato Final",
+    "description": "Peserta melatih intonasi dan vokal sebelum naik ke panggung utama.",
+    "src": "/gallery/C2.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-10",
+    "category": "ARTS",
+    "label": "Penjurian Lomba Mewarnai",
+    "description": "Kejelian juri dalam menilai perpaduan warna dan kerapian karya.",
+    "src": "/gallery/C5.jpg",
+    "span": "col-span-1 md:col-span-2 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-11",
+    "category": "GALLERY",
+    "label": "Foto Bersama Finalis",
+    "description": "Kebersamaan para finalis setelah menyelesaikan rangkaian lomba.",
+    "src": "/gallery/ECL09791.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-12",
+    "category": "GALLERY",
+    "label": "Penyerahan Sertifikat",
+    "description": "Apresiasi kepada juri dan sponsor yang mendukung kesuksesan NCC.",
+    "src": "/gallery/ECL09816.JPG",
+    "span": "col-span-1 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-13",
+    "category": "ACADEMIC",
+    "label": "Fokus Ujian Tertulis",
+    "description": "Peserta konsentrasi penuh mengerjakan soal ujian di ruang kelas.",
+    "src": "/gallery/IMG_7993.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-14",
+    "category": "SPEECH",
+    "label": "Panggung Pidato Utama",
+    "description": "Penampilan salah satu peserta di panggung megah di depan ratusan audiens.",
+    "src": "/gallery/IMG_8067.JPG",
+    "span": "col-span-1 md:col-span-2 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-15",
+    "category": "ARTS",
+    "label": "Proses Menggambar",
+    "description": "Peserta menumpahkan kreativitasnya di atas kertas gambar dengan pensil warna.",
+    "src": "/gallery/IMG_8103.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-16",
+    "category": "ARTS",
+    "label": "Sentuhan Akhir Karya",
+    "description": "Peserta menyempurnakan detail lukisannya sebelum waktu pengerjaan habis.",
+    "src": "/gallery/IMG_8109.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-17",
+    "category": "GALLERY",
+    "label": "Pengumuman Pemenang",
+    "description": "Sorak kegembiraan para pemenang saat nama mereka dibacakan di atas panggung.",
+    "src": "/gallery/IMG_8143.JPG",
+    "span": "col-span-1 md:col-span-2 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-18",
+    "category": "ACADEMIC",
+    "label": "Olimpiade Sains & Matematika",
+    "description": "Konsentrasi penuh para peserta dalam menyelesaikan soal-soal teori olimpiade.",
+    "src": "/gallery/NCC 1.1.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-19",
+    "category": "ACADEMIC",
+    "label": "Kompetisi Cerdas Cermat",
+    "description": "Keseruan dan ketegangan babak rebutan cerdas cermat bidang akademik.",
+    "src": "/gallery/NCC 1.2.jpg",
+    "span": "col-span-1 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-20",
+    "category": "SPEECH",
+    "label": "Lomba Pidato Bahasa Inggris",
+    "description": "Penyampaian pidato yang persuasif dan penuh percaya diri oleh peserta.",
+    "src": "/gallery/NCC 2.1.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-21",
+    "category": "SPEECH",
+    "label": "Speech Competition Finalist",
+    "description": "Ekspresi meyakinkan dari salah satu finalis lomba pidato di hadapan dewan juri.",
+    "src": "/gallery/NCC 2.2.jpg",
+    "span": "col-span-1 md:col-span-2 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-22",
+    "category": "ARTS",
+    "label": "Lomba Seni Lukis & Desain",
+    "description": "Goresan kuas dan warna-warni kreasi peserta menuangkan ide ke kanvas.",
+    "src": "/gallery/NCC 3.1.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-23",
+    "category": "ARTS",
+    "label": "Kreativitas Seni Kriya",
+    "description": "Detail kerajinan tangan yang dibuat dengan ketelitian tinggi oleh peserta.",
+    "src": "/gallery/NCC 3.2.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-24",
+    "category": "ACADEMIC",
+    "label": "Presentasi Karya Ilmiah Remaja",
+    "description": "Pemaparan hasil penelitian ilmiah di depan dewan penguji.",
+    "src": "/gallery/NCC 4.1.jpg",
+    "span": "col-span-1 md:col-span-2 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-25",
+    "category": "ACADEMIC",
+    "label": "Diskusi Panel Akademik",
+    "description": "Sesi tanya jawab yang interaktif antara peserta dengan juri ahli.",
+    "src": "/gallery/NCC 4.2.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-26",
+    "category": "SPEECH",
+    "label": "Kompetisi Debat Bahasa Indonesia",
+    "description": "Penyampaian argumen yang logis dan kritis dalam sesi debat aktif.",
+    "src": "/gallery/NCC 5.1.jpg",
+    "span": "col-span-1 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-27",
+    "category": "SPEECH",
+    "label": "Debat Final NCC",
+    "description": "Momen adu argumen sengit memperebutkan gelar juara debat nasional.",
+    "src": "/gallery/NCC 5.2.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-28",
+    "category": "ARTS",
+    "label": "Kompetisi Fotografi Tematis",
+    "description": "Pengambilan sudut pandang unik oleh peserta lomba fotografi lapangan.",
+    "src": "/gallery/NCC 6.1.jpg",
+    "span": "col-span-1 md:col-span-2 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-29",
+    "category": "ARTS",
+    "label": "Pameran Karya Seni Rupa",
+    "description": "Pengunjung mengagumi galeri karya seni buatan peserta NCC.",
+    "src": "/gallery/NCC 6.2.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-30",
+    "category": "ACADEMIC",
+    "label": "Lomba Esai Ilmiah",
+    "description": "Para peserta menuangkan gagasan solutif mereka dalam bentuk tulisan esai.",
+    "src": "/gallery/NCC 7.1.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-31",
+    "category": "ACADEMIC",
+    "label": "Evaluasi Karya Tulis",
+    "description": "Evaluasi mendalam dari dewan juri terhadap karya tulis peserta.",
+    "src": "/gallery/NCC 7.2.jpg",
+    "span": "col-span-1 md:col-span-2 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-32",
+    "category": "SPEECH",
+    "label": "Storytelling Competition",
+    "description": "Penyampaian cerita rakyat yang interaktif menggunakan properti kreatif.",
+    "src": "/gallery/NCC 8.1.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-33",
+    "category": "SPEECH",
+    "label": "Ekspresi Storyteller",
+    "description": "Penjiwaan karakter yang sangat baik memukau seluruh penonton.",
+    "src": "/gallery/NCC 8.2.jpg",
+    "span": "col-span-1 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-34",
+    "category": "ARTS",
+    "label": "Lomba Desain Poster Digital",
+    "description": "Kombinasi estetika dan pesan sosial dalam poster digital hasil karya peserta.",
+    "src": "/gallery/NCC 9.1.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-35",
+    "category": "ARTS",
+    "label": "Poster Hasil Karya Finalis",
+    "description": "Visualisasi poster yang informatif dan menarik terpajang di area pameran.",
+    "src": "/gallery/NCC 9.2.jpg",
+    "span": "col-span-1 md:col-span-2 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-36",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 10",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 10.",
+    "src": "/gallery/SLIDE NCC 10TH.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-37",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 1 (Sesi 2)",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 1. Momen tambahan keseruan aktivitas pendukung di panggung utama.",
+    "src": "/gallery/SLIDE NCC 1st KE 2.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-38",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 1",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 1.",
+    "src": "/gallery/SLIDE NCC 1st.JPG",
+    "span": "col-span-1 md:col-span-2 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-39",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 2 (Sesi 2)",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 2. Momen tambahan keseruan aktivitas pendukung di panggung utama.",
+    "src": "/gallery/SLIDE NCC 2nd KE2.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-40",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 2",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 2.",
+    "src": "/gallery/SLIDE NCC 2nd.JPG",
+    "span": "col-span-1 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-41",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 3",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 3.",
+    "src": "/gallery/SLIDE NCC 3rd .JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-42",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 3 (Sesi 2)",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 3. Momen tambahan keseruan aktivitas pendukung di panggung utama.",
+    "src": "/gallery/SLIDE NCC 3rd KE 2.JPG",
+    "span": "col-span-1 md:col-span-2 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-43",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 4",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 4.",
+    "src": "/gallery/SLIDE NCC 4th ke .JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-44",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 4",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 4.",
+    "src": "/gallery/SLIDE NCC 4th.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-45",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 5 (Sesi 2)",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 5. Momen tambahan keseruan aktivitas pendukung di panggung utama.",
+    "src": "/gallery/SLIDE NCC 5th KE 2.JPG",
+    "span": "col-span-1 md:col-span-2 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-46",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 6 (Sesi 2)",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 6. Momen tambahan keseruan aktivitas pendukung di panggung utama.",
+    "src": "/gallery/SLIDE NCC 6TH KE 2.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-47",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 6",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 6.",
+    "src": "/gallery/SLIDE NCC 6th .JPG",
+    "span": "col-span-1 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-48",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 7 (Sesi 2)",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 7. Momen tambahan keseruan aktivitas pendukung di panggung utama.",
+    "src": "/gallery/SLIDE NCC 7TH KE 2.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-49",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 7",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 7.",
+    "src": "/gallery/SLIDE NCC 7TH.JPG",
+    "span": "col-span-1 md:col-span-2 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-50",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 8 (Sesi 2)",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 8. Momen tambahan keseruan aktivitas pendukung di panggung utama.",
+    "src": "/gallery/SLIDE NCC 8TH KE 2.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-51",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 8",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 8.",
+    "src": "/gallery/SLIDE NCC 8TH.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-52",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 9 (Sesi 2)",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 9. Momen tambahan keseruan aktivitas pendukung di panggung utama.",
+    "src": "/gallery/SLIDE NCC 9TH KE 2.JPG",
+    "span": "col-span-1 md:col-span-2 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-53",
+    "category": "GALLERY",
+    "label": "Kilas Balik NCC Edisi 9",
+    "description": "Dokumentasi bersejarah perjalanan kompetisi tingkat nasional National Creativity Competition edisi 9.",
+    "src": "/gallery/SLIDE NCC 9TH.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-54",
+    "category": "GALLERY",
+    "label": "Foto Bersama Panitia",
+    "description": "Kerja keras panitia NCC yang sukses menyelenggarakan acara tahun ini.",
+    "src": "/gallery/TERPILIH (2).JPG",
+    "span": "col-span-1 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-55",
+    "category": "GALLERY",
+    "label": "Maskot NCC Berinteraksi",
+    "description": "Interaksi seru maskot resmi NCC dengan para pengunjung dan peserta.",
+    "src": "/gallery/a.JPG",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-56",
+    "category": "ARTS",
+    "label": "Pameran Lukisan Peserta",
+    "description": "Barisan lukisan hasil karya peserta dipajang rapi di lorong pameran.",
+    "src": "/gallery/c4.jpg",
+    "span": "col-span-1 md:col-span-2 row-span-2",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  },
+  {
+    "id": "portfolio-57",
+    "category": "ACADEMIC",
+    "label": "Presentasi Kelompok",
+    "description": "Kerja sama tim dalam mempresentasikan proyek inovatif mereka.",
+    "src": "/gallery/c8.jpg",
+    "span": "col-span-1 row-span-1",
+    "bg": "from-indigo-500/80 to-purple-600/80"
+  }
+];
 
 export default function GallerySection() {
   const [activeFilter, setActiveFilter] = useState("ALL");
@@ -194,6 +717,11 @@ export default function GallerySection() {
                     <h4 className="text-xl md:text-2xl font-bold text-white leading-tight drop-shadow-md">
                       {item.label}
                     </h4>
+                    {item.description && (
+                      <p className="text-xs text-white/80 mt-1 leading-snug drop-shadow-sm font-medium">
+                        {item.description}
+                      </p>
+                    )}
                   </div>
                 </div>
 
