@@ -544,8 +544,13 @@ export default function GallerySection() {
   const [gallerySubtitle, setGallerySubtitle] = useState("A glimpse into the spirit, competition, and victory at NCC. Capturing the journey of future leaders across diverse categories.");
   const [hovered, setHovered] = useState<number | string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [displayLimit, setDisplayLimit] = useState(16);
   const containerRef = useRef<HTMLElement>(null);
   const supabase = createClient();
+
+  useEffect(() => {
+    setDisplayLimit(16);
+  }, [activeFilter]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -613,6 +618,8 @@ export default function GallerySection() {
         item.category === activeFilter
       );
 
+  const displayedItems = filteredItems.slice(0, displayLimit);
+
   useGSAP(() => {
     gsap.registerPlugin(ScrollTrigger);
 
@@ -673,7 +680,7 @@ export default function GallerySection() {
       ) : (
         <div className="w-full max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 auto-rows-[240px] gap-4 grid-flow-row-dense">
           <AnimatePresence mode="popLayout">
-            {filteredItems.map((item) => (
+            {displayedItems.map((item) => (
               <motion.div
                 layout
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -686,7 +693,7 @@ export default function GallerySection() {
                 className={cn(
                   "relative rounded-[2rem] overflow-hidden group cursor-pointer shadow-lg transition-all duration-500 ease-out",
                   item.span,
-                  hovered !== null && hovered !== item.id && !isMobile && allGalleryItems.some(g => g.id === hovered) && "blur-sm scale-[0.98] opacity-60"
+                  hovered !== null && hovered !== item.id && !isMobile && allGalleryItems.some(g => g.id === hovered) && "scale-[0.98] opacity-60"
                 )}
               >
                 {/* Image Rendering */}
@@ -728,6 +735,17 @@ export default function GallerySection() {
               </motion.div>
             ))}
           </AnimatePresence>
+        </div>
+      )}
+
+      {filteredItems.length > displayLimit && (
+        <div className="w-full flex justify-center mt-12 animate-in fade-in duration-500">
+          <button 
+            onClick={() => setDisplayLimit(prev => prev + 16)}
+            className="px-8 py-3.5 rounded-full bg-slate-900 text-white font-bold hover:bg-slate-800 hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg hover:shadow-xl text-sm cursor-pointer"
+          >
+            Tampilkan Lebih Banyak
+          </button>
         </div>
       )}
 

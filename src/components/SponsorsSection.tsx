@@ -71,7 +71,7 @@ export default function SponsorsSection() {
               <img
                 src={sponsor.src}
                 alt={sponsor.name}
-                loading="lazy"
+                loading="eager"
                 decoding="async"
                 className="h-10 max-w-[120px] object-contain opacity-65 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300"
               />
@@ -86,7 +86,7 @@ export default function SponsorsSection() {
               <img
                 src={sponsor.src}
                 alt={sponsor.name}
-                loading="lazy"
+                loading="eager"
                 decoding="async"
                 className="h-10 max-w-[120px] object-contain opacity-65 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300"
               />
@@ -111,7 +111,7 @@ export default function SponsorsSection() {
               <img
                 src={sponsor.src}
                 alt={sponsor.name}
-                loading="lazy"
+                loading="eager"
                 decoding="async"
                 className="h-10 max-w-[120px] object-contain opacity-65 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300"
               />
@@ -126,7 +126,7 @@ export default function SponsorsSection() {
               <img
                 src={sponsor.src}
                 alt={sponsor.name}
-                loading="lazy"
+                loading="eager"
                 decoding="async"
                 className="h-10 max-w-[120px] object-contain opacity-65 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300"
               />
