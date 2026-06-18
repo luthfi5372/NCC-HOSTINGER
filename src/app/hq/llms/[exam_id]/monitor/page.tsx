@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/client';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -48,9 +48,7 @@ export default function LiveMonitor() {
   const params = useParams();
   const examId = params?.exam_id as string;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient();
 
   const [examInfo, setExamInfo] = useState<ExamInfo>({ title: 'Memuat...', token: '...', duration_minutes: 90 });
   const [participants, setParticipants] = useState<Participant[]>([]);

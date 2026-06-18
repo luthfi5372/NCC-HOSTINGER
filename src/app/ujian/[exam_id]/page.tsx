@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/client';
 import { useParams, useRouter } from 'next/navigation';
 import { generateTicketCode } from '@/lib/utils';
 import { 
@@ -20,9 +20,7 @@ export default function ExamRoom() {
   const router = useRouter();
   const examId = params?.exam_id as string;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient();
 
   const [student, setStudent] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);

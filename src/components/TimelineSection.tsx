@@ -140,13 +140,9 @@ export default function TimelineSection() {
     // 📡 DYNAMIC REAL-TIME SINKRONISASI DARI DATABASE SUPABASE
     const fetchTimeline = async () => {
       try {
-        // Gunakan supabase-js langsung dengan URL & anon key
-        // agar bisa baca dari halaman publik tanpa sesi/cookie
-        const { createClient: createRawClient } = await import('@supabase/supabase-js');
-        const supabase = createRawClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        );
+        // Gunakan client wrapper agar aman jika environment variables kosong di build time
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
 
         // Fetch dynamic curvy timeline steps from homepage_descriptions
         const { data: dbItems } = await supabase
