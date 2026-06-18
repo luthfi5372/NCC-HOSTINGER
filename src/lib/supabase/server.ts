@@ -1,35 +1,19 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { cookies } from 'next/headers';
+import { createMySQLServerClient } from '../mysql-client';
 
-export async function createClient() {
-  const cookieStore = await cookies()
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+export async function createClient(url?: string, key?: string, options?: any) {
+  let cookieStore: any = null;
+  try {
+    cookieStore = await cookies();
+  } catch (e) {
+    // Suppress cookie access error in middleware
+  }
 
-  // Stability Guard: Return a silent placeholder client if keys are missing
-  const finalUrl = supabaseUrl || "https://placeholder-disabled.supabase.co";
-  const finalKey = supabaseKey || "placeholder";
-
-  return createServerClient(
-    finalUrl,
-    finalKey,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-      },
+  const getCookies = options?.cookies || {
+    getAll() {
+      return cookieStore ? cookieStore.getAll() : [];
     }
-  )
+  };
+
+  return createMySQLServerClient({ cookies: getCookies });
 }

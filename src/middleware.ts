@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import { NextResponse, type NextRequest } from 'next/server';
 
 // ─── Daftar email yang berhak masuk sebagai Admin / HQ ───────────────────────
