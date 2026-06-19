@@ -182,6 +182,12 @@ export function createMySQLClient(cookiesStore?: any) {
     
     channel: (name: string) => new MySQLChannel(name),
     
+    removeChannel: (channel: any) => {
+      if (channel && typeof channel.unsubscribe === 'function') {
+        channel.unsubscribe();
+      }
+    },
+    
     storage: {
       from: (bucket: string) => new MySQLStorageBucket(bucket)
     },
