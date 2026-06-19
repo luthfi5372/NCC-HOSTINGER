@@ -355,10 +355,23 @@ export function createMySQLClient(cookiesStore?: any) {
             const token = cookiesStore?.get('sb-access-token')?.value || cookiesStore?.get('ncc-auth-token')?.value;
             if (!token) return { data: { user: null }, error: null };
             
-            const jwt = await import('jsonwebtoken');
-            const JWT_SECRET = process.env.JWT_SECRET || 'ncc-super-secret-key';
-            const decoded: any = jwt.verify(token, JWT_SECRET);
-            return { data: { user: decoded }, error: null };
+            try {
+              const parts = token.split('.');
+              if (parts.length !== 3) return { data: { user: null }, error: null };
+              
+              const base64Url = parts[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(
+                atob(base64)
+                  .split('')
+                  .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                  .join('')
+              );
+              const decoded = JSON.parse(jsonPayload);
+              return { data: { user: decoded }, error: null };
+            } catch (e) {
+              return { data: { user: null }, error: null };
+            }
           } else {
             const res = await fetch('/api/auth/user');
             if (!res.ok) return { data: { user: null }, error: null };

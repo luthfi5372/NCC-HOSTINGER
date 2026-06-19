@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest) {
 
   try {
     // 3. Bangun koneksi database melalui cookie (server-side)
-    const supabase = createServerClient(
+    const supabase = await createServerClient(
       "",
       "",
       {
