@@ -167,7 +167,7 @@ export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
       const authPassword = password;
 
       console.log(`[Admin Bridge] Attempting to sign in admin to Supabase Auth: ${authEmail}...`);
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      let { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: authEmail,
         password: authPassword
       });
@@ -183,35 +183,34 @@ export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
             data: {
               full_name: "NCC Admin Command",
               username: authEmail.split('@')[0],
+              role: "admin", // Sets user role to admin in MySQL profiles table
             }
           }
         });
 
         if (!signUpError && signUpData.user) {
-          console.log(`[Admin Bridge] Successfully registered admin on-the-fly. Syncing profile...`);
-          // Sync profile to profiles table
-          await supabase
-            .from('profiles')
-            .insert({
-              id: signUpData.user.id,
-              username: authEmail.split('@')[0],
-              full_name: "NCC Admin Command",
-            });
-
+          console.log(`[Admin Bridge] Successfully registered admin on-the-fly.`);
           // Log in again to establish session cookies
-          await supabase.auth.signInWithPassword({
+          const secondSignIn = await supabase.auth.signInWithPassword({
             email: authEmail,
             password: authPassword
           });
-          console.log(`[Admin Bridge] Admin successfully logged in after auto-registration!`);
+          signInError = secondSignIn.error;
+          if (!signInError) {
+            console.log(`[Admin Bridge] Admin successfully logged in after auto-registration!`);
+          }
         } else {
           console.error(`[Admin Bridge] Auto-registration failed:`, signUpError);
+          return { success: false, error: signUpError?.message || signInError?.message || "Gagal registrasi admin otomatis." };
         }
-      } else {
-        console.log(`[Admin Bridge] Admin logged in successfully!`);
       }
-    } catch (e) {
+      
+      if (signInError) {
+        return { success: false, error: signInError.message || "Gagal masuk sebagai admin." };
+      }
+    } catch (e: any) {
       console.error(`[Admin Bridge] Error bridging admin bypass to Supabase Auth:`, e);
+      return { success: false, error: e.message || "Terjadi kesalahan internal koneksi database admin." };
     }
 
     return { success: true, isAdmin: true };

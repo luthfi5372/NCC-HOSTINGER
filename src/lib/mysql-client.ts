@@ -200,6 +200,7 @@ export function createMySQLClient(cookiesStore?: any) {
             const full_name = options.options?.data?.full_name || '';
             const school = options.options?.data?.school || '';
             const npsn = options.options?.data?.npsn || '';
+            const role = options.options?.data?.role || 'peserta';
 
             const { data: existing } = await executePayload({
               table: 'profiles',
@@ -223,7 +224,7 @@ export function createMySQLClient(cookiesStore?: any) {
               full_name,
               school: school || null,
               npsn: npsn || null,
-              role: 'peserta'
+              role
             };
 
             await executePayload({
@@ -235,7 +236,7 @@ export function createMySQLClient(cookiesStore?: any) {
             const cookieStore = await cookies();
             cookieStore.set('ncc_hint', '1', { path: '/', maxAge: 60 * 60 * 24 * 7 });
 
-            return { data: { user: { id, email, role: 'peserta' } }, error: null };
+            return { data: { user: { id, email, role } }, error: null };
           } else {
             const res = await fetch('/api/auth/signup', {
               method: 'POST',
