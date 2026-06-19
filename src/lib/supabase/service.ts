@@ -15,19 +15,6 @@ export type CompetitionEntry = {
 
 export async function submitCompetitionEntryToSupabase(entry: CompetitionEntry, userId?: string) {
   const supabase = createClient();
-  
-  // Check if Supabase is configured
-  const isPlaceholder = !process.env.NEXT_PUBLIC_SUPABASE_URL || 
-                        process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder");
-
-  if (isPlaceholder) {
-    console.warn("Supabase not configured. Pure Supabase Mode enforcing rejection.");
-    return { 
-      data: null, 
-      error: { message: "Database Supabase belum terkonfigurasi pada env variables." } 
-    };
-  }
-
 
   try {
     // [ADD] Kill Switch Check

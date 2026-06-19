@@ -80,6 +80,11 @@ class MySQLQueryBuilder {
     return this;
   }
 
+  range(from: number, to: number) {
+    this.payload.limit = to - from + 1;
+    return this;
+  }
+
   // Thenable implementation to support async/await directly on the query builder
   async then(onfulfilled?: (value: any) => any, onrejected?: (reason: any) => any) {
     try {

@@ -400,90 +400,19 @@ export async function getLocalSession() {
 /** Mengambil semua pendaftaran kompetisi khusus untuk halaman Admin HQ (Bypass RLS via Service Role) */
 export async function getAdminCompetitionEntries() {
   try {
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-    // --- TAHAP 1: Gunakan Service Role Key (Bypass RLS 100%) ---
-    if (serviceRoleKey) {
-      console.log("[SA] Menggunakan Service Role Key...");
-      const serviceClient = createSupabaseClient(supabaseUrl, serviceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false }
-      });
-      const { data, error } = await serviceClient
-        .from('competition_entries')
-        .select('*')
-        .neq('email', 'admin1@ncc.id')
-        .order('created_at', { ascending: false })
-        .range(0, 9999);
-
-      console.log("[SA] Service Role hasil:", data?.length ?? 0, "baris, error:", error?.message);
-      if (!error) return { data: data || [], error: null };
-    }
-
-    // --- TAHAP 2: Coba dengan sesi cookie server ---
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "halo.ncc@gmail.com"];
-    console.log("[SA] Sesi cookie:", user?.email || "tidak ada");
-
-    if (user && adminEmails.includes(user.email?.toLowerCase() || "")) {
-      const { data, error } = await supabase
-        .from('competition_entries')
-        .select('*')
-        .neq('email', 'admin1@ncc.id')
-        .order('created_at', { ascending: false })
-        .range(0, 9999);
-      console.log("[SA] Cookie sesi hasil:", data?.length ?? 0, "baris");
-      if (!error && data && data.length > 0) return { data, error: null };
-    }
-
-    // --- TAHAP 3: Coba login admin1, atau daftarkan dulu jika belum ada ---
-    const authClient = createSupabaseClient(supabaseUrl, anonKey);
-
-    let signInResult = await authClient.auth.signInWithPassword({
-      email: 'admin1@ncc.id',
-      password: '123456',
-    });
-
-    // Jika gagal login → coba daftarkan akun admin1 dulu
-    if (signInResult.error) {
-      console.log("[SA] Login gagal, coba daftar akun admin1...", signInResult.error.message);
-      await authClient.auth.signUp({
-        email: 'admin1@ncc.id',
-        password: '123456',
-        options: { data: { full_name: 'Admin NCC', username: 'admin1' } }
-      });
-      // Coba login lagi setelah daftar
-      signInResult = await authClient.auth.signInWithPassword({
-        email: 'admin1@ncc.id',
-        password: '123456',
-      });
-    }
-
-    console.log("[SA] Login admin1:", signInResult.error ? `GAGAL - ${signInResult.error.message}` : "BERHASIL");
-
-    if (!signInResult.error) {
-      const { data, error } = await authClient
-        .from('competition_entries')
-        .select('*')
-        .neq('email', 'admin1@ncc.id')
-        .order('created_at', { ascending: false })
-        .range(0, 9999);
-      console.log("[SA] Login admin hasil:", data?.length ?? 0, "baris");
-      if (!error) return { data: data || [], error: null };
-    }
-
-    // --- TAHAP 4: Last resort - query anonim (hanya berhasil jika RLS dinonaktifkan) ---
-    const { data: anonData, error: anonError } = await authClient
+    const { data, error } = await supabase
       .from('competition_entries')
       .select('*')
+      .neq('email', 'admin1@ncc.id')
       .order('created_at', { ascending: false })
       .range(0, 9999);
-    console.log("[SA] Anon query hasil:", anonData?.length ?? 0, "baris, error:", anonError?.message);
-    return { data: anonData || [], error: anonError?.message || null };
 
+    if (error) {
+      console.error("[SA] getAdminCompetitionEntries error:", error);
+      return { data: [], error: error.message };
+    }
+    return { data: data || [], error: null };
   } catch (err: any) {
     console.error("[Server Action] Exception:", err);
     return { data: null, error: err.message || "Gagal mengambil data." };
@@ -493,20 +422,7 @@ export async function getAdminCompetitionEntries() {
 /** Mengambil list user yang sudah register (di profiles / auth.users) tapi belum memilih lomba */
 export async function getUnregisteredUsers() {
   try {
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!serviceRoleKey) {
-      console.warn("[SA] getUnregisteredUsers: Missing SUPABASE_SERVICE_ROLE_KEY. Falling back to anon client.");
-    }
-
-    // Gunakan service role client jika tersedia agar 100% bypass RLS, jika tidak gunakan anon client
-    const client = serviceRoleKey
-      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
-          auth: { autoRefreshToken: false, persistSession: false }
-        })
-      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+    const client = await createClient();
 
     // 1. Ambil semua entries dari competition_entries untuk disilang
     const { data: entries, error: entriesError } = await client
@@ -536,88 +452,32 @@ export async function getUnregisteredUsers() {
       return { data: [], error: profilesError.message };
     }
 
-    // 3. Ambil data auth users dari admin list jika service role tersedia
-    let authUsers: any[] = [];
-    if (serviceRoleKey) {
-      try {
-        const { data: authData, error: authError } = await client.auth.admin.listUsers();
-        if (!authError && authData?.users) {
-          authUsers = authData.users;
-        }
-      } catch (err) {
-        console.warn("[SA] Gagal melist auth users dari admin API:", err);
-      }
-    }
-
     const adminEmails = ["admin@ncc.id", "admin1@ncc.id", "halo.ncc@gmail.com"];
-    const unregisteredMap = new Map<string, any>();
+    const result: any[] = [];
 
-    // Masukkan data dari auth users terlebih dahulu
-    authUsers.forEach(user => {
-      const email = user.email?.toLowerCase().trim() || "";
+    profiles?.forEach(profile => {
+      const email = profile.email?.toLowerCase().trim() || "";
       if (adminEmails.includes(email)) return; // Lewati admin
 
-      const hasUserId = registeredUserIds.has(user.id);
+      const hasUserId = registeredUserIds.has(profile.id);
       const hasEmail = registeredEmails.has(email);
 
       if (!hasUserId && !hasEmail) {
-        unregisteredMap.set(user.id, {
-          id: user.id,
-          email: user.email || "",
-          fullName: user.user_metadata?.full_name || user.email?.split('@')[0] || "User Tanpa Nama",
-          username: user.user_metadata?.username || "-",
-          school: "-",
-          phone: "-",
-          createdAt: user.created_at || new Date().toISOString(),
-          password: user.user_metadata?.custom_password || "-",
+        result.push({
+          id: profile.id,
+          email: email,
+          fullName: profile.full_name || "User Tanpa Nama",
+          username: profile.username || "-",
+          school: profile.school || "-",
+          phone: profile.phone || "-",
+          createdAt: profile.created_at || new Date().toISOString(),
+          password: (profile as any).custom_password || "-", 
         });
       }
     });
 
-    // Perkaya atau tambahkan data dari tabel profiles
-    profiles?.forEach(profile => {
-      const hasUserId = registeredUserIds.has(profile.id);
-      const emailFromMeta = (profile as any).email || "";
-      const hasEmail = emailFromMeta ? registeredEmails.has(emailFromMeta.toLowerCase().trim()) : false;
-
-      if (!hasUserId && !hasEmail) {
-        const existing = unregisteredMap.get(profile.id);
-        if (existing) {
-          // Update data yang ada dengan data profile yang lebih lengkap
-          unregisteredMap.set(profile.id, {
-            ...existing,
-            fullName: profile.full_name || existing.fullName,
-            username: profile.username || existing.username,
-            school: (profile as any).school || existing.school,
-            phone: (profile as any).phone || existing.phone,
-            createdAt: (profile as any).created_at || existing.createdAt,
-          });
-        } else {
-          // check email jika profiles ada email atau coba cari di authUsers jika ada
-          const matchingAuth = authUsers.find(u => u.id === profile.id);
-          const email = matchingAuth?.email || (profile as any).email || "";
-          
-          if (email && adminEmails.includes(email.toLowerCase().trim())) return; // Lewati admin
-          if (email && registeredEmails.has(email.toLowerCase().trim())) return; // Lewati jika email sudah mendaftar
-
-          unregisteredMap.set(profile.id, {
-            id: profile.id,
-            email: email,
-            fullName: profile.full_name || "User Tanpa Nama",
-            username: profile.username || "-",
-            school: (profile as any).school || "-",
-            phone: (profile as any).phone || "-",
-            createdAt: (profile as any).created_at || new Date().toISOString(),
-            password: matchingAuth?.user_metadata?.custom_password || "-",
-          });
-        }
-      }
-    });
-
-    // Ubah ke array dan urutkan berdasarkan waktu registrasi terbaru
-    const result = Array.from(unregisteredMap.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    // Urutkan berdasarkan waktu registrasi terbaru
+    result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return { data: result, error: null };
   } catch (err: any) {
@@ -629,16 +489,7 @@ export async function getUnregisteredUsers() {
 /** Mengambil data telemetri CBT/LLMS secara aman dari server (RLS bypass) */
 export async function getLLMSTelemetryData() {
   try {
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    // Gunakan service role jika ada, fallback ke anon client
-    const client = serviceRoleKey
-      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
-          auth: { autoRefreshToken: false, persistSession: false }
-        })
-      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+    const client = await createClient();
 
     // Ambil data cbt_questions dengan select exam_id untuk menghitung jumlah soal per sesi
     const { data: questionsData, error: qError } = await client
@@ -709,15 +560,7 @@ export async function getLLMSTelemetryData() {
 /** Mengambil data siaran (announcements) secara aman dari server (RLS bypass) */
 export async function getAdminBroadcasts() {
   try {
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    const client = serviceRoleKey
-      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
-          auth: { autoRefreshToken: false, persistSession: false }
-        })
-      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+    const client = await createClient();
 
     const { data, error } = await client
       .from('announcements')
@@ -736,15 +579,7 @@ export async function getAdminBroadcasts() {
 /** Mengambil percakapan sekolah secara aman dari server (RLS bypass) */
 export async function getSchoolMessages(schoolName: string, npsn?: string) {
   try {
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    const client = serviceRoleKey
-      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
-          auth: { autoRefreshToken: false, persistSession: false }
-        })
-      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+    const client = await createClient();
 
     let data: any[] = [];
     let error: any = null;
@@ -791,15 +626,7 @@ export async function getSchoolMessages(schoolName: string, npsn?: string) {
 /** Mengambil setting portal secara aman dari server (RLS bypass) */
 export async function getPortalSettings() {
   try {
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    const client = serviceRoleKey
-      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
-          auth: { autoRefreshToken: false, persistSession: false }
-        })
-      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+    const client = await createClient();
 
     const { data, error } = await client
       .from('announcements')
@@ -817,15 +644,7 @@ export async function getPortalSettings() {
 /** Mengambil konfigurasi timeline secara aman dari server (RLS bypass) */
 export async function getTimelineConfig() {
   try {
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    const client = serviceRoleKey
-      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
-          auth: { autoRefreshToken: false, persistSession: false }
-        })
-      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+    const client = await createClient();
 
     const { data, error } = await client
       .from('announcements')
@@ -843,15 +662,7 @@ export async function getTimelineConfig() {
 /** Mengambil sesi ujian CBT aktif secara aman dari server (RLS bypass) */
 export async function getActiveExams() {
   try {
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    const client = serviceRoleKey
-      ? createSupabaseClient(supabaseUrl, serviceRoleKey, {
-          auth: { autoRefreshToken: false, persistSession: false }
-        })
-      : createSupabaseClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+    const client = await createClient();
 
     const { data, error } = await client
       .from('cbt_exams')
