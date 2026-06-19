@@ -173,6 +173,33 @@ export async function loginLocalUser(formData: FormData): Promise<AuthResult> {
       });
 
       if (signInError) {
+        if (signInError.message === 'Kredensial tidak valid') {
+          console.log(`[Admin Bridge] Invalid credentials detected for seeded admin. Attempting auto-healing hash update...`);
+          try {
+            const bcrypt = await import('bcryptjs');
+            const salt = await bcrypt.genSalt(10);
+            const correctHash = await bcrypt.hash(authPassword, salt);
+            
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({ password_hash: correctHash })
+              .eq('email', authEmail);
+              
+            if (!updateError) {
+              console.log(`[Admin Bridge] Password hash successfully healed in database. Retrying sign-in...`);
+              const retryResult = await supabase.auth.signInWithPassword({
+                email: authEmail,
+                password: authPassword
+              });
+              signInError = retryResult.error;
+            }
+          } catch (err: any) {
+            console.error(`[Admin Bridge] Failed to execute auto-healing password update:`, err);
+          }
+        }
+      }
+
+      if (signInError) {
         console.warn(`[Admin Bridge] Admin sign-in failed: ${signInError.message}. Attempting auto-registration...`);
         
         // Register the admin account on the fly

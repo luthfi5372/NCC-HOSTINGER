@@ -191,26 +191,28 @@ ON DUPLICATE KEY UPDATE id=1;
 -- 14. SEED ADMIN UTAMA DEFAULT
 -- Username: admin1
 -- Email: admin1@ncc.id
--- Password (hash): $2a$10$n4ZqA5z8J3M.2dIq5lZkDu85e9iS1fJ5OqT9k1dZ.vj3Vw8Z.xX0e (Yaitu "123456" jika di-dekripsi)
+-- Password (hash): $2b$10$RT5qrRj7SaERCOU6BmVYzuWL8VPxlPQzuZO3T0u7tHS3botiet8fq (Yaitu "123456")
 -- Peran: admin
 INSERT INTO profiles (id, username, email, password_hash, full_name, role) 
 VALUES (
     'admin1-uuid-0000-0000-000000000000', 
     'admin1', 
     'admin1@ncc.id', 
-    '$2a$10$n4ZqA5z8J3M.2dIq5lZkDu85e9iS1fJ5OqT9k1dZ.vj3Vw8Z.xX0e', 
+    '$2b$10$RT5qrRj7SaERCOU6BmVYzuWL8VPxlPQzuZO3T0u7tHS3botiet8fq', 
     'Admin Command Center', 
     'admin'
 )
 ON DUPLICATE KEY UPDATE id='admin1-uuid-0000-0000-000000000000';
 
 -- Tambahkan Admin cadangan jika diperlukan
+-- Email: admin@ncc.id
+-- Password (hash): $2b$10$q/JZO0GWs9UiLdxCE9wWIemb4FSK9M7RdGwX5hzhp5RTUiBlSyFte (Yaitu "admin123")
 INSERT INTO profiles (id, username, email, password_hash, full_name, role) 
 VALUES (
     'admin2-uuid-0000-0000-000000000000', 
     'admin', 
     'admin@ncc.id', 
-    '$2a$10$n4ZqA5z8J3M.2dIq5lZkDu85e9iS1fJ5OqT9k1dZ.vj3Vw8Z.xX0e', 
+    '$2b$10$q/JZO0GWs9UiLdxCE9wWIemb4FSK9M7RdGwX5hzhp5RTUiBlSyFte', 
     'Admin Utama', 
     'admin'
 )
