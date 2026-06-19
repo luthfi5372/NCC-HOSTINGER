@@ -4,7 +4,10 @@ let pool: mysql.Pool | null = null;
 
 export function getPool(): mysql.Pool {
   if (!pool) {
-    const host = process.env.MYSQL_HOST || '127.0.0.1';
+    let host = process.env.MYSQL_HOST || '127.0.0.1';
+    if (host.toLowerCase() === 'localhost') {
+      host = '127.0.0.1';
+    }
     const port = parseInt(process.env.MYSQL_PORT || '3306');
     const user = process.env.MYSQL_USER || 'root';
     const password = process.env.MYSQL_PASSWORD || '';

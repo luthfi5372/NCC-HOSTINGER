@@ -270,11 +270,15 @@ export function createMySQLClient(cookiesStore?: any) {
             const email = options.email;
             const password = options.password;
 
-            const { data: users } = await executePayload({
+            const { data: users, error: dbError } = await executePayload({
               table: 'profiles',
               action: 'select',
               filters: [{ type: 'eq', col: 'email', val: email }]
             });
+
+            if (dbError) {
+              throw new Error(dbError.message || 'Gagal terhubung ke database');
+            }
 
             if (!users || users.length === 0) {
               throw new Error('Kredensial tidak valid');
