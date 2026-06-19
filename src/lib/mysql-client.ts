@@ -189,41 +189,153 @@ export function createMySQLClient(cookiesStore?: any) {
     auth: {
       signUp: async (options: any) => {
         try {
-          const res = await fetch('/api/auth/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: options.email,
-              password: options.password,
-              username: options.options?.data?.username || options.email.split('@')[0],
-              full_name: options.options?.data?.full_name || '',
-              school: options.options?.data?.school || '',
-              npsn: options.options?.data?.npsn || ''
-            })
-          });
-          const result = await res.json();
-          if (!res.ok) throw new Error(result.error);
-          return { data: { user: result.user }, error: null };
+          if (typeof window === 'undefined') {
+            const { executePayload } = await import('./mysql-db');
+            const bcrypt = await import('bcryptjs');
+            const { cookies } = await import('next/headers');
+
+            const email = options.email;
+            const password = options.password;
+            const username = options.options?.data?.username || email.split('@')[0];
+            const full_name = options.options?.data?.full_name || '';
+            const school = options.options?.data?.school || '';
+            const npsn = options.options?.data?.npsn || '';
+
+            const { data: existing } = await executePayload({
+              table: 'profiles',
+              action: 'select',
+              filters: [{ type: 'eq', col: 'email', val: email }]
+            });
+
+            if (existing && existing.length > 0) {
+              throw new Error('Email sudah terdaftar');
+            }
+
+            const salt = await bcrypt.genSalt(10);
+            const password_hash = await bcrypt.hash(password, salt);
+            const id = 'user-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now().toString(36);
+
+            const newUser = {
+              id,
+              username,
+              email,
+              password_hash,
+              full_name,
+              school: school || null,
+              npsn: npsn || null,
+              role: 'peserta'
+            };
+
+            await executePayload({
+              table: 'profiles',
+              action: 'insert',
+              insertData: newUser
+            });
+
+            const cookieStore = await cookies();
+            cookieStore.set('ncc_hint', '1', { path: '/', maxAge: 60 * 60 * 24 * 7 });
+
+            return { data: { user: { id, email, role: 'peserta' } }, error: null };
+          } else {
+            const res = await fetch('/api/auth/signup', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: options.email,
+                password: options.password,
+                username: options.options?.data?.username || options.email.split('@')[0],
+                full_name: options.options?.data?.full_name || '',
+                school: options.options?.data?.school || '',
+                npsn: options.options?.data?.npsn || ''
+              })
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error);
+            return { data: { user: result.user }, error: null };
+          }
         } catch (err: any) {
-          return { data: { user: null }, error: { message: err.message } };
+          return { data: { user: null }, error: { message: err.message || 'Gagal daftar' } };
         }
       },
 
       signInWithPassword: async (options: any) => {
         try {
-          const res = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: options.email,
-              password: options.password
-            })
-          });
-          const result = await res.json();
-          if (!res.ok) throw new Error(result.error);
-          return { data: { user: result.user }, error: null };
+          if (typeof window === 'undefined') {
+            const { executePayload } = await import('./mysql-db');
+            const bcrypt = await import('bcryptjs');
+            const jwt = await import('jsonwebtoken');
+            const { cookies } = await import('next/headers');
+
+            const email = options.email;
+            const password = options.password;
+
+            const { data: users } = await executePayload({
+              table: 'profiles',
+              action: 'select',
+              filters: [{ type: 'eq', col: 'email', val: email }]
+            });
+
+            if (!users || users.length === 0) {
+              throw new Error('Kredensial tidak valid');
+            }
+
+            const user = users[0];
+            const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+            if (!isPasswordValid) {
+              throw new Error('Kredensial tidak valid');
+            }
+
+            const JWT_SECRET = process.env.JWT_SECRET || 'ncc-super-secret-key';
+            const token = jwt.sign(
+              {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                role: user.role,
+                user_metadata: { role: user.role }
+              },
+              JWT_SECRET,
+              { expiresIn: '7d' }
+            );
+
+            const cookieStore = await cookies();
+            cookieStore.set('sb-access-token', token, {
+              path: '/',
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              maxAge: 60 * 60 * 24 * 7 // 7 days
+            });
+            cookieStore.set('ncc-auth-token', token, {
+              path: '/',
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              maxAge: 60 * 60 * 24 * 7
+            });
+            cookieStore.set('ncc_hint', '1', { path: '/', maxAge: 60 * 60 * 24 * 7 });
+
+            const userObj = {
+              id: user.id,
+              email: user.email,
+              role: user.role,
+              user_metadata: { role: user.role }
+            };
+
+            return { data: { user: userObj }, error: null };
+          } else {
+            const res = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: options.email,
+                password: options.password
+              })
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error);
+            return { data: { user: result.user }, error: null };
+          }
         } catch (err: any) {
-          return { data: { user: null }, error: { message: err.message } };
+          return { data: { user: null }, error: { message: err.message || 'Gagal login' } };
         }
       },
 
