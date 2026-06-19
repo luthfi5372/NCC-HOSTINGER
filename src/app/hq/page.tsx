@@ -3222,6 +3222,20 @@ function ModernHQDashboardContent() {
             width: 320px !important;
           }
         }
+        /* Custom scrollbar for sidebar nav */
+        .sidebar-nav::-webkit-scrollbar {
+          width: 4px;
+        }
+        .sidebar-nav::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .sidebar-nav::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+        .sidebar-nav::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
       `}</style>
       {/* Ornamen Latar Belakang - Optimized */}
       <div className="absolute top-[-5%] left-[-5%] w-64 h-64 bg-blue-400/10 rounded-full blur-2xl pointer-events-none"></div>
@@ -3230,9 +3244,9 @@ function ModernHQDashboardContent() {
       {/* ========================================================= */}
         {/* SIDEBAR NAVIGASI (LIQUID GLASS) */}
       {/* ========================================================= */}
-      <aside className="w-72 bg-white/70 backdrop-blur-2xl border-r border-white/60 flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-500">
-        <div className="p-8">
-          <div className="flex items-center gap-3 mb-2">
+      <aside className="w-72 bg-white/70 backdrop-blur-2xl border-r border-white/60 flex flex-col h-full z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-500">
+        <div className="p-8 pb-4">
+          <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
               <ShieldCheck size={22} className="text-white" />
             </div>
@@ -3243,7 +3257,7 @@ function ModernHQDashboardContent() {
           </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2 mt-4">
+        <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto sidebar-nav pr-1 pb-4">
           {[
             { id: "Dashboard", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
             { id: "Peserta", icon: <Users size={18} />, label: "Buku Peserta", count: realEntries.length },
